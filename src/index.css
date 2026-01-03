@@ -1,0 +1,241 @@
+@import "tailwindcss";
+:root {
+  /* Defaults (Light/Slate) */
+  --c-white: #ffffff;
+  --c-paper: #fcfcfc;
+
+  /* Slate Scale */
+  --s-50: #f8fafc;
+  --s-100: #f1f5f9;
+  --s-200: #e2e8f0;
+  --s-300: #cbd5e1;
+  --s-400: #94a3b8;
+  --s-500: #64748b;
+  --s-600: #475569;
+  --s-700: #334155;
+  --s-800: #1e293b;
+  --s-900: #0f172a;
+  --s-950: #020617;
+
+  /* Semantic: Rose (Red) */
+  --rose-50: #fff1f2;
+  --rose-100: #ffe4e6;
+  --rose-200: #fecdd3;
+  --rose-500: #f43f5e;
+  --rose-600: #e11d48;
+  --rose-700: #be123c;
+
+  /* Semantic: Emerald (Green) */
+  --emerald-50: #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+
+  /* Semantic: Blue */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+
+  /* Semantic: Amber */
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-500: #f59e0b;
+  --amber-700: #b45309;
+}
+
+/* DARK THEME (Inverted Scales) */
+[data-theme="dark"] {
+  --c-white: #0f172a;
+  --c-paper: #1e293b;
+
+  /* Invert Slate: Lightest becomes Darkest */
+  --s-50: #1e293b;
+  --s-100: #334155;
+  --s-200: #475569;
+  --s-300: #64748b;
+  --s-400: #94a3b8;
+  --s-500: #cbd5e1;
+  --s-600: #e2e8f0;
+  --s-700: #f1f5f9;
+  --s-800: #f8fafc;
+  --s-900: #ffffff;
+  --s-950: #ffffff;
+
+  /* Invert Semantic: BG (50/100) becomes Dark, Text (600/700) becomes Light */
+  --rose-50: #4c0519;
+  --rose-100: #881337;
+  --rose-200: #9f1239;
+  --rose-500: #fb7185;
+  --rose-600: #fecdd3; /* Text becomes light pink */
+  --rose-700: #ffe4e6;
+
+  --emerald-50: #022c22;
+  --emerald-100: #064e3b;
+  --emerald-200: #065f46;
+  --emerald-500: #34d399;
+  --emerald-600: #a7f3d0; /* Text becomes light green */
+
+  --blue-50: #172554;
+  --blue-100: #1e3a8a;
+  --blue-200: #1e40af;
+  --blue-500: #60a5fa;
+  --blue-600: #bfdbfe;
+
+  --amber-50: #451a03;
+  --amber-100: #78350f;
+  --amber-200: #92400e;
+  --amber-500: #fbbf24;
+  --amber-700: #fde68a;
+}
+
+/* MIDNIGHT THEME (Deep Blue) */
+[data-theme="midnight"] {
+  --c-white: #0b1120;
+  --c-paper: #151e32;
+
+  --s-50: #151e32;
+  --s-100: #1e293b;
+  --s-200: #334155;
+  --s-300: #475569;
+  --s-400: #64748b;
+  --s-500: #94a3b8;
+  --s-600: #cbd5e1;
+  --s-700: #e2e8f0;
+  --s-800: #f1f5f9;
+  --s-900: #f8fafc;
+  --s-950: #ffffff;
+
+  /* Semantics similar to Dark but cooler if I had time, sticking to dark map */
+  --rose-50: #4c0519;
+  --rose-100: #881337;
+  --rose-200: #9f1239;
+  --rose-500: #fb7185;
+  --rose-600: #fecdd3;
+  --rose-700: #ffe4e6;
+
+  --emerald-50: #022c22;
+  --emerald-100: #064e3b;
+  --emerald-200: #065f46;
+  --emerald-500: #34d399;
+  --emerald-600: #a7f3d0;
+
+  --blue-50: #172554;
+  --blue-100: #1e3a8a;
+  --blue-200: #1e40af;
+  --blue-500: #60a5fa;
+  --blue-600: #bfdbfe;
+
+  --amber-50: #451a03;
+  --amber-100: #78350f;
+  --amber-200: #92400e;
+  --amber-500: #fbbf24;
+  --amber-700: #fde68a;
+}
+
+/* COFFEE THEME (Warm Sepia) */
+[data-theme="coffee"] {
+  --c-white: #fdfbf7;
+  --c-paper: #f5f2eb;
+
+  --s-50: #f7f5f0;
+  --s-100: #e8e4db;
+  --s-200: #d6d0c2;
+  --s-300: #b8b0a0;
+  --s-400: #9c9280;
+  --s-500: #857a66;
+  --s-600: #6e6352;
+  --s-700: #594f41;
+  --s-800: #4a3b32;
+  --s-900: #2b211a;
+  --s-950: #1a1410;
+
+  /* Semantics - keeping default light but maybe warmer? Using defaults for stability. */
+}
+
+body {
+  background-color: var(--s-100);
+  color: var(--s-900);
+  -webkit-font-smoothing: antialiased;
+  scrollbar-gutter: stable;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Global Transitions for smooth theme switching */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--s-300);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--s-400);
+}
+
+@theme {
+  --font-sans: Inter, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-white: var(--c-white);
+  --color-paper: var(--c-white);
+
+  --color-slate-50: var(--s-50);
+  --color-slate-100: var(--s-100);
+  --color-slate-200: var(--s-200);
+  --color-slate-300: var(--s-300);
+  --color-slate-400: var(--s-400);
+  --color-slate-500: var(--s-500);
+  --color-slate-600: var(--s-600);
+  --color-slate-700: var(--s-700);
+  --color-slate-800: var(--s-800);
+  --color-slate-900: var(--s-900);
+  --color-slate-950: var(--s-950);
+
+  --color-rose-50: var(--rose-50);
+  --color-rose-100: var(--rose-100);
+  --color-rose-200: var(--rose-200);
+  --color-rose-500: var(--rose-500);
+  --color-rose-600: var(--rose-600);
+  --color-rose-700: var(--rose-700);
+
+  --color-emerald-50: var(--emerald-50);
+  --color-emerald-100: var(--emerald-100);
+  --color-emerald-200: var(--emerald-200);
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-500: var(--emerald-500);
+  --color-emerald-600: var(--emerald-600);
+
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+
+  --color-amber-50: var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-500: var(--amber-500);
+  --color-amber-700: var(--amber-700);
+}
