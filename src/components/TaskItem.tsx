@@ -270,7 +270,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       className={cn(
-        "group relative flex items-stretch gap-2 py-1.5 px-1 transition-all rounded-lg",
+        "group relative flex items-stretch gap-2 pb-1.5 pt-0.5 px-1 transition-all rounded-lg",
         (isDone || isCancelled) && "opacity-60",
         isUrgent
           ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
@@ -329,15 +329,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: -5 }}
                 transition={{ duration: 0.15 }}
-                className="w-44 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1.5 ring-1 ring-slate-900/5"
+                className="w-44 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1.5 ring-1 ring-slate-900/5"
               >
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-0.5 px-3">
                   {statusOptions.map((option) => (
                     <Popover.Close key={option} asChild>
                       <button
                         onClick={() => handleStatusChange(option)}
                         className={cn(
-                          "w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left outline-none",
+                          "w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left outline-none",
                           task.status === option
                             ? "bg-slate-100 text-slate-900 font-semibold"
                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
@@ -352,7 +352,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   <Popover.Close asChild>
                     <button
                       onClick={() => onEdit?.(task)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left outline-none rounded-lg"
+                      className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left outline-none rounded-lg"
                     >
                       <Icon name="Pencil" size={14} className="opacity-70" />
                       <span>Edit Details</span>
@@ -392,7 +392,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   isDone && "line-through text-slate-500 decoration-slate-300",
                   isCancelled &&
                     "line-through text-slate-400 decoration-slate-300",
-                  isUrgent && "text-rose-900 font-semibold"
+                  isUrgent && "text-rose-700 font-semibold"
                 )}
               >
                 {task.title}

@@ -472,7 +472,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-56 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
+            className="w-56 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
           >
             <div className="flex justify-between items-center px-3 py-2 border-b border-slate-100/50 mb-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -504,11 +504,15 @@ interface SortPopoverProps {
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   const { portalContainer } = useAppContext();
-  const fields: { label: string; value: SortField }[] = [
-    { label: "Due Date", value: "dueDate" },
-    { label: "Created Date", value: "createdAt" },
-    { label: "Priority", value: "priority" },
-    { label: "Title", value: "title" },
+  const fields: {
+    label: string;
+    value: SortField;
+    icon: keyof typeof Lucide;
+  }[] = [
+    { label: "Due Date", value: "dueDate", icon: "Calendar" },
+    { label: "Created Date", value: "createdAt", icon: "Clock" },
+    { label: "Priority", value: "priority", icon: "Flag" },
+    { label: "Title", value: "title", icon: "Type" },
   ];
 
   const handleFieldSelect = (field: SortField) => {
@@ -544,12 +548,12 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-48 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
+            className="w-48 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
           >
             <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100/50 mb-1">
               Sort By
             </div>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 px-3">
               {fields.map((f) => {
                 const isSelected = sort.field === f.value;
                 return (
@@ -557,13 +561,20 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
                     key={f.value}
                     onClick={() => handleFieldSelect(f.value)}
                     className={cn(
-                      "flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors outline-none",
+                      "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-colors outline-none",
                       isSelected
                         ? "bg-slate-100 text-slate-900 font-medium"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <span>{f.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        name={f.icon}
+                        size={14}
+                        className={isSelected ? "text-blue-500" : "opacity-70"}
+                      />
+                      <span>{f.label}</span>
+                    </div>
                     {isSelected && (
                       <div className="flex items-center gap-1 text-blue-500">
                         <Icon

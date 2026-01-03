@@ -347,7 +347,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   ) : (
                     <button
                       onClick={() => setIsAdding(true)}
-                      className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors h-5.5 flex items-center font-medium"
+                      className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors h-5.5 flex items-end font-medium"
                     >
                       Add task...
                     </button>
