@@ -20,6 +20,7 @@ import { cn, deriveTaskStatus } from "./utils";
 import { logger } from "./utils/logger";
 import { BrowserTaskRepository, BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
+import { AppProvider } from "./components/AppContext";
 
 // Logic Hooks
 import { useTaskFiltering } from "./hooks/useTaskFiltering";
@@ -81,6 +82,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Use state for the container ref to ensure re-render when it's attached,
+  // allowing the Provider to pass the correct element to children.
+  const [containerElement, setContainerElement] =
+    useState<HTMLDivElement | null>(null);
 
   // Notification State
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -157,10 +163,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           }
 
           setSettings(mergedSettings);
-          document.documentElement.setAttribute(
-            "data-theme",
-            mergedSettings.theme
-          );
+          if (containerElement) {
+            containerElement.setAttribute("data-theme", mergedSettings.theme);
+          }
 
           // Set derived states from settings
           setIsFocusMode(mergedSettings.defaultFocusMode);
@@ -170,10 +175,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           );
         } else {
           // Use defaults
-          document.documentElement.setAttribute(
-            "data-theme",
-            DEFAULT_SETTINGS.theme
-          );
+          if (containerElement) {
+            containerElement.setAttribute("data-theme", DEFAULT_SETTINGS.theme);
+          }
           setIsAiMode(
             DEFAULT_SETTINGS.aiConfig.enabled &&
               DEFAULT_SETTINGS.aiConfig.defaultMode
@@ -206,7 +210,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       }
     };
     loadData();
-  }, [taskRepo, settingsRepo, apiKey]);
+  }, [taskRepo, settingsRepo, apiKey, containerElement]); // Re-run if container mounts late
 
   // Persist Tasks on change (Debounced inside the repository)
   useEffect(() => {
@@ -261,8 +265,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
   // Apply Theme (Reactive to settings change)
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", settings.theme);
-  }, [settings.theme]);
+    if (containerElement) {
+      containerElement.setAttribute("data-theme", settings.theme);
+    }
+  }, [settings.theme, containerElement]);
 
   const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
     tasks,
@@ -357,196 +363,203 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
   return (
     <div
+      ref={setContainerElement}
       className={cn(
-        "min-h-screen bg-paper text-slate-900 font-sans selection:bg-rose-100 selection:text-rose-900 transition-colors duration-300",
+        "tasks-timeline-app bg-paper text-slate-900 font-sans selection:bg-rose-100 selection:text-rose-900 transition-colors duration-300 antialiased",
         className
       )}
     >
-      <div className="max-w-3xl mx-auto min-h-screen bg-white shadow-xl shadow-slate-200/50 border-x border-slate-100 pb-10 relative">
-        <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
-          {/* Persistence Status Indicator */}
-          <div className="h-1 w-full bg-slate-50 relative overflow-hidden">
-            {isSyncing && (
-              <motion.div
-                initial={{ left: "-100%" }}
-                animate={{ left: "100%" }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                className="absolute top-0 h-full w-1/3 bg-blue-500/30 blur-sm"
-              />
-            )}
+      <AppProvider container={containerElement}>
+        <div className="max-w-3xl mx-auto min-h-screen bg-white shadow-xl shadow-slate-200/50 border-x border-slate-100 pb-10 relative">
+          <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
+            {/* Persistence Status Indicator */}
+            <div className="h-1 w-full bg-slate-50 relative overflow-hidden">
+              {isSyncing && (
+                <motion.div
+                  initial={{ left: "-100%" }}
+                  animate={{ left: "100%" }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "linear",
+                  }}
+                  className="absolute top-0 h-full w-1/3 bg-blue-500/30 blur-sm"
+                />
+              )}
+            </div>
+
+            <InputBar
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              filters={filters}
+              onFilterChange={setFilters}
+              sort={sort}
+              onSortChange={setSort}
+              availableTags={uniqueTags}
+              availableCategories={uniqueCategories}
+              settings={settings}
+              onAddTask={(t) => handleAddTask(t)}
+              onAICommand={handleAICommand}
+              isAiMode={isAiMode}
+              onToggleAiMode={() => setIsAiMode(!isAiMode)}
+              onVoiceError={handleVoiceError}
+            />
+
+            <div className="px-4 sm:px-6 pb-3">
+              <div className="flex items-center gap-2">
+                {/* Focus Mode Toggle with Fixed Width */}
+                <button
+                  onClick={() => setIsFocusMode(!isFocusMode)}
+                  className={cn(
+                    "rounded-lg p-2 flex flex-col items-center justify-center border w-20 shrink-0 transition-all",
+                    isFocusMode
+                      ? "bg-purple-100 border-purple-400 text-purple-700 shadow-inner"
+                      : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200"
+                  )}
+                  title={
+                    isFocusMode ? "Turn Off Focus Mode" : "Turn On Focus Mode"
+                  }
+                >
+                  <Icon
+                    name={isFocusMode ? "Minimize2" : "Target"}
+                    size={20}
+                    className="mb-0.5"
+                  />
+                  <span className="text-[9px] font-bold uppercase tracking-wider">
+                    Focus
+                  </span>
+                </button>
+
+                <div className="grid grid-cols-4 gap-2 flex-1">
+                  {/* 1. To Do */}
+                  <button
+                    onClick={() => toggleDashboardFilter(["todo"])}
+                    className={cn(
+                      "rounded-lg p-2 flex flex-col items-center justify-center border",
+                      isFilterActive(["todo"])
+                        ? "bg-slate-100 border-slate-400"
+                        : "bg-slate-50 border-slate-100"
+                    )}
+                  >
+                    <span className="text-lg font-black text-slate-800 leading-none">
+                      {stats.todo}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                      To Do
+                    </span>
+                  </button>
+
+                  {/* 2. Unplanned */}
+                  <button
+                    onClick={() => toggleDashboardFilter(["unplanned"])}
+                    className={cn(
+                      "rounded-lg p-2 flex flex-col items-center justify-center border",
+                      isFilterActive(["unplanned"])
+                        ? "bg-purple-100 border-purple-400"
+                        : "bg-purple-50 border-purple-100"
+                    )}
+                  >
+                    <span className="text-lg font-black text-purple-600 leading-none">
+                      {stats.unplanned}
+                    </span>
+                    <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mt-1">
+                      Unplanned
+                    </span>
+                  </button>
+
+                  {/* 3. Due & Overdue */}
+                  <button
+                    onClick={() => toggleDashboardFilter(["due", "overdue"])}
+                    className={cn(
+                      "rounded-lg p-2 flex flex-col items-center justify-center border",
+                      isFilterActive(["due", "overdue"])
+                        ? "bg-rose-100 border-rose-400"
+                        : "bg-rose-50 border-rose-100"
+                    )}
+                  >
+                    <span className="text-lg font-black text-rose-600 leading-none">
+                      {stats.urgent}
+                    </span>
+                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider mt-1 truncate w-full text-center">
+                      Due & OD
+                    </span>
+                  </button>
+
+                  {/* 4. Doing (Scheduled) */}
+                  <button
+                    onClick={() => toggleDashboardFilter(["scheduled"])}
+                    className={cn(
+                      "rounded-lg p-2 flex flex-col items-center justify-center border",
+                      isFilterActive(["scheduled"])
+                        ? "bg-blue-100 border-blue-400"
+                        : "bg-blue-50 border-blue-100"
+                    )}
+                  >
+                    <span className="text-lg font-black text-blue-600 leading-none">
+                      {stats.scheduled}
+                    </span>
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1">
+                      Doing
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <InputBar
-            onOpenSettings={() => setIsSettingsOpen(true)}
+          <main className="px-4 sm:px-6 pt-6">
+            <TodoList
+              tasks={processedTasks}
+              onUpdateTask={handleUpdateTask}
+              onAddTask={(task) => handleAddTask(task)}
+              onAICommand={handleAICommand}
+              onEditTask={setEditingTask}
+              onDeleteTask={handleDeleteTask}
+              settings={settings}
+              isFocusMode={isFocusMode}
+              isAiMode={isAiMode}
+              onVoiceError={handleVoiceError}
+            />
+          </main>
+
+          <footer className="mt-10 py-6 text-center text-slate-400 text-xs border-t border-slate-50">
+            <p>Timeline Tasks View • Storage: {taskRepo.name}</p>
+          </footer>
+
+          {/* Toast Container */}
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+            <AnimatePresence>
+              {toasts.map((toast) => (
+                <Toast
+                  key={toast.id}
+                  toast={toast}
+                  onDismiss={removeNotification}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            settings={settings}
+            onUpdateSettings={setSettings}
             filters={filters}
             onFilterChange={setFilters}
             sort={sort}
             onSortChange={setSort}
             availableTags={uniqueTags}
             availableCategories={uniqueCategories}
-            settings={settings}
-            onAddTask={(t) => handleAddTask(t)}
-            onAICommand={handleAICommand}
-            isAiMode={isAiMode}
-            onToggleAiMode={() => setIsAiMode(!isAiMode)}
-            onVoiceError={handleVoiceError}
           />
 
-          <div className="px-4 sm:px-6 pb-3">
-            <div className="flex items-center gap-2">
-              {/* Focus Mode Toggle with Fixed Width */}
-              <button
-                onClick={() => setIsFocusMode(!isFocusMode)}
-                className={cn(
-                  "rounded-lg p-2 flex flex-col items-center justify-center border w-20 shrink-0 transition-all",
-                  isFocusMode
-                    ? "bg-purple-100 border-purple-400 text-purple-700 shadow-inner"
-                    : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200"
-                )}
-                title={
-                  isFocusMode ? "Turn Off Focus Mode" : "Turn On Focus Mode"
-                }
-              >
-                <Icon
-                  name={isFocusMode ? "Minimize2" : "Target"}
-                  size={20}
-                  className="mb-0.5"
-                />
-                <span className="text-[9px] font-bold uppercase tracking-wider">
-                  Focus
-                </span>
-              </button>
-
-              <div className="grid grid-cols-4 gap-2 flex-1">
-                {/* 1. To Do */}
-                <button
-                  onClick={() => toggleDashboardFilter(["todo"])}
-                  className={cn(
-                    "rounded-lg p-2 flex flex-col items-center justify-center border",
-                    isFilterActive(["todo"])
-                      ? "bg-slate-100 border-slate-400"
-                      : "bg-slate-50 border-slate-100"
-                  )}
-                >
-                  <span className="text-lg font-black text-slate-800 leading-none">
-                    {stats.todo}
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                    To Do
-                  </span>
-                </button>
-
-                {/* 2. Unplanned */}
-                <button
-                  onClick={() => toggleDashboardFilter(["unplanned"])}
-                  className={cn(
-                    "rounded-lg p-2 flex flex-col items-center justify-center border",
-                    isFilterActive(["unplanned"])
-                      ? "bg-purple-100 border-purple-400"
-                      : "bg-purple-50 border-purple-100"
-                  )}
-                >
-                  <span className="text-lg font-black text-purple-600 leading-none">
-                    {stats.unplanned}
-                  </span>
-                  <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mt-1">
-                    Unplanned
-                  </span>
-                </button>
-
-                {/* 3. Due & Overdue */}
-                <button
-                  onClick={() => toggleDashboardFilter(["due", "overdue"])}
-                  className={cn(
-                    "rounded-lg p-2 flex flex-col items-center justify-center border",
-                    isFilterActive(["due", "overdue"])
-                      ? "bg-rose-100 border-rose-400"
-                      : "bg-rose-50 border-rose-100"
-                  )}
-                >
-                  <span className="text-lg font-black text-rose-600 leading-none">
-                    {stats.urgent}
-                  </span>
-                  <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider mt-1 truncate w-full text-center">
-                    Due & OD
-                  </span>
-                </button>
-
-                {/* 4. Doing (Scheduled) */}
-                <button
-                  onClick={() => toggleDashboardFilter(["scheduled"])}
-                  className={cn(
-                    "rounded-lg p-2 flex flex-col items-center justify-center border",
-                    isFilterActive(["scheduled"])
-                      ? "bg-blue-100 border-blue-400"
-                      : "bg-blue-50 border-blue-100"
-                  )}
-                >
-                  <span className="text-lg font-black text-blue-600 leading-none">
-                    {stats.scheduled}
-                  </span>
-                  <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1">
-                    Doing
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <main className="px-4 sm:px-6 pt-6">
-          <TodoList
-            tasks={processedTasks}
-            onUpdateTask={handleUpdateTask}
-            onAddTask={(task) => handleAddTask(task)}
-            onAICommand={handleAICommand}
-            onEditTask={setEditingTask}
-            onDeleteTask={handleDeleteTask}
-            settings={settings}
-            isFocusMode={isFocusMode}
-            isAiMode={isAiMode}
-            onVoiceError={handleVoiceError}
+          <TaskEditModal
+            isOpen={!!editingTask}
+            onClose={() => setEditingTask(null)}
+            task={editingTask}
+            onSave={handleEditTaskSave}
+            availableCategories={uniqueCategories}
           />
-        </main>
-
-        <footer className="mt-10 py-6 text-center text-slate-400 text-xs border-t border-slate-50">
-          <p>Tasks Timeline View • Storage: {taskRepo.name}</p>
-        </footer>
-
-        {/* Toast Container */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-          <AnimatePresence>
-            {toasts.map((toast) => (
-              <Toast
-                key={toast.id}
-                toast={toast}
-                onDismiss={removeNotification}
-              />
-            ))}
-          </AnimatePresence>
         </div>
-
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          settings={settings}
-          onUpdateSettings={setSettings}
-          filters={filters}
-          onFilterChange={setFilters}
-          sort={sort}
-          onSortChange={setSort}
-          availableTags={uniqueTags}
-          availableCategories={uniqueCategories}
-        />
-
-        <TaskEditModal
-          isOpen={!!editingTask}
-          onClose={() => setEditingTask(null)}
-          task={editingTask}
-          onSave={handleEditTaskSave}
-          availableCategories={uniqueCategories}
-        />
-      </div>
+      </AppProvider>
     </div>
   );
 };

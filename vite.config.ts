@@ -23,7 +23,7 @@ export default defineConfig({
     lib: {
       entry: path.resolve(dirname, "src/index.ts"),
       name: "TasksTimelineComponentLibrary",
-      cssFileName: "style",
+      cssFileName: "index",
       fileName: (format) => `index.${format === "es" ? "js" : "umd.cjs"}`,
     },
     rollupOptions: {

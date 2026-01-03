@@ -14,6 +14,7 @@ import type {
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { MotionDiv, MotionButton } from "./Motion";
+import { useAppContext } from "./AppContext";
 
 interface InputBarProps {
   onOpenSettings?: () => void;
@@ -426,6 +427,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
   children,
   onClear,
 }) => {
+  const { portalContainer } = useAppContext();
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -456,7 +458,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
         </MotionButton>
       </Popover.Trigger>
 
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Content
           side="bottom"
           align="start"
@@ -501,6 +503,7 @@ interface SortPopoverProps {
 }
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
+  const { portalContainer } = useAppContext();
   const fields: { label: string; value: SortField }[] = [
     { label: "Due Date", value: "dueDate" },
     { label: "Created Date", value: "createdAt" },
@@ -527,7 +530,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
           <span>Sort</span>
         </button>
       </Popover.Trigger>
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Content
           side="bottom"
           align="end"

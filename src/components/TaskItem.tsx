@@ -5,6 +5,7 @@ import type { Task, TaskStatus, AppSettings } from "../types";
 import { cn, formatSmartDate, formatRecurrence, formatTime } from "../utils";
 import { Icon } from "./Icon";
 import { MotionDiv, MotionButton } from "./Motion";
+import { useAppContext } from "./AppContext";
 
 interface TaskItemProps {
   task: Task;
@@ -28,6 +29,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const deleteTimeoutRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { portalContainer } = useAppContext();
 
   const isDone = task.status === "done";
   const isCancelled = task.status === "cancelled";
@@ -314,7 +316,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             </button>
           </Popover.Trigger>
 
-          <Popover.Portal>
+          <Popover.Portal container={portalContainer}>
             <Popover.Content
               side="bottom"
               align="start"

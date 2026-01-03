@@ -1,241 +1,264 @@
-@import "tailwindcss";
+
+@layer tasks-timeline-app {
+  @import "tailwindcss";
+}
 :root {
   /* Defaults (Light/Slate) */
-  --c-white: #ffffff;
-  --c-paper: #fcfcfc;
+  --tt-c-white: #ffffff;
+  --tt-c-paper: #fcfcfc;
 
   /* Slate Scale */
-  --s-50: #f8fafc;
-  --s-100: #f1f5f9;
-  --s-200: #e2e8f0;
-  --s-300: #cbd5e1;
-  --s-400: #94a3b8;
-  --s-500: #64748b;
-  --s-600: #475569;
-  --s-700: #334155;
-  --s-800: #1e293b;
-  --s-900: #0f172a;
-  --s-950: #020617;
+  --tt-s-50: #f8fafc;
+  --tt-s-100: #f1f5f9;
+  --tt-s-200: #e2e8f0;
+  --tt-s-300: #cbd5e1;
+  --tt-s-400: #94a3b8;
+  --tt-s-500: #64748b;
+  --tt-s-600: #475569;
+  --tt-s-700: #334155;
+  --tt-s-800: #1e293b;
+  --tt-s-900: #0f172a;
+  --tt-s-950: #020617;
 
   /* Semantic: Rose (Red) */
-  --rose-50: #fff1f2;
-  --rose-100: #ffe4e6;
-  --rose-200: #fecdd3;
-  --rose-500: #f43f5e;
-  --rose-600: #e11d48;
-  --rose-700: #be123c;
+  --tt-rose-50: #fff1f2;
+  --tt-rose-100: #ffe4e6;
+  --tt-rose-200: #fecdd3;
+  --tt-rose-500: #f43f5e;
+  --tt-rose-600: #e11d48;
+  --tt-rose-700: #be123c;
 
   /* Semantic: Emerald (Green) */
-  --emerald-50: #ecfdf5;
-  --emerald-100: #d1fae5;
-  --emerald-200: #a7f3d0;
-  --emerald-400: #34d399;
-  --emerald-500: #10b981;
-  --emerald-600: #059669;
+  --tt-emerald-50: #ecfdf5;
+  --tt-emerald-100: #d1fae5;
+  --tt-emerald-200: #a7f3d0;
+  --tt-emerald-400: #34d399;
+  --tt-emerald-500: #10b981;
+  --tt-emerald-600: #059669;
 
   /* Semantic: Blue */
-  --blue-50: #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
+  --tt-blue-50: #eff6ff;
+  --tt-blue-100: #dbeafe;
+  --tt-blue-200: #bfdbfe;
+  --tt-blue-300: #93c5fd;
+  --tt-blue-400: #60a5fa;
+  --tt-blue-500: #3b82f6;
+  --tt-blue-600: #2563eb;
 
   /* Semantic: Amber */
-  --amber-50: #fffbeb;
-  --amber-100: #fef3c7;
-  --amber-200: #fde68a;
-  --amber-500: #f59e0b;
-  --amber-700: #b45309;
+  --tt-amber-50: #fffbeb;
+  --tt-amber-100: #fef3c7;
+  --tt-amber-200: #fde68a;
+  --tt-amber-500: #f59e0b;
+  --tt-amber-700: #b45309;
 }
 
 /* DARK THEME (Inverted Scales) */
-[data-theme="dark"] {
-  --c-white: #0f172a;
-  --c-paper: #1e293b;
+.tasks-timeline-app[data-theme="dark"] {
+  --tt-c-white: #0f172a;
+  --tt-c-paper: #1e293b;
 
   /* Invert Slate: Lightest becomes Darkest */
-  --s-50: #1e293b;
-  --s-100: #334155;
-  --s-200: #475569;
-  --s-300: #64748b;
-  --s-400: #94a3b8;
-  --s-500: #cbd5e1;
-  --s-600: #e2e8f0;
-  --s-700: #f1f5f9;
-  --s-800: #f8fafc;
-  --s-900: #ffffff;
-  --s-950: #ffffff;
+  --tt-s-50: #1e293b;
+  --tt-s-100: #334155;
+  --tt-s-200: #475569;
+  --tt-s-300: #64748b;
+  --tt-s-400: #94a3b8;
+  --tt-s-500: #cbd5e1;
+  --tt-s-600: #e2e8f0;
+  --tt-s-700: #f1f5f9;
+  --tt-s-800: #f8fafc;
+  --tt-s-900: #ffffff;
+  --tt-s-950: #ffffff;
 
   /* Invert Semantic: BG (50/100) becomes Dark, Text (600/700) becomes Light */
-  --rose-50: #4c0519;
-  --rose-100: #881337;
-  --rose-200: #9f1239;
-  --rose-500: #fb7185;
-  --rose-600: #fecdd3; /* Text becomes light pink */
-  --rose-700: #ffe4e6;
+  --tt-rose-50: #4c0519;
+  --tt-rose-100: #881337;
+  --tt-rose-200: #9f1239;
+  --tt-rose-500: #fb7185;
+  --tt-rose-600: #fecdd3; /* Text becomes light pink */
+  --tt-rose-700: #ffe4e6;
 
-  --emerald-50: #022c22;
-  --emerald-100: #064e3b;
-  --emerald-200: #065f46;
-  --emerald-500: #34d399;
-  --emerald-600: #a7f3d0; /* Text becomes light green */
+  --tt-emerald-50: #022c22;
+  --tt-emerald-100: #064e3b;
+  --tt-emerald-200: #065f46;
+  --tt-emerald-500: #34d399;
+  --tt-emerald-600: #a7f3d0; /* Text becomes light green */
 
-  --blue-50: #172554;
-  --blue-100: #1e3a8a;
-  --blue-200: #1e40af;
-  --blue-500: #60a5fa;
-  --blue-600: #bfdbfe;
+  --tt-blue-50: #172554;
+  --tt-blue-100: #1e3a8a;
+  --tt-blue-200: #1e40af;
+  --tt-blue-500: #60a5fa;
+  --tt-blue-600: #bfdbfe;
 
-  --amber-50: #451a03;
-  --amber-100: #78350f;
-  --amber-200: #92400e;
-  --amber-500: #fbbf24;
-  --amber-700: #fde68a;
+  --tt-amber-50: #451a03;
+  --tt-amber-100: #78350f;
+  --tt-amber-200: #92400e;
+  --tt-amber-500: #fbbf24;
+  --tt-amber-700: #fde68a;
 }
 
 /* MIDNIGHT THEME (Deep Blue) */
-[data-theme="midnight"] {
-  --c-white: #0b1120;
-  --c-paper: #151e32;
+.tasks-timeline-app[data-theme="midnight"] {
+  --tt-c-white: #0b1120;
+  --tt-c-paper: #151e32;
 
-  --s-50: #151e32;
-  --s-100: #1e293b;
-  --s-200: #334155;
-  --s-300: #475569;
-  --s-400: #64748b;
-  --s-500: #94a3b8;
-  --s-600: #cbd5e1;
-  --s-700: #e2e8f0;
-  --s-800: #f1f5f9;
-  --s-900: #f8fafc;
-  --s-950: #ffffff;
+  --tt-s-50: #151e32;
+  --tt-s-100: #1e293b;
+  --tt-s-200: #334155;
+  --tt-s-300: #475569;
+  --tt-s-400: #64748b;
+  --tt-s-500: #94a3b8;
+  --tt-s-600: #cbd5e1;
+  --tt-s-700: #e2e8f0;
+  --tt-s-800: #f1f5f9;
+  --tt-s-900: #f8fafc;
+  --tt-s-950: #ffffff;
 
   /* Semantics similar to Dark but cooler if I had time, sticking to dark map */
-  --rose-50: #4c0519;
-  --rose-100: #881337;
-  --rose-200: #9f1239;
-  --rose-500: #fb7185;
-  --rose-600: #fecdd3;
-  --rose-700: #ffe4e6;
+  --tt-rose-50: #4c0519;
+  --tt-rose-100: #881337;
+  --tt-rose-200: #9f1239;
+  --tt-rose-500: #fb7185;
+  --tt-rose-600: #fecdd3;
+  --tt-rose-700: #ffe4e6;
 
-  --emerald-50: #022c22;
-  --emerald-100: #064e3b;
-  --emerald-200: #065f46;
-  --emerald-500: #34d399;
-  --emerald-600: #a7f3d0;
+  --tt-emerald-50: #022c22;
+  --tt-emerald-100: #064e3b;
+  --tt-emerald-200: #065f46;
+  --tt-emerald-500: #34d399;
+  --tt-emerald-600: #a7f3d0;
 
-  --blue-50: #172554;
-  --blue-100: #1e3a8a;
-  --blue-200: #1e40af;
-  --blue-500: #60a5fa;
-  --blue-600: #bfdbfe;
+  --tt-blue-50: #172554;
+  --tt-blue-100: #1e3a8a;
+  --tt-blue-200: #1e40af;
+  --tt-blue-500: #60a5fa;
+  --tt-blue-600: #bfdbfe;
 
-  --amber-50: #451a03;
-  --amber-100: #78350f;
-  --amber-200: #92400e;
-  --amber-500: #fbbf24;
-  --amber-700: #fde68a;
+  --tt-amber-50: #451a03;
+  --tt-amber-100: #78350f;
+  --tt-amber-200: #92400e;
+  --tt-amber-500: #fbbf24;
+  --tt-amber-700: #fde68a;
 }
 
 /* COFFEE THEME (Warm Sepia) */
-[data-theme="coffee"] {
-  --c-white: #fdfbf7;
-  --c-paper: #f5f2eb;
+.tasks-timeline-app[data-theme="coffee"] {
+  --tt-c-white: #fdfbf7;
+  --tt-c-paper: #f5f2eb;
 
-  --s-50: #f7f5f0;
-  --s-100: #e8e4db;
-  --s-200: #d6d0c2;
-  --s-300: #b8b0a0;
-  --s-400: #9c9280;
-  --s-500: #857a66;
-  --s-600: #6e6352;
-  --s-700: #594f41;
-  --s-800: #4a3b32;
-  --s-900: #2b211a;
-  --s-950: #1a1410;
+  --tt-s-50: #f7f5f0;
+  --tt-s-100: #e8e4db;
+  --tt-s-200: #d6d0c2;
+  --tt-s-300: #b8b0a0;
+  --tt-s-400: #9c9280;
+  --tt-s-500: #857a66;
+  --tt-s-600: #6e6352;
+  --tt-s-700: #594f41;
+  --tt-s-800: #4a3b32;
+  --tt-s-900: #2b211a;
+  --tt-s-950: #1a1410;
 
   /* Semantics - keeping default light but maybe warmer? Using defaults for stability. */
 }
 
-body {
-  background-color: var(--s-100);
-  color: var(--s-900);
+.tasks-timeline-app button,
+  .tasks-timeline-app input[type='text'],
+  .tasks-timeline-app input[type='search'],
+  .tasks-timeline-app input[type='number'] {
+    /* Reset to transparent/initial so Tailwind can take over fully */
+    background-image: none;
+    border: 1px solid transparent;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    appearance: none; /* Removes default OS/Obsidian styling */
+  }
+.tasks-timeline-app {
+  background-color: var(--tt-s-100);
+  color: var(--tt-s-900);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   scrollbar-gutter: stable;
   transition: background-color 0.3s ease, color 0.3s ease;
+  
+  /* Reset local box-sizing to ensure host app doesn't break layout */
+  box-sizing: border-box;
 }
 
 /* Global Transitions for smooth theme switching */
-*,
-*::before,
-*::after {
+.tasks-timeline-app *,
+.tasks-timeline-app *::before,
+.tasks-timeline-app *::after {
+  box-sizing: inherit;
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar {
+.tasks-timeline-app ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-::-webkit-scrollbar-track {
+.tasks-timeline-app ::-webkit-scrollbar-track {
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--s-300);
+.tasks-timeline-app ::-webkit-scrollbar-thumb {
+  background: var(--tt-s-300);
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--s-400);
+.tasks-timeline-app ::-webkit-scrollbar-thumb:hover {
+  background: var(--tt-s-400);
 }
 
 @theme {
   --font-sans: Inter, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  --color-white: var(--c-white);
-  --color-paper: var(--c-white);
+  --color-white: var(--tt-c-white);
+  --color-paper: var(--tt-c-white);
 
-  --color-slate-50: var(--s-50);
-  --color-slate-100: var(--s-100);
-  --color-slate-200: var(--s-200);
-  --color-slate-300: var(--s-300);
-  --color-slate-400: var(--s-400);
-  --color-slate-500: var(--s-500);
-  --color-slate-600: var(--s-600);
-  --color-slate-700: var(--s-700);
-  --color-slate-800: var(--s-800);
-  --color-slate-900: var(--s-900);
-  --color-slate-950: var(--s-950);
+  --color-slate-50: var(--tt-s-50);
+  --color-slate-100: var(--tt-s-100);
+  --color-slate-200: var(--tt-s-200);
+  --color-slate-300: var(--tt-s-300);
+  --color-slate-400: var(--tt-s-400);
+  --color-slate-500: var(--tt-s-500);
+  --color-slate-600: var(--tt-s-600);
+  --color-slate-700: var(--tt-s-700);
+  --color-slate-800: var(--tt-s-800);
+  --color-slate-900: var(--tt-s-900);
+  --color-slate-950: var(--tt-s-950);
 
-  --color-rose-50: var(--rose-50);
-  --color-rose-100: var(--rose-100);
-  --color-rose-200: var(--rose-200);
-  --color-rose-500: var(--rose-500);
-  --color-rose-600: var(--rose-600);
-  --color-rose-700: var(--rose-700);
+  --color-rose-50: var(--tt-rose-50);
+  --color-rose-100: var(--tt-rose-100);
+  --color-rose-200: var(--tt-rose-200);
+  --color-rose-500: var(--tt-rose-500);
+  --color-rose-600: var(--tt-rose-600);
+  --color-rose-700: var(--tt-rose-700);
 
-  --color-emerald-50: var(--emerald-50);
-  --color-emerald-100: var(--emerald-100);
-  --color-emerald-200: var(--emerald-200);
-  --color-emerald-400: var(--emerald-400);
-  --color-emerald-500: var(--emerald-500);
-  --color-emerald-600: var(--emerald-600);
+  --color-emerald-50: var(--tt-emerald-50);
+  --color-emerald-100: var(--tt-emerald-100);
+  --color-emerald-200: var(--tt-emerald-200);
+  --color-emerald-400: var(--tt-emerald-400);
+  --color-emerald-500: var(--tt-emerald-500);
+  --color-emerald-600: var(--tt-emerald-600);
 
-  --color-blue-50: var(--blue-50);
-  --color-blue-100: var(--blue-100);
-  --color-blue-200: var(--blue-200);
-  --color-blue-300: var(--blue-300);
-  --color-blue-400: var(--blue-400);
-  --color-blue-500: var(--blue-500);
-  --color-blue-600: var(--blue-600);
+  --color-blue-50: var(--tt-blue-50);
+  --color-blue-100: var(--tt-blue-100);
+  --color-blue-200: var(--tt-blue-200);
+  --color-blue-300: var(--tt-blue-300);
+  --color-blue-400: var(--tt-blue-400);
+  --color-blue-500: var(--tt-blue-500);
+  --color-blue-600: var(--tt-blue-600);
 
-  --color-amber-50: var(--amber-50);
-  --color-amber-100: var(--amber-100);
-  --color-amber-200: var(--amber-200);
-  --color-amber-500: var(--amber-500);
-  --color-amber-700: var(--amber-700);
+  --color-amber-50: var(--tt-amber-50);
+  --color-amber-100: var(--tt-amber-100);
+  --color-amber-200: var(--tt-amber-200);
+  --color-amber-500: var(--tt-amber-500);
+  --color-amber-700: var(--tt-amber-700);
 }
