@@ -1,0 +1,138 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_npm:
+        description: "Publish to npm"
+        required: true
+        default: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run type check
+        run: pnpm type-check
+
+      - name: Run linter
+        run: pnpm lint
+
+      - name: Build library
+        run: pnpm build
+
+      - name: Build Storybook
+        run: pnpm build-storybook
+
+      - name: Get package version
+        id: package
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.package.outputs.VERSION }}
+          release_name: Release v${{ steps.package.outputs.VERSION }}
+          body: |
+            ## @tasks-timeline/component-library v${{ steps.package.outputs.VERSION }}
+
+            ### What's New
+            - Built and published to npm
+            - See CHANGELOG.md for detailed changes
+
+            ### Package Contents
+            - ESM bundle (`dist/index.js`)
+            - CommonJS bundle (`dist/index.umd.cjs`)
+            - TypeScript declarations (`dist/**/*.d.ts`)
+            - Source maps included
+
+            ### Installation
+            ```bash
+            npm install @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            # or
+            pnpm add @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            # or
+            yarn add @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            ```
+
+            ### Links
+            - [npm Package](https://www.npmjs.com/package/@tasks-timeline/component-library)
+            - [GitHub Repository](https://github.com/${{ github.repository }})
+          draft: false
+          prerelease: false
+
+      - name: Upload dist to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/index.js
+          asset_name: index.js
+          asset_content_type: application/javascript
+
+      - name: Upload dist map to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/index.js.map
+          asset_name: index.js.map
+          asset_content_type: application/json
+
+      - name: Upload UMD bundle to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/index.umd.cjs
+          asset_name: index.umd.cjs
+          asset_content_type: application/javascript
+
+      - name: Publish to npm
+        if: ${{ github.event_name == 'push' || github.event.inputs.publish_npm == 'true' }}
+        run: pnpm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Deploy Storybook to GitHub Pages
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./storybook-static
+
+      - name: Print summary
+        run: |
+          echo "✅ Build and publish workflow completed"
+          echo "📦 Package version: v${{ steps.package.outputs.VERSION }}"
+          echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.package.outputs.VERSION }}"
+          echo "📚 npm: https://www.npmjs.com/package/@tasks-timeline/component-library"

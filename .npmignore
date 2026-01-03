@@ -1,0 +1,35 @@
+# Development & build files
+.storybook/
+src/
+index.tsx
+index.html
+public/
+.git/
+.gitignore
+node_modules/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Configuration files (keep what's needed)
+vite.config.ts
+tsconfig.*.json
+eslint.config.js
+.eslintignore
+
+# Testing
+vitest.shims.d.ts
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation sources
+LIBRARY_SETUP.md
+*.stories.ts
