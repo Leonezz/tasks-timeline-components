@@ -111,6 +111,8 @@ export const InputBar: React.FC<InputBarProps> = ({
     switch (status) {
       case "todo":
         return "Circle";
+      case "doing":
+        return "PlayCircle";
       case "done":
         return "CheckCircle2";
       case "scheduled":
@@ -132,6 +134,8 @@ export const InputBar: React.FC<InputBarProps> = ({
     switch (status) {
       case "done":
         return "text-emerald-500";
+      case "doing":
+        return "text-sky-500";
       case "scheduled":
         return "text-blue-500";
       case "due":
@@ -373,6 +377,7 @@ export const InputBar: React.FC<InputBarProps> = ({
               {(
                 [
                   "todo",
+                  "doing",
                   "scheduled",
                   "done",
                   "due",

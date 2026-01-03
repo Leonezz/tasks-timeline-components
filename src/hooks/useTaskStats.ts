@@ -14,8 +14,8 @@ export const useTaskStats = (tasks: Task[]) => {
           if (t.status === "todo") acc.todo++;
           if (t.status === "unplanned") acc.unplanned++;
 
-          // "Doing" bucket maps to 'scheduled' in this context
           if (t.status === "scheduled") acc.scheduled++;
+          if (t.status === "doing") acc.doing++;
 
           // "Due & Overdue" bucket
           if (t.status === "overdue" || t.status === "due") {
@@ -24,7 +24,7 @@ export const useTaskStats = (tasks: Task[]) => {
         }
         return acc;
       },
-      { todo: 0, unplanned: 0, urgent: 0, scheduled: 0 }
+      { todo: 0, unplanned: 0, urgent: 0, scheduled: 0, doing: 0 }
     );
   }, [tasks]);
 };

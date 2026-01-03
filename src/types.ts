@@ -6,7 +6,8 @@ export type TaskStatus =
   | "due"
   | "overdue"
   | "cancelled"
-  | "unplanned";
+  | "unplanned"
+  | "doing";
 
 export type ISO8601String = string;
 

@@ -71,7 +71,6 @@ export const formatRecurrence = (ruleStr: string): string => {
     const rule = RRule.fromString(ruleStr);
     return rule.toText();
   } catch (e) {
-    console.error(`parse recurrence rules failed with err: ${e}`);
     return ruleStr;
   }
 };
@@ -96,13 +95,22 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
     return "due";
   }
 
-  // 4. Scheduled: Has a generic future Start Date
-  if (task.startAt && task.startAt > (now.toISO() || "")) {
-    return "scheduled";
+  // 4. Scheduled vs Doing checks on Start Date
+  if (task.startAt) {
+    const startDt = DateTime.fromISO(task.startAt);
+    if (startDt.isValid) {
+      // If start time is in the future relative to now
+      if (startDt > now) {
+        return "scheduled";
+      }
+      // If start time is past or now, it is doing (unless captured by due/overdue above)
+      return "doing";
+    }
   }
 
-  // 5. Fallbacks
-  if (["due", "overdue", "scheduled"].includes(task.status)) {
+  // 6. Fallbacks: If manual status was set to a state that is no longer valid based on dates, reset to todo
+  // e.g. was 'doing' but user cleared start date
+  if (["due", "overdue", "scheduled", "doing"].includes(task.status)) {
     return "todo";
   }
 
@@ -285,6 +293,7 @@ export const getToolDefinitions = (): FunctionDeclaration[] => {
               "overdue",
               "cancelled",
               "unplanned",
+              "doing",
             ],
           },
           date: {
@@ -320,6 +329,7 @@ export const getToolDefinitions = (): FunctionDeclaration[] => {
               "overdue",
               "cancelled",
               "unplanned",
+              "doing",
             ],
           },
           priority: { type: Type.STRING, enum: ["low", "medium", "high"] },

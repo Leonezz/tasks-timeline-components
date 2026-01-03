@@ -227,6 +227,26 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }
   }, [settings, settingsRepo, isSettingsLoaded]);
 
+  // Periodic Status Update (Every 30 seconds)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setTasks((currentTasks) => {
+        let hasChanges = false;
+        const updated = currentTasks.map((t) => {
+          const newStatus = deriveTaskStatus(t);
+          if (newStatus !== t.status) {
+            hasChanges = true;
+            return { ...t, status: newStatus };
+          }
+          return t;
+        });
+        return hasChanges ? updated : currentTasks;
+      });
+    }, 600000); // 10 minites
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const addNotification = (
     type: ToastType,
     title: string,
@@ -484,18 +504,20 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                     </span>
                   </button>
 
-                  {/* 4. Doing (Scheduled) */}
+                  {/* 4. Doing (Scheduled + Doing) */}
                   <button
-                    onClick={() => toggleDashboardFilter(["scheduled"])}
+                    onClick={() =>
+                      toggleDashboardFilter(["scheduled", "doing"])
+                    }
                     className={cn(
                       "rounded-lg p-2 flex flex-col items-center justify-center border",
-                      isFilterActive(["scheduled"])
+                      isFilterActive(["scheduled", "doing"])
                         ? "bg-blue-100 border-blue-400"
                         : "bg-blue-50 border-blue-100"
                     )}
                   >
                     <span className="text-lg font-black text-blue-600 leading-none">
-                      {stats.scheduled}
+                      {stats.scheduled + stats.doing}
                     </span>
                     <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1">
                       Doing

@@ -125,6 +125,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     switch (status) {
       case "done":
         return "bg-emerald-500";
+      case "doing":
+        return "bg-sky-500";
       case "scheduled":
         return "bg-blue-500";
       case "due":
@@ -144,6 +146,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     switch (status) {
       case "done":
         return "CheckCircle2";
+      case "doing":
+        return "PlayCircle";
       case "scheduled":
         return "Clock";
       case "due":
@@ -163,6 +167,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     switch (status) {
       case "done":
         return "text-emerald-500";
+      case "doing":
+        return "text-sky-500";
       case "scheduled":
         return "text-blue-500";
       case "due":
@@ -251,8 +257,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const statusOptions: TaskStatus[] = [
     "todo",
-    "done",
+    "doing",
     "scheduled",
+    "done",
     "unplanned",
     "due",
     "overdue",
@@ -446,7 +453,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <span>{task.category}</span>
             </div>
           )}
-          {["scheduled", "unplanned", "overdue", "cancelled"].includes(
+          {["scheduled", "unplanned", "overdue", "cancelled", "doing"].includes(
             task.status
           ) && (
             <span
