@@ -54,15 +54,15 @@ export const formatSmartDate = (
 ) => {
   if (!useRelative) return formatDateDisplay(dateStr, absoluteFormat);
   const dt = safeDate(dateStr);
-  if (!dt.isValid) return "";
+  if (!dt.isValid) return "INVALID";
   const now = DateTime.now().startOf("day");
   const target = dt.startOf("day");
   const diff = target.diff(now, "days").days;
   if (diff === 0) return "Today";
   if (diff === 1) return "Tomorrow";
   if (diff === -1) return "Yesterday";
-  if (Math.abs(diff) < 7) return dt.toRelativeCalendar();
-  return dt.toRelative();
+  if (Math.abs(diff) < 7) return dt.toRelativeCalendar() || "INVALID";
+  return dt.toRelative() || "INVALID";
 };
 
 export const formatRecurrence = (ruleStr: string): string => {

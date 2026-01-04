@@ -19,6 +19,8 @@ interface DaySectionProps {
   // Synced state from App
   isAiMode: boolean;
   onVoiceError: (msg: string) => void;
+
+  availableCategories: string[];
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
@@ -31,6 +33,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   settings,
   isAiMode,
   onVoiceError,
+  availableCategories,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -226,6 +229,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   onEdit={onEditTask}
                   onDelete={onDeleteTask}
                   settings={settings}
+                  availableCategories={availableCategories}
                 />
               ))}
 

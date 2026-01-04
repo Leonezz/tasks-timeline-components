@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TodoList } from "./TodoList";
+import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
@@ -540,6 +540,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               isFocusMode={isFocusMode}
               isAiMode={isAiMode}
               onVoiceError={handleVoiceError}
+              availableCategories={uniqueCategories}
             />
           </main>
 

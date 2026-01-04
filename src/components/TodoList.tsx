@@ -20,6 +20,7 @@ interface TodoListProps {
   // Synced Props
   isAiMode: boolean;
   onVoiceError: (msg: string) => void;
+  availableCategories: string[];
 }
 
 export const TodoList: React.FC<TodoListProps> = ({
@@ -34,6 +35,7 @@ export const TodoList: React.FC<TodoListProps> = ({
   isFocusMode,
   isAiMode,
   onVoiceError,
+  availableCategories,
 }) => {
   const { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
     const today = DateTime.now();
@@ -133,6 +135,7 @@ export const TodoList: React.FC<TodoListProps> = ({
           settings={settings}
           isAiMode={isAiMode}
           onVoiceError={onVoiceError}
+          availableCategories={availableCategories}
         />
       </div>
 
@@ -150,6 +153,7 @@ export const TodoList: React.FC<TodoListProps> = ({
             settings={settings}
             isAiMode={isAiMode}
             onVoiceError={onVoiceError}
+            availableCategories={availableCategories}
           />
         ))}
 
@@ -161,6 +165,7 @@ export const TodoList: React.FC<TodoListProps> = ({
           onEditTask={onEditTask}
           onDeleteTask={onDeleteTask}
           settings={settings}
+          availableCategories={availableCategories}
         />
       )}
 

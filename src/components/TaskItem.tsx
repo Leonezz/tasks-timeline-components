@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Lucide from "lucide-react";
-import type { Task, TaskStatus, AppSettings } from "../types";
+import type { Task, TaskStatus, AppSettings, Priority } from "../types";
 import { cn, formatSmartDate, formatRecurrence, formatTime } from "../utils";
 import { Icon } from "./Icon";
 import { MotionDiv, MotionButton } from "./Motion";
 import { useAppContext } from "./AppContext";
+import { DateTime } from "luxon";
 
 interface TaskItemProps {
   task: Task;
@@ -14,6 +15,7 @@ interface TaskItemProps {
   onEdit?: (task: Task) => void;
   settings: AppSettings;
   missingStrategies?: string[];
+  availableCategories: string[];
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -23,6 +25,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onEdit,
   settings,
   missingStrategies,
+  availableCategories,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
@@ -210,49 +213,280 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     );
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const badgeBase =
-      "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none";
-    switch (priority) {
-      case "high":
-        return (
-          <div
-            className={cn(
-              badgeBase,
-              "text-rose-700 bg-rose-100 border-rose-200"
-            )}
+  const PriorityPopover = () => {
+    const p = task.priority;
+    let colorClass = "text-slate-600 bg-slate-100 border-slate-200";
+    if (p === "high") colorClass = "text-rose-700 bg-rose-100 border-rose-200";
+    if (p === "medium")
+      colorClass = "text-amber-700 bg-amber-100 border-amber-200";
+
+    return (
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            className={cn(badgeClass, colorClass)}
+            title="Change Priority"
           >
-            <Icon name="Flag" size={10} strokeWidth={3} />
-            <span>High</span>
-          </div>
-        );
-      case "medium":
-        return (
-          <div
-            className={cn(
-              badgeBase,
-              "text-amber-700 bg-amber-100 border-amber-200"
-            )}
+            <Icon name="Flag" size={10} strokeWidth={p === "high" ? 3 : 2} />
+            <span className="capitalize">{p}</span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal container={portalContainer}>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="z-9999 outline-none"
           >
-            <Icon name="Flag" size={10} />
-            <span>Medium</span>
-          </div>
-        );
-      case "low":
-        return (
-          <div
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-1 rounded-lg border flex flex-col gap-1 w-24 shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-xl border-slate-200/60"
+            >
+              {(["high", "medium", "low"] as Priority[]).map((opt) => (
+                <Popover.Close key={opt} asChild>
+                  <button
+                    onClick={() => onUpdate({ ...task, priority: opt })}
+                    className={cn(
+                      "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
+                      task.priority === opt
+                        ? "bg-slate-100 font-bold"
+                        : "hover:bg-slate-50 text-slate-600"
+                    )}
+                  >
+                    <Icon
+                      name="Flag"
+                      size={10}
+                      className={
+                        opt === "high"
+                          ? "text-rose-500"
+                          : opt === "medium"
+                          ? "text-amber-500"
+                          : "text-slate-400"
+                      }
+                    />
+                    <span className="capitalize">{opt}</span>
+                  </button>
+                </Popover.Close>
+              ))}
+            </MotionDiv>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    );
+  };
+
+  const CategoryPopover = () => {
+    const [val, setVal] = useState(task.category || "");
+    // Filter available categories for suggestions
+    const suggestions =
+      availableCategories
+        .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
+        .slice(0, 5) || [];
+
+    return (
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
             className={cn(
-              badgeBase,
+              badgeClass,
               "text-slate-600 bg-slate-100 border-slate-200"
             )}
+            title="Change Category"
           >
-            <Icon name="Flag" size={10} />
-            <span>Low</span>
-          </div>
-        );
-      default:
-        return null;
-    }
+            <Icon name="Folder" size={10} />
+            <span>{task.category || "No Category"}</span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal container={portalContainer}>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="z-9999 outline-none"
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-2 rounded-lg shadow-xl border w-48 overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-xl border-slate-200/60"
+            >
+              <input
+                autoFocus
+                value={val}
+                onChange={(e) => setVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onUpdate({ ...task, category: val });
+                  }
+                }}
+                className="w-full text-xs border border-slate-200 rounded px-2 py-1 mb-2 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                placeholder="Category name..."
+              />
+              <div className="flex flex-col gap-0.5">
+                {suggestions.map((s) => (
+                  <Popover.Close key={s} asChild>
+                    <button
+                      onClick={() => onUpdate({ ...task, category: s })}
+                      className="text-left px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 justify-start!"
+                    >
+                      <Icon name="Folder" size={10} className="opacity-50" />
+                      {s}
+                    </button>
+                  </Popover.Close>
+                ))}
+                <Popover.Close asChild>
+                  <button
+                    onClick={() => onUpdate({ ...task, category: val })}
+                    className="text-center px-2 py-1.5 text-xs text-blue-600! hover:bg-blue-50 rounded font-medium mt-1"
+                  >
+                    Set to "{val}"
+                  </button>
+                </Popover.Close>
+              </div>
+            </MotionDiv>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    );
+  };
+
+  const DateBadge = ({
+    type,
+    date,
+    label,
+    icon,
+    className,
+    prefix = "",
+  }: {
+    type: "dueDate" | "startAt" | "createdAt" | "completedAt";
+    date?: string;
+    label: string;
+    icon: keyof typeof Lucide;
+    className: string;
+    prefix?: string;
+  }) => {
+    const [val, setVal] = useState(() => {
+      if (!date) return "";
+      const dt = DateTime.fromISO(date);
+      return dt.isValid
+        ? type === "startAt" || type === "createdAt" || type === "completedAt"
+          ? dt.toFormat("yyyy-MM-dd'T'HH:mm")
+          : dt.toISODate()
+        : "";
+    });
+
+    const handleDateSave = () => {
+      let newDate = "";
+      if (val) {
+        newDate =
+          type === "startAt" || type === "createdAt" || type === "completedAt"
+            ? DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm").toISO() || ""
+            : DateTime.fromISO(val).toISODate() || "";
+      }
+      onUpdate({ ...task, [type]: newDate });
+    };
+
+    const inputType =
+      type === "startAt" || type === "createdAt" || type === "completedAt"
+        ? "datetime-local"
+        : "date";
+    const titleMap = {
+      dueDate: "Change Due Date",
+      startAt: "Change Start Date",
+      createdAt: "Change Created Date",
+      completedAt: "Change Completed Date",
+    };
+
+    return (
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button className={cn(badgeClass, className)} title={titleMap[type]}>
+            <Icon name={icon} size={10} />
+            <span className="font-mono">
+              {prefix}
+              {label}
+            </span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal container={portalContainer}>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="z-9999 outline-none"
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-2.5 rounded-lg border shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-xl border-slate-200/60"
+            >
+              <input
+                type={inputType}
+                value={val || ""}
+                onChange={(e) => setVal(e.target.value)}
+                className="border border-slate-200 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 mb-3 block w-full"
+              />
+              <Popover.Close asChild>
+                <button
+                  onClick={handleDateSave}
+                  className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-colors"
+                >
+                  Save
+                </button>
+              </Popover.Close>
+            </MotionDiv>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    );
+  };
+
+  const TagBadge = ({ tag }: { tag: { id: string; name: string } }) => {
+    return (
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            className={cn(
+              badgeClass,
+              "text-blue-600 bg-blue-50/80 border-blue-100/50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-colors"
+            )}
+            title="Click to remove"
+          >
+            <Icon name="Tag" size={10} />
+            <span>{tag.name}</span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal container={portalContainer}>
+          <Popover.Content
+            side="top"
+            align="center"
+            sideOffset={4}
+            className="z-9999 outline-none"
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-1 rounded-lg border shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-2xl border-slate-200/60"
+            >
+              <Popover.Close asChild>
+                <button
+                  onClick={() =>
+                    onUpdate({
+                      ...task,
+                      tags: task.tags.filter((t) => t.id !== tag.id),
+                    })
+                  }
+                  className="flex items-center gap-1.5 text-xs text-rose-600! px-2 py-1 rounded hover:bg-rose-50"
+                >
+                  <Icon name="Trash" size={12} />
+                  Remove Tag
+                </button>
+              </Popover.Close>
+            </MotionDiv>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    );
   };
 
   const statusOptions: TaskStatus[] = [
@@ -269,7 +503,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const startTime = task.startAt ? formatTime(task.startAt) : null;
   const displayTime = dueTime || startTime;
   const badgeClass =
-    "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none";
+    "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
 
   return (
     <MotionDiv
@@ -424,7 +658,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             metadataSizeClass
           )}
         >
-          {getPriorityBadge(task.priority)}
+          <PriorityPopover />
 
           {/* Missing Warnings */}
           {missingStrategies &&
@@ -442,123 +676,74 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               </div>
             ))}
 
-          {task.category && (
-            <div
-              className={cn(
-                badgeClass,
-                "text-slate-600 bg-slate-100 border-slate-200"
-              )}
-            >
-              <Icon name="Folder" size={10} />
-              <span>{task.category}</span>
-            </div>
-          )}
-          {["scheduled", "unplanned", "overdue", "cancelled", "doing"].includes(
-            task.status
-          ) && (
-            <span
-              className={cn(
-                badgeClass,
-                "uppercase tracking-wider font-bold opacity-70 border-slate-200 text-[9px]"
-              )}
-            >
-              {task.status}
-            </span>
-          )}
+          {task.category && <CategoryPopover />}
+
           {!settings.groupingStrategy.includes("createdAt") && (
-            <div
-              className={cn(
-                badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200"
+            <DateBadge
+              type="createdAt"
+              date={task.createdAt}
+              label={formatSmartDate(
+                task.createdAt,
+                settings.useRelativeDates,
+                settings.dateFormat
               )}
-            >
-              <Icon name="Plus" size={10} />
-              <span className="font-mono">
-                {formatSmartDate(
-                  task.createdAt,
-                  settings.useRelativeDates,
-                  settings.dateFormat
-                )}
-              </span>
-            </div>
+              icon="Plus"
+              className="text-slate-500 bg-slate-50 border-slate-200"
+            />
           )}
           {task.startAt && (
-            <div
-              className={cn(
-                badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200"
+            <DateBadge
+              type="startAt"
+              date={task.startAt}
+              label={formatSmartDate(
+                task.startAt,
+                settings.useRelativeDates,
+                settings.dateFormat
               )}
-            >
-              <Icon name="PlayCircle" size={10} />
-              <span className="font-mono">
-                {formatSmartDate(
-                  task.startAt,
-                  settings.useRelativeDates,
-                  settings.dateFormat
-                )}
-              </span>
-            </div>
+              icon="PlayCircle"
+              className="text-slate-500 bg-slate-50 border-slate-200"
+            />
           )}
           {task.dueDate && (
-            <div
-              className={cn(
-                badgeClass,
-                getDueDateColor(task.dueDate, task.status)
-              )}
-            >
-              <Icon name="Calendar" size={10} />
-              <span className="font-mono">
-                Due:{" "}
-                {formatSmartDate(
-                  task.dueDate,
-                  settings.useRelativeDates,
-                  settings.dateFormat
-                )}
-              </span>
-            </div>
+            <DateBadge
+              type="dueDate"
+              date={task.dueDate}
+              label={`Due: ${formatSmartDate(
+                task.dueDate,
+                settings.useRelativeDates,
+                settings.dateFormat
+              )}`}
+              icon="Calendar"
+              className={getDueDateColor(task.dueDate, task.status)}
+            />
           )}
           {task.completedAt && (
-            <div
-              className={cn(
-                badgeClass,
-                "text-emerald-600 bg-emerald-50 border-emerald-200"
-              )}
-            >
-              <Icon name="CheckCircle2" size={10} />
-              <span className="font-mono">
-                Done:{" "}
-                {formatSmartDate(
-                  task.completedAt,
-                  settings.useRelativeDates,
-                  settings.dateFormat
-                )}
-              </span>
-            </div>
+            <DateBadge
+              type="completedAt"
+              date={task.completedAt}
+              label={`Done: ${formatSmartDate(
+                task.completedAt,
+                settings.useRelativeDates,
+                settings.dateFormat
+              )}`}
+              icon="CheckCircle2"
+              className="text-emerald-600 bg-emerald-50 border-emerald-200"
+            />
           )}
           {task.isRecurring && task.recurringInterval && (
             <div
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-100 border-slate-200"
+                "text-slate-500 bg-slate-100 border-slate-200 cursor-default"
               )}
+              title={formatRecurrence(task.recurringInterval)}
             >
               <Icon name="Repeat" size={10} />
-              <span className="capitalize">
-                {formatRecurrence(task.recurringInterval)}
-              </span>
+              <span className="capitalize">Recurring</span>
             </div>
           )}
           {task.tags.map((tag) => (
-            <div
-              key={tag.id}
-              className={cn(
-                badgeClass,
-                "text-blue-600 bg-blue-50/80 border-blue-100/50"
-              )}
-            >
-              <Icon name="Tag" size={10} />
-              <span>{tag.name}</span>
-            </div>
+            <TagBadge key={tag.id} tag={tag} />
           ))}
         </div>
 
