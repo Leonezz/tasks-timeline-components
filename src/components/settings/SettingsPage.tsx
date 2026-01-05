@@ -119,7 +119,12 @@ export const SettingsPage = ({
 
   if (inSeperatePage) {
     return (
-      <root.div id="tasks-timeline-app">
+      <root.div
+        id="tasks-timeline-app"
+        style={{
+          width: "100%",
+        }}
+      >
         <style>{styles}</style>
         {renderContent()}
       </root.div>
