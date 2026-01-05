@@ -6,6 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
+import pkg from "./package.json";
+import * as child from "child_process";
+
+const commitHash = child.execSync("git rev-parse --short HEAD").toString();
 
 const dirname =
   typeof __dirname !== "undefined"
@@ -63,5 +67,9 @@ export default defineConfig({
         },
       },
     ],
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __COMMIT_HASH__: JSON.stringify(commitHash),
   },
 });

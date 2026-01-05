@@ -35,14 +35,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
           />
 
-          <SettingsPage
-            settings={settings}
-            onUpdateSettings={onUpdateSettings}
-            availableCategories={availableCategories}
-            availableTags={availableTags}
-            onClose={onClose}
-            inSeperatePage={false}
-          />
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+            animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="fixed top-1/2 left-1/2 w-full max-w-2xl bg-paper rounded-2xl shadow-2xl z-50 overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh] text-slate-900"
+          >
+            <SettingsPage
+              settings={settings}
+              onUpdateSettings={onUpdateSettings}
+              availableCategories={availableCategories}
+              availableTags={availableTags}
+              onClose={onClose}
+              inSeperatePage={false}
+            />
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>
