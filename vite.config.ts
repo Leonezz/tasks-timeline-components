@@ -9,7 +9,14 @@ import { playwright } from "@vitest/browser-playwright";
 import pkg from "./package.json";
 import * as child from "child_process";
 
-const commitHash = child.execSync("git rev-parse --short HEAD").toString();
+const commitHash = () => {
+  try {
+    return child.execSync("git rev-parse --short HEAD").toString().trim();
+  } catch (error) {
+    console.error("Error getting Git commit hash:", error);
+    return "unknown";
+  }
+};
 
 const dirname =
   typeof __dirname !== "undefined"
