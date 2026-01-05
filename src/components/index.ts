@@ -16,7 +16,7 @@ export { InputBar } from "./InputBar";
 
 // Modal & Dialog Components
 export { TaskEditModal } from "./TaskEditModal";
-export { SettingsModal } from "./SettingsModal";
+export * from "./settings/index";
 export { HelpModal } from "./HelpModal";
 
 // UI Components

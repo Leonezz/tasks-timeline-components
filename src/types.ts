@@ -84,6 +84,9 @@ export interface AppSettings {
   defaultFocusMode: boolean;
   totalTokenUsage: number;
   defaultCategory: string;
+
+  filters: FilterState;
+  sort: SortState;
 }
 
 export interface FilterState {

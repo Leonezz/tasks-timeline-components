@@ -97,6 +97,7 @@ export const Today: Story = {
     settings: defaultSettings,
     isAiMode: false,
     onVoiceError: (msg: string) => console.error("Voice error:", msg),
+    availableCategories: [],
   },
 };
 
@@ -136,6 +137,7 @@ export const Default: Story = {
   args: {
     group: dayGroup,
     settings: defaultSettings,
+    availableCategories: [],
   },
 };
 
@@ -156,5 +158,6 @@ export const MultipleTasks: Story = {
       tasks: mockTasks,
     },
     settings: defaultSettings,
+    availableCategories: [],
   },
 };

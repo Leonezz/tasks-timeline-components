@@ -39,6 +39,19 @@ const defaultSettings: AppSettings = {
       },
     },
   },
+  filters: {
+    tags: ["#"],
+    categories: [],
+    priorities: [],
+    statuses: [],
+    enableScript: false,
+    script: "",
+  },
+  sort: {
+    field: "createdAt",
+    direction: "asc",
+    script: "",
+  },
 };
 
 const defaultTask: Task = {

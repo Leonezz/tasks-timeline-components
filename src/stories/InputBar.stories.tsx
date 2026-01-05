@@ -12,6 +12,21 @@ const meta: Meta<typeof InputBar> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const defaultFilterState: FilterState = {
+  tags: [],
+  categories: [],
+  priorities: [],
+  statuses: [],
+  enableScript: false,
+  script: "",
+};
+
+const defaultSortState: SortState = {
+  field: "dueDate",
+  direction: "asc",
+  script: "",
+};
+
 const defaultSettings: AppSettings = {
   theme: "light",
   dateFormat: "MMM d",
@@ -40,21 +55,8 @@ const defaultSettings: AppSettings = {
       },
     },
   },
-};
-
-const defaultFilterState: FilterState = {
-  tags: [],
-  categories: [],
-  priorities: [],
-  statuses: [],
-  enableScript: false,
-  script: "",
-};
-
-const defaultSortState: SortState = {
-  field: "dueDate",
-  direction: "asc",
-  script: "",
+  filters: defaultFilterState,
+  sort: defaultSortState,
 };
 
 function DefaultInputBar() {

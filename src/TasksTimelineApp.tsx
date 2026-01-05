@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
-import { SettingsModal } from "./components/SettingsModal";
+import { SettingsModal } from "./components/settings/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
 import { Toast, type ToastMessage, type ToastType } from "./components/Toast";
 import type {
@@ -62,6 +62,19 @@ const DEFAULT_SETTINGS: AppSettings = {
         baseUrl: "",
       },
     },
+  },
+  filters: {
+    tags: ["#"],
+    categories: [],
+    priorities: [],
+    statuses: [],
+    enableScript: false,
+    script: "",
+  },
+  sort: {
+    field: "createdAt",
+    direction: "asc",
+    script: "",
   },
 };
 
@@ -268,20 +281,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }));
   };
 
-  const [filters, setFilters] = useState<FilterState>({
-    tags: [],
-    categories: [],
-    priorities: [],
-    statuses: [],
-    enableScript: false,
-    script: 'return task.priority === "high";',
-  });
-
-  const [sort, setSort] = useState<SortState>({
-    field: "dueDate",
-    direction: "asc",
-    script: "return a.title.localeCompare(b.title);",
-  });
+  const [filters, setFilters] = useState<FilterState>(settings.filters);
+  const [sort, setSort] = useState<SortState>(settings.sort);
 
   // Apply Theme (Reactive to settings change)
   useEffect(() => {
@@ -566,10 +567,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             onClose={() => setIsSettingsOpen(false)}
             settings={settings}
             onUpdateSettings={setSettings}
-            filters={filters}
-            onFilterChange={setFilters}
-            sort={sort}
-            onSortChange={setSort}
             availableTags={uniqueTags}
             availableCategories={uniqueCategories}
           />
