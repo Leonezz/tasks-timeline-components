@@ -68,12 +68,10 @@ export const About = () => (
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FFDD00] text-slate-900 font-bold rounded-lg hover:brightness-95 transition-all shadow-sm active:scale-95 text-xs sm:text-sm"
           >
-            <a href="https://www.buymeacoffee.com/zhuwenqa" target="_blank">
-              <img
-                src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-                alt="Buy Me A Coffee"
-              />
-            </a>
+            <img
+              src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+              alt="Buy Me A Coffee"
+            />
           </a>
           <a
             href="https://ko-fi.com/zhuwenqa"
@@ -81,7 +79,7 @@ export const About = () => (
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#29abe0] text-white font-bold rounded-lg hover:brightness-95 transition-all shadow-sm active:scale-95 text-xs sm:text-sm"
           >
-            <Icon name="Heart" size={16} />
+            <Icon name="CoffeeIcon" size={16} />
             <span>Ko-fi</span>
           </a>
           <a
@@ -90,7 +88,7 @@ export const About = () => (
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#29abe0] text-white font-bold rounded-lg hover:brightness-95 transition-all shadow-sm active:scale-95 text-xs sm:text-sm"
           >
-            <Icon name="AArrowDown" size={16} />
+            <Icon name="Star" size={16} />
             <span>Patreon</span>
           </a>
           <a
@@ -99,7 +97,7 @@ export const About = () => (
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#29abe0] text-white font-bold rounded-lg hover:brightness-95 transition-all shadow-sm active:scale-95 text-xs sm:text-sm"
           >
-            <Icon name="AArrowDown" size={16} />
+            <Icon name="Wallet2" size={16} />
             <span>Paypal</span>
           </a>
         </div>

@@ -83,7 +83,7 @@ export interface TasksTimelineAppProps {
   taskRepository?: TaskRepository;
   settingsRepository?: SettingsRepository;
   apiKey?: string;
-  systemInDarkTheme?: boolean;
+  systemInDarkMode?: boolean;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -91,9 +91,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   taskRepository,
   settingsRepository,
   apiKey,
-  systemInDarkTheme,
+  systemInDarkMode,
 }) => {
-  logger.info("App", "system in dark mode: ", systemInDarkTheme);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -289,15 +288,16 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
   // Apply Theme (Reactive to settings change)
   useEffect(() => {
+    logger.info("App", "system in dark mode: ", systemInDarkMode);
     if (!containerElement) {
       return;
     }
     if (settings.theme === "system") {
-      containerElement.setAttribute(
-        "data-theme",
-        systemInDarkTheme ? "midnight" : "light"
-      );
+      const theme = systemInDarkMode ? "midnight" : "light";
+      logger.info("App", "adjust system theme to: ", theme);
+      containerElement.setAttribute("data-theme", theme);
     } else {
+      logger.info("App", "set theme: ", settings.theme);
       containerElement.setAttribute("data-theme", settings.theme);
     }
   }, [settings.theme, containerElement]);

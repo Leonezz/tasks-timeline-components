@@ -9,6 +9,7 @@ import root from "react-shadow";
 import styles from "../../index.css?inline";
 import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
+import { logger } from "@/utils/logger.ts";
 
 interface SettingsPageProps {
   settings: AppSettings;
@@ -18,7 +19,7 @@ interface SettingsPageProps {
   availableCategories: string[];
   onClose?: () => void;
   inSeperatePage: boolean;
-  inDarkTheme?: boolean;
+  inDarkMode?: boolean;
 }
 
 type Tab = "general" | "advanced" | "docs" | "about";
@@ -30,20 +31,23 @@ export const SettingsPage = ({
   availableTags,
   onClose,
   inSeperatePage,
-  inDarkTheme,
+  inDarkMode,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [containerElement, setContainerElement] =
     useState<HTMLDivElement | null>(null);
   useEffect(() => {
+    logger.info(
+      "Settings",
+      `system in dark mode: ${inDarkMode}, in seperate page: ${inSeperatePage}, onClose: ${onClose}`
+    );
     if (!inSeperatePage || !containerElement) {
       return;
     }
-    containerElement.setAttribute(
-      "data-theme",
-      inDarkTheme ? "midnight" : "light"
-    );
-  }, [settings.theme, containerElement, inDarkTheme, inSeperatePage]);
+    const theme = inDarkMode ? "midnight" : "light";
+    logger.info("Settings", "adjust to system theme: ", theme);
+    containerElement.setAttribute("data-theme", theme);
+  }, [settings.theme, containerElement, inDarkMode, inSeperatePage]);
   const renderContent = () => (
     <>
       {/* Header */}
