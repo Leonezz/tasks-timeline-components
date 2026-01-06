@@ -48,7 +48,7 @@ export interface YearGroup {
   completedTasks: number;
 }
 
-export type ThemeOption = "light" | "dark" | "midnight" | "coffee";
+export type ThemeOption = "light" | "dark" | "midnight" | "coffee" | "system";
 export type FontSize = "sm" | "base" | "lg" | "xl";
 export type AIProvider = "gemini" | "openai" | "anthropic";
 export type VoiceProvider = "browser" | "gemini-whisper"; // Placeholder for future expansion

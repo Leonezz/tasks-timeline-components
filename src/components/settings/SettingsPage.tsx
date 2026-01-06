@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import type { AppSettings } from "../../types";
 import { cn } from "../../utils";
@@ -8,6 +8,7 @@ import { Documentation } from "./Documentation";
 import root from "react-shadow";
 import styles from "../../index.css?inline";
 import "../../../vite-env.d.ts";
+import { About } from "./About.tsx";
 
 interface SettingsPageProps {
   settings: AppSettings;
@@ -17,9 +18,10 @@ interface SettingsPageProps {
   availableCategories: string[];
   onClose?: () => void;
   inSeperatePage: boolean;
+  inDarkTheme?: boolean;
 }
 
-type Tab = "general" | "advanced" | "docs";
+type Tab = "general" | "advanced" | "docs" | "about";
 
 export const SettingsPage = ({
   settings,
@@ -28,12 +30,27 @@ export const SettingsPage = ({
   availableTags,
   onClose,
   inSeperatePage,
+  inDarkTheme,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("general");
+  const [containerElement, setContainerElement] =
+    useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!inSeperatePage || !containerElement) {
+      return;
+    }
+    containerElement.setAttribute(
+      "data-theme",
+      inDarkTheme ? "midnight" : "light"
+    );
+  }, [settings.theme, containerElement, inDarkTheme, inSeperatePage]);
   const renderContent = () => (
     <>
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 shrink-0">
+      <div
+        ref={setContainerElement}
+        className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 shrink-0"
+      >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-200">
@@ -77,6 +94,17 @@ export const SettingsPage = ({
             >
               Docs
             </button>
+            <button
+              onClick={() => setActiveTab("about")}
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                activeTab === "about"
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              About
+            </button>
           </div>
         </div>
         {onClose && (
@@ -106,6 +134,7 @@ export const SettingsPage = ({
           />
         )}
         {activeTab === "docs" && <Documentation />}
+        {activeTab === "about" && <About />}
       </div>
 
       {/* Footer */}
