@@ -51,10 +51,7 @@ export const SettingsPage = ({
   const renderContent = () => (
     <>
       {/* Header */}
-      <div
-        ref={setContainerElement}
-        className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 shrink-0"
-      >
+      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-200">
@@ -152,15 +149,19 @@ export const SettingsPage = ({
 
   if (inSeperatePage) {
     return (
-      <root.div
+      <div
+        ref={setContainerElement}
+        className="tasks-timeline-app"
         id="tasks-timeline-app"
         style={{
           width: "100%",
         }}
       >
-        <style>{styles}</style>
-        {renderContent()}
-      </root.div>
+        <root.div>
+          <style>{styles}</style>
+          {renderContent()}
+        </root.div>
+      </div>
     );
   }
 

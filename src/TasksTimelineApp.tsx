@@ -294,7 +294,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       logger.info("App", "set theme: ", settings.theme);
       containerElement.setAttribute("data-theme", settings.theme);
     }
-  }, [settings.theme, containerElement]);
+  }, [settings.theme, containerElement, systemInDarkMode]);
 
   const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
     tasks,
