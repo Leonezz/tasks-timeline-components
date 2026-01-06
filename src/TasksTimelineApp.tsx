@@ -178,9 +178,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           }
 
           setSettings(mergedSettings);
-          if (containerElement) {
-            containerElement.setAttribute("data-theme", mergedSettings.theme);
-          }
 
           // Set derived states from settings
           setIsFocusMode(mergedSettings.defaultFocusMode);
@@ -190,9 +187,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           );
         } else {
           // Use defaults
-          if (containerElement) {
-            containerElement.setAttribute("data-theme", DEFAULT_SETTINGS.theme);
-          }
           setIsAiMode(
             DEFAULT_SETTINGS.aiConfig.enabled &&
               DEFAULT_SETTINGS.aiConfig.defaultMode
@@ -225,7 +219,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       }
     };
     loadData();
-  }, [taskRepo, settingsRepo, apiKey, containerElement]); // Re-run if container mounts late
+  }, [taskRepo, settingsRepo, apiKey]); // Re-run if container mounts late
 
   // Persist Tasks on change (Debounced inside the repository)
   useEffect(() => {
