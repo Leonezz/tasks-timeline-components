@@ -53,7 +53,7 @@ export const YearSection: React.FC<YearSectionProps> = ({
               >
                 <Icon name="ChevronRight" size={20} />
               </motion.div>
-              <h2 className="text-3xl font-black text-blue-600 tracking-tighter group-hover:text-slate-800 transition-colors">
+              <h2 className="text-3xl font-black text-slate-800 tracking-tighter group-hover:text-blue-600 transition-colors">
                 {group.year}
               </h2>
             </div>

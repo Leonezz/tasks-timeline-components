@@ -416,24 +416,25 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             />
           )}
 
-          {!settings.groupingStrategy.includes("createdAt") && (
-            <DateBadge
-              type="createdAt"
-              date={task.createdAt}
-              label={formatSmartDate(
-                task.createdAt,
-                settings.useRelativeDates,
-                settings.dateFormat
-              )}
-              task={task}
-              onUpdate={onUpdate}
-              icon="Plus"
-              className={cn(
-                badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200"
-              )}
-            />
-          )}
+          {!settings.groupingStrategy.includes("createdAt") &&
+            task.createdAt && (
+              <DateBadge
+                type="createdAt"
+                date={task.createdAt}
+                label={formatSmartDate(
+                  task.createdAt,
+                  settings.useRelativeDates,
+                  settings.dateFormat
+                )}
+                task={task}
+                onUpdate={onUpdate}
+                icon="Plus"
+                className={cn(
+                  badgeClass,
+                  "text-slate-500 bg-slate-50 border-slate-200"
+                )}
+              />
+            )}
           {task.startAt && (
             <DateBadge
               type="startAt"

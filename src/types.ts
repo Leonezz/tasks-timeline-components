@@ -23,7 +23,7 @@ export interface Task {
   description?: string;
   status: TaskStatus;
 
-  createdAt: ISO8601String;
+  createdAt?: ISO8601String;
   startAt?: ISO8601String;
   dueDate?: ISO8601String;
   completedAt?: ISO8601String;
@@ -33,7 +33,7 @@ export interface Task {
   tags: Tag[];
   isRecurring?: boolean;
   recurringInterval?: string;
-  icon?: string;
+  extra?: Record<string, string>;
 }
 
 export interface DayGroup {
@@ -123,9 +123,6 @@ export interface TaskRepository {
   saveTasks(tasks: Task[]): Promise<void>;
   updateTask(task: Task): Promise<void>;
   deleteTask(id: string): Promise<void>;
-
-  // Support for event-driven syncing
-  onSync?: (callback: (tasks: Task[]) => void) => void;
 }
 
 export interface SettingsRepository {
