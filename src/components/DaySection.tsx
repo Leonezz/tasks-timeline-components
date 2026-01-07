@@ -107,7 +107,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
       } else {
         onAddTask({
           title: newTaskTitle,
-          dueDate: group.date,
+          dueAt: group.date,
           category: selectedCategory,
         });
       }

@@ -4,7 +4,7 @@ import { MotionSpan } from "../Motion";
 import { Icon } from "../Icon";
 
 const GROUP_STRATEGIES: { id: DateGroupBy; label: string }[] = [
-  { id: "dueDate", label: "Due Date" },
+  { id: "dueAt", label: "Due Date" },
   { id: "createdAt", label: "Created Date" },
   { id: "startAt", label: "Start Date" },
   { id: "completedAt", label: "Completed Date" },

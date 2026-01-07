@@ -48,7 +48,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     task.priority === "high" &&
     (task.status === "overdue" ||
       task.status === "due" ||
-      (task.dueDate && task.dueDate <= today));
+      (task.dueAt && task.dueAt <= today));
 
   // Font size mapping
   const fontSizeClass =
@@ -226,7 +226,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     "overdue",
     "cancelled",
   ];
-  const dueTime = task.dueDate ? formatTime(task.dueDate) : null;
+  const dueTime = task.dueAt ? formatTime(task.dueAt) : null;
   const startTime = task.startAt ? formatTime(task.startAt) : null;
   const displayTime = dueTime || startTime;
   const badgeClass =
@@ -453,12 +453,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               )}
             />
           )}
-          {task.dueDate && (
+          {task.dueAt && (
             <DateBadge
               type="dueDate"
-              date={task.dueDate}
+              date={task.dueAt}
               label={`Due: ${formatSmartDate(
-                task.dueDate,
+                task.dueAt,
                 settings.useRelativeDates,
                 settings.dateFormat
               )}`}
@@ -467,7 +467,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               onUpdate={onUpdate}
               className={cn(
                 badgeClass,
-                getDueDateColor(task.dueDate, task.status)
+                getDueDateColor(task.dueAt, task.status)
               )}
             />
           )}

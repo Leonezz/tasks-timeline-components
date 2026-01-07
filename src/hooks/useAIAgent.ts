@@ -49,7 +49,7 @@ export const useAIAgent = (
           status: "todo",
           priority: args.priority || "medium",
           createdAt: new Date().toISOString(),
-          dueDate: args.dueDate || new Date().toISOString().split("T")[0],
+          dueAt: args.dueDate || new Date().toISOString().split("T")[0],
           category: args.category,
           tags: args.tags
             ? args.tags.map((t: string) => ({ id: `tag-${t}`, name: t }))
@@ -79,9 +79,20 @@ export const useAIAgent = (
         if (args.status)
           results = results.filter((t) => t.status === args.status);
         if (args.date)
-          results = results.filter((t) =>
-            (t.dueDate || t.createdAt).startsWith(args.date)
-          );
+          results = results.filter((t) => {
+            const dates = [
+              "startAt",
+              "createdAt",
+              "completedAt",
+              "dueAt",
+            ] satisfies (keyof typeof t)[];
+            for (const d of dates) {
+              if (t[d] && (t[d] satisfies string).startsWith(args.date)) {
+                return true;
+              }
+            }
+            return false;
+          });
         if (args.search) {
           const q = args.search.toLowerCase();
           results = results.filter((t) => t.title.toLowerCase().includes(q));
@@ -92,7 +103,7 @@ export const useAIAgent = (
             ({
               id: t.id,
               title: t.title,
-              dueDate: t.dueDate,
+              dueDate: t.dueAt,
               status: t.status,
             } as unknown as Task)
         ); // Returning partial objects is fine for context usually, but typing says Task[]

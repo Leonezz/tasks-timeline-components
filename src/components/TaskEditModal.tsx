@@ -345,11 +345,11 @@ const EditForm: React.FC<EditFormProps> = ({
               </label>
               <input
                 type="datetime-local"
-                value={toDateTimeInput(editedTask.dueDate)}
+                value={toDateTimeInput(editedTask.dueAt)}
                 onChange={(e) =>
                   setEditedTask({
                     ...editedTask,
-                    dueDate: fromDateTimeInput(e.target.value),
+                    dueAt: fromDateTimeInput(e.target.value),
                   })
                 }
                 className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-700"

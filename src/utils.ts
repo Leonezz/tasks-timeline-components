@@ -86,12 +86,12 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
   const tomorrow = now.plus({ days: 1 }).toISODate();
 
   // 2. Overdue: Due date is strictly in the past
-  if (task.dueDate && task.dueDate < today) {
+  if (task.dueAt && task.dueAt < today) {
     return "overdue";
   }
 
   // 3. Due: Due date is Today or Tomorrow
-  if (task.dueDate && (task.dueDate === today || task.dueDate === tomorrow)) {
+  if (task.dueAt && (task.dueAt === today || task.dueAt === tomorrow)) {
     return "due";
   }
 
@@ -119,11 +119,11 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
 
 export const groupTasksByYearAndDate = (
   tasks: Task[],
-  strategies: DateGroupBy[] = ["dueDate"]
+  strategies: DateGroupBy[] = ["dueAt"]
 ): YearGroup[] => {
   const groups: Record<number, Record<string, Task[]>> = {};
   const allPossibleDateFields: DateGroupBy[] = [
-    "dueDate",
+    "dueAt",
     "startAt",
     "createdAt",
     "completedAt",
@@ -214,7 +214,7 @@ export const parseTaskString = (input: string): Partial<Task> => {
       dateVal = DateTime.now().plus({ days: 1 }).toISODate() || "";
     else if (DateTime.fromISO(val).isValid)
       dateVal = DateTime.fromISO(val).toISODate() || "";
-    if (dateVal) result.dueDate = dateVal;
+    if (dateVal) result.dueAt = dateVal;
     title = title.replace(dueMatch[0], "");
   }
 

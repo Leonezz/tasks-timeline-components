@@ -35,7 +35,7 @@ const defaultSettings: AppSettings = {
   soundEnabled: false,
   fontSize: "base",
   useRelativeDates: true,
-  groupingStrategy: ["dueDate"],
+  groupingStrategy: ["dueAt"],
   enableVoiceInput: true,
   voiceProvider: "browser",
   defaultFocusMode: false,

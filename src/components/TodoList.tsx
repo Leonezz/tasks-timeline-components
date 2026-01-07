@@ -51,7 +51,7 @@ export const TodoList: React.FC<TodoListProps> = ({
     const trulyUndatedTasks: Task[] = [];
 
     const dateFields: DateGroupBy[] = [
-      "dueDate",
+      "dueAt",
       "startAt",
       "createdAt",
       "completedAt",
@@ -118,7 +118,7 @@ export const TodoList: React.FC<TodoListProps> = ({
           <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-400">
             Current Focus
             {settings.groupingStrategy.length === 1 &&
-            settings.groupingStrategy[0] !== "dueDate"
+            settings.groupingStrategy[0] !== "dueAt"
               ? ` (${settings.groupingStrategy[0]
                   .replace("At", "")
                   .replace("Date", "")})`

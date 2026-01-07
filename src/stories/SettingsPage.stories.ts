@@ -22,7 +22,7 @@ const settings: AppSettings = {
   soundEnabled: true,
   fontSize: "base",
   useRelativeDates: true,
-  groupingStrategy: ["dueDate"],
+  groupingStrategy: ["dueAt"],
   aiConfig: {
     enabled: true,
     defaultMode: true,

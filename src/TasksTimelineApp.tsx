@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: false,
   fontSize: "base",
   useRelativeDates: true,
-  groupingStrategy: ["dueDate"],
+  groupingStrategy: ["dueAt"],
 
   // New Features
   enableVoiceInput: true,
@@ -341,7 +341,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     };
 
     if (typeof dateOrTask === "string" && title) {
-      newTask = { ...baseTask, title, dueDate: dateOrTask };
+      newTask = { ...baseTask, title, dueAt: dateOrTask };
     } else if (typeof dateOrTask === "object") {
       newTask = { ...baseTask, title: "New Task", ...dateOrTask } as Task;
       if (!newTask.title) newTask.title = "Untitled Task";

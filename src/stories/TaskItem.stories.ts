@@ -19,7 +19,7 @@ const defaultSettings: AppSettings = {
   soundEnabled: false,
   fontSize: "base",
   useRelativeDates: true,
-  groupingStrategy: ["dueDate"],
+  groupingStrategy: ["dueAt"],
   enableVoiceInput: false,
   voiceProvider: "browser",
   defaultFocusMode: false,
@@ -61,7 +61,7 @@ const defaultTask: Task = {
   status: "todo" as TaskStatus,
   priority: "high",
   createdAt: new Date().toISOString(),
-  dueDate: new Date(Date.now() + 86400000).toISOString(),
+  dueAt: new Date(Date.now() + 86400000).toISOString(),
   tags: [{ id: "tag-1", name: "work" }],
   category: "Work",
 };
@@ -97,7 +97,7 @@ export const HighPriority: Story = {
     task: {
       ...defaultTask,
       priority: "high",
-      dueDate: new Date(Date.now() + 3600000).toISOString(),
+      dueAt: new Date(Date.now() + 3600000).toISOString(),
     },
   },
 };
@@ -108,7 +108,7 @@ export const Overdue: Story = {
     task: {
       ...defaultTask,
       status: "overdue" as TaskStatus,
-      dueDate: new Date(Date.now() - 86400000).toISOString(),
+      dueAt: new Date(Date.now() - 86400000).toISOString(),
       priority: "high",
     },
   },

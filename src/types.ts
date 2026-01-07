@@ -25,7 +25,7 @@ export interface Task {
 
   createdAt?: ISO8601String;
   startAt?: ISO8601String;
-  dueDate?: ISO8601String;
+  dueAt?: ISO8601String;
   completedAt?: ISO8601String;
 
   priority: Priority;
@@ -52,7 +52,7 @@ export type ThemeOption = "light" | "dark" | "midnight" | "coffee" | "system";
 export type FontSize = "sm" | "base" | "lg" | "xl";
 export type AIProvider = "gemini" | "openai" | "anthropic";
 export type VoiceProvider = "browser" | "gemini-whisper"; // Placeholder for future expansion
-export type DateGroupBy = "dueDate" | "createdAt" | "startAt" | "completedAt";
+export type DateGroupBy = "dueAt" | "createdAt" | "startAt" | "completedAt";
 
 export interface ProviderConfig {
   apiKey: string;
