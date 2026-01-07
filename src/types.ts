@@ -33,7 +33,9 @@ export interface Task {
   tags: Tag[];
   isRecurring?: boolean;
   recurringInterval?: string;
-  extra?: Record<string, string>;
+  extra?: {
+    [key: string]: string | undefined;
+  };
 }
 
 export interface DayGroup {
