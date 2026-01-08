@@ -14,5 +14,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const App: Story = {
-  args: {},
+  args: {
+    onItemClick: (item) => {
+      console.log("on click: ", item);
+    },
+  },
 };

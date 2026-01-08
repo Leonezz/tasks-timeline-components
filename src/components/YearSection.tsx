@@ -18,6 +18,7 @@ interface YearSectionProps {
   isAiMode: boolean;
   onVoiceError: (msg: string) => void;
   availableCategories: string[];
+  onItemClick?: (item: Task) => void;
 }
 
 export const YearSection: React.FC<YearSectionProps> = ({
@@ -31,6 +32,7 @@ export const YearSection: React.FC<YearSectionProps> = ({
   isAiMode,
   onVoiceError,
   availableCategories,
+  onItemClick,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const progressPercent =
@@ -116,6 +118,7 @@ export const YearSection: React.FC<YearSectionProps> = ({
                 isAiMode={isAiMode}
                 onVoiceError={onVoiceError}
                 availableCategories={availableCategories}
+                onItemClick={onItemClick}
               />
             ))}
           </motion.div>

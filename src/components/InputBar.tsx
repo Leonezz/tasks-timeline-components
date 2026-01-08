@@ -250,167 +250,185 @@ export const InputBar: React.FC<InputBarProps> = ({
                 />
               </button>
             )}
-            <div className="w-px h-4 bg-slate-200 mx-1" />
-            <button
-              onClick={onOpenSettings}
-              className="text-slate-400 hover:text-blue-600 p-1.5 rounded-md hover:bg-blue-50 transition-colors"
-              title="Settings & Docs"
-            >
-              <Icon name="Settings" size={16} />
-            </button>
+            {onOpenSettings && settings.settingButtonOnInputBar !== false && (
+              <>
+                <div className="w-px h-4 bg-slate-200 mx-1" />
+                <button
+                  onClick={onOpenSettings}
+                  className="text-slate-400 hover:text-blue-600 p-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                  title="Settings & Docs"
+                >
+                  <Icon name="Settings" size={16} />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Filter Chips & Sort (Existing Code) */}
         <div className="flex items-center gap-2 mt-2 overflow-x-auto no-scrollbar pb-2 pl-1 pr-4">
-          <FilterPopover
-            label="Tags"
-            isActive={isActive("tags")}
-            count={filters.tags.length}
-            onClear={() => clearFilterKey("tags")}
-          >
-            <div className="space-y-0.5">
-              {availableTags.length === 0 && (
-                <div className="text-xs text-slate-400 p-2 italic text-center">
-                  No tags available
-                </div>
-              )}
-              {availableTags.map((tag) => (
-                <label
-                  key={tag}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.tags.includes(tag)}
-                    onChange={() => toggleFilter("tags", tag)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <Icon
-                    name="Tag"
-                    size={12}
-                    className="text-blue-500 opacity-70 group-hover:opacity-100"
-                  />
-                  <span className="text-sm text-slate-700 group-hover:text-slate-900">
-                    {tag}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </FilterPopover>
+          {settings.tagsFilterOnInputBar !== false && (
+            <FilterPopover
+              label="Tags"
+              isActive={isActive("tags")}
+              count={filters.tags.length}
+              onClear={() => clearFilterKey("tags")}
+            >
+              <div className="space-y-0.5">
+                {availableTags.length === 0 && (
+                  <div className="text-xs text-slate-400 p-2 italic text-center">
+                    No tags available
+                  </div>
+                )}
+                {availableTags.map((tag) => (
+                  <label
+                    key={tag}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.tags.includes(tag)}
+                      onChange={() => toggleFilter("tags", tag)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Icon
+                      name="Tag"
+                      size={12}
+                      className="text-blue-500 opacity-70 group-hover:opacity-100"
+                    />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                      {tag}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </FilterPopover>
+          )}
 
-          <FilterPopover
-            label="Categories"
-            isActive={isActive("categories")}
-            count={filters.categories.length}
-            onClear={() => clearFilterKey("categories")}
-          >
-            <div className="space-y-0.5">
-              {availableCategories.length === 0 && (
-                <div className="text-xs text-slate-400 p-2 italic text-center">
-                  No categories available
-                </div>
-              )}
-              {availableCategories.map((cat) => (
-                <label
-                  key={cat}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.categories.includes(cat)}
-                    onChange={() => toggleFilter("categories", cat)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <Icon
-                    name="Folder"
-                    size={12}
-                    className="text-amber-500 opacity-70 group-hover:opacity-100"
-                  />
-                  <span className="text-sm text-slate-700 group-hover:text-slate-900">
-                    {cat}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </FilterPopover>
+          {settings.categoriesFilterOnInputBar !== false && (
+            <FilterPopover
+              label="Categories"
+              isActive={isActive("categories")}
+              count={filters.categories.length}
+              onClear={() => clearFilterKey("categories")}
+            >
+              <div className="space-y-0.5">
+                {availableCategories.length === 0 && (
+                  <div className="text-xs text-slate-400 p-2 italic text-center">
+                    No categories available
+                  </div>
+                )}
+                {availableCategories.map((cat) => (
+                  <label
+                    key={cat}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.categories.includes(cat)}
+                      onChange={() => toggleFilter("categories", cat)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Icon
+                      name="Folder"
+                      size={12}
+                      className="text-amber-500 opacity-70 group-hover:opacity-100"
+                    />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                      {cat}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </FilterPopover>
+          )}
+          {settings.priorityFilterOnInputBar !== false && (
+            <FilterPopover
+              label="Priority"
+              isActive={isActive("priorities")}
+              count={filters.priorities.length}
+              onClear={() => clearFilterKey("priorities")}
+            >
+              <div className="space-y-0.5">
+                {(["low", "medium", "high"] as Priority[]).map((p) => (
+                  <label
+                    key={p}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.priorities.includes(p)}
+                      onChange={() => toggleFilter("priorities", p)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Icon
+                      name="Flag"
+                      size={12}
+                      className={cn("opacity-80", getPriorityColor(p))}
+                      fill="currentColor"
+                    />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                      {p}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </FilterPopover>
+          )}
+          {settings.statusFilterOnInputBar !== false && (
+            <FilterPopover
+              label="Status"
+              isActive={isActive("statuses")}
+              count={filters.statuses.length}
+              onClear={() => clearFilterKey("statuses")}
+            >
+              <div className="space-y-0.5">
+                {(
+                  [
+                    "todo",
+                    "doing",
+                    "scheduled",
+                    "done",
+                    "due",
+                    "overdue",
+                    "cancelled",
+                    "unplanned",
+                  ] as TaskStatus[]
+                ).map((s) => (
+                  <label
+                    key={s}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.statuses.includes(s)}
+                      onChange={() => toggleFilter("statuses", s)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Icon
+                      name={getStatusIcon(s)}
+                      size={13}
+                      className={cn("opacity-80", getStatusColor(s))}
+                    />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900">
+                      {s}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </FilterPopover>
+          )}
 
-          <FilterPopover
-            label="Priority"
-            isActive={isActive("priorities")}
-            count={filters.priorities.length}
-            onClear={() => clearFilterKey("priorities")}
-          >
-            <div className="space-y-0.5">
-              {(["low", "medium", "high"] as Priority[]).map((p) => (
-                <label
-                  key={p}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.priorities.includes(p)}
-                    onChange={() => toggleFilter("priorities", p)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <Icon
-                    name="Flag"
-                    size={12}
-                    className={cn("opacity-80", getPriorityColor(p))}
-                    fill="currentColor"
-                  />
-                  <span className="text-sm text-slate-700 group-hover:text-slate-900">
-                    {p}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </FilterPopover>
-
-          <FilterPopover
-            label="Status"
-            isActive={isActive("statuses")}
-            count={filters.statuses.length}
-            onClear={() => clearFilterKey("statuses")}
-          >
-            <div className="space-y-0.5">
-              {(
-                [
-                  "todo",
-                  "doing",
-                  "scheduled",
-                  "done",
-                  "due",
-                  "overdue",
-                  "cancelled",
-                  "unplanned",
-                ] as TaskStatus[]
-              ).map((s) => (
-                <label
-                  key={s}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.statuses.includes(s)}
-                    onChange={() => toggleFilter("statuses", s)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <Icon
-                    name={getStatusIcon(s)}
-                    size={13}
-                    className={cn("opacity-80", getStatusColor(s))}
-                  />
-                  <span className="text-sm text-slate-700 group-hover:text-slate-900">
-                    {s}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </FilterPopover>
-
-          <div className="w-px h-4 bg-slate-300 mx-1 shrink-0" />
-          <SortPopover sort={sort} onSortChange={onSortChange} />
+          {(settings.tagsFilterOnInputBar !== false ||
+            settings.categoriesFilterOnInputBar !== false ||
+            settings.priorityFilterOnInputBar !== false ||
+            settings.statusFilterOnInputBar !== false) &&
+            settings.sortOnInputBar !== false && (
+              <div className="w-px h-4 bg-slate-300 mx-1 shrink-0" />
+            )}
+          {settings.sortOnInputBar !== false && (
+            <SortPopover sort={sort} onSortChange={onSortChange} />
+          )}
         </div>
       </div>
     </div>
@@ -566,7 +584,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
                     key={f.value}
                     onClick={() => handleFieldSelect(f.value)}
                     className={cn(
-                      "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-colors outline-none",
+                      "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-all outline-none",
                       isSelected
                         ? "bg-slate-100 text-slate-900 font-medium"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"

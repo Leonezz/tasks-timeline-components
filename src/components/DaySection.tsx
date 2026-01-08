@@ -21,6 +21,7 @@ interface DaySectionProps {
   onVoiceError: (msg: string) => void;
 
   availableCategories: string[];
+  onItemClick?: (task: Task) => void;
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
@@ -34,6 +35,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   isAiMode,
   onVoiceError,
   availableCategories,
+  onItemClick,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -230,6 +232,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   onDelete={onDeleteTask}
                   settings={settings}
                   availableCategories={availableCategories}
+                  onClick={onItemClick}
                 />
               ))}
 

@@ -303,7 +303,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   key={p}
                   onClick={() => setEditedTask({ ...editedTask, priority: p })}
                   className={cn(
-                    "flex-1 text-xs font-medium rounded-md capitalize transition-colors flex items-center justify-center",
+                    "flex-1 text-xs font-medium rounded-md capitalize transition-all flex items-center justify-center",
                     editedTask.priority === p
                       ? "bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-500"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -544,7 +544,7 @@ const EditForm: React.FC<EditFormProps> = ({
                                       });
                                     }}
                                     className={cn(
-                                      "py-1 text-[10px] rounded border transition-colors",
+                                      "py-1 text-[15px] rounded border transition-colors",
                                       isSelected
                                         ? "bg-blue-500 text-white border-blue-600"
                                         : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300"
@@ -579,7 +579,7 @@ const EditForm: React.FC<EditFormProps> = ({
                                       });
                                     }}
                                     className={cn(
-                                      "w-full aspect-square flex items-center justify-center text-[10px] rounded border transition-colors",
+                                      "w-full aspect-square flex items-center justify-center text-[15px] rounded border transition-colors",
                                       isSelected
                                         ? "bg-blue-500 text-white border-blue-600"
                                         : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300"

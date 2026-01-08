@@ -59,7 +59,7 @@ const defaultSettings: AppSettings = {
   sort: defaultSortState,
 };
 
-function DefaultInputBar() {
+function DefaultInputBar({ settings }: { settings: Partial<AppSettings> }) {
   const [isAiMode, setIsAiMode] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilterState);
   const [sort, setSort] = useState<SortState>(defaultSortState);
@@ -74,7 +74,7 @@ function DefaultInputBar() {
         onSortChange={setSort}
         availableTags={["work", "personal", "urgent"]}
         availableCategories={["Work", "Personal", "Shopping"]}
-        settings={defaultSettings}
+        settings={{ ...defaultSettings, ...settings }}
         onAddTask={(task: Partial<Task>) => console.log("Add task:", task)}
         onAICommand={async (input: string) => console.log("AI command:", input)}
         isAiMode={isAiMode}
@@ -85,39 +85,67 @@ function DefaultInputBar() {
   );
 }
 
-function WithoutAIInputBar() {
-  const [filters, setFilters] = useState<FilterState>(defaultFilterState);
-  const [sort, setSort] = useState<SortState>(defaultSortState);
-
-  const settingsNoAI = {
-    ...defaultSettings,
-    aiConfig: { ...defaultSettings.aiConfig, enabled: false },
-  };
-
-  return (
-    <div className="w-full max-w-2xl">
-      <InputBar
-        filters={filters}
-        onFilterChange={setFilters}
-        sort={sort}
-        onSortChange={setSort}
-        availableTags={[]}
-        availableCategories={[]}
-        settings={settingsNoAI}
-        onAddTask={(task: Partial<Task>) => console.log("Add task:", task)}
-        onAICommand={async (input: string) => console.log("AI command:", input)}
-        isAiMode={false}
-        onToggleAiMode={() => {}}
-        onVoiceError={(msg: string) => console.error("Voice error:", msg)}
-      />
-    </div>
-  );
-}
-
 export const Default: Story = {
-  render: () => <DefaultInputBar />,
+  render: () => <DefaultInputBar settings={defaultSettings} />,
 };
 
 export const WithoutAI: Story = {
-  render: () => <WithoutAIInputBar />,
+  render: () => (
+    <DefaultInputBar
+      settings={{ aiConfig: { ...defaultSettings.aiConfig, enabled: false } }}
+    />
+  ),
+};
+
+export const WithoutSetting: Story = {
+  render: () => (
+    <DefaultInputBar settings={{ settingButtonOnInputBar: false }} />
+  ),
+};
+
+export const WithoutTagsFilter: Story = {
+  render: () => <DefaultInputBar settings={{ tagsFilterOnInputBar: false }} />,
+};
+
+export const WithoutCategoryFilter: Story = {
+  render: () => (
+    <DefaultInputBar settings={{ categoriesFilterOnInputBar: false }} />
+  ),
+};
+
+export const WithoutAllFilter: Story = {
+  render: () => (
+    <DefaultInputBar
+      settings={{
+        tagsFilterOnInputBar: false,
+        categoriesFilterOnInputBar: false,
+        priorityFilterOnInputBar: false,
+        statusFilterOnInputBar: false,
+      }}
+    />
+  ),
+};
+
+export const WithoutSort: Story = {
+  render: () => (
+    <DefaultInputBar
+      settings={{
+        sortOnInputBar: false,
+      }}
+    />
+  ),
+};
+
+export const WithoutAllFilterAndSort: Story = {
+  render: () => (
+    <DefaultInputBar
+      settings={{
+        tagsFilterOnInputBar: false,
+        categoriesFilterOnInputBar: false,
+        priorityFilterOnInputBar: false,
+        statusFilterOnInputBar: false,
+        sortOnInputBar: false,
+      }}
+    />
+  ),
 };

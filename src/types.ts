@@ -87,6 +87,13 @@ export interface AppSettings {
   totalTokenUsage: number;
   defaultCategory: string;
 
+  settingButtonOnInputBar?: false;
+  tagsFilterOnInputBar?: false;
+  categoriesFilterOnInputBar?: false;
+  priorityFilterOnInputBar?: false;
+  statusFilterOnInputBar?: false;
+  sortOnInputBar?: false;
+
   filters: FilterState;
   sort: SortState;
 }

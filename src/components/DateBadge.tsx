@@ -37,6 +37,9 @@ export const DateBadge = ({
         : dt.toISODate()
       : "";
   });
+  const dateLabel = type.endsWith("At")
+    ? type.slice(0, type.length - 2).toUpperCase()
+    : "";
 
   const handleDateSave = () => {
     let newDate = "";
@@ -93,9 +96,9 @@ export const DateBadge = ({
             <Popover.Close asChild>
               <button
                 onClick={handleDateSave}
-                className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-colors"
+                className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-all"
               >
-                Save
+                Save {dateLabel} date
               </button>
             </Popover.Close>
           </MotionDiv>

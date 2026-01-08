@@ -11,6 +11,7 @@ interface BacklogSectionProps {
   onDeleteTask: (id: string) => void;
   settings: AppSettings;
   availableCategories: string[];
+  onItemClick?: (task: Task) => void;
 }
 
 export const BacklogSection: React.FC<BacklogSectionProps> = ({
@@ -20,6 +21,7 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
   onDeleteTask,
   settings,
   availableCategories,
+  onItemClick,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -66,6 +68,7 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
                   settings={settings}
                   missingStrategies={settings.groupingStrategy}
                   availableCategories={availableCategories}
+                  onClick={onItemClick}
                 />
               ))}
             </div>

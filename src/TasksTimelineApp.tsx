@@ -45,6 +45,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   totalTokenUsage: 0,
   defaultCategory: "General",
 
+  settingButtonOnInputBar: undefined,
+
   aiConfig: {
     enabled: true,
     defaultMode: false,
@@ -84,6 +86,7 @@ export interface TasksTimelineAppProps {
   settingsRepository?: SettingsRepository;
   apiKey?: string;
   systemInDarkMode?: boolean;
+  onItemClick?: (item: Task) => void;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -92,6 +95,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   settingsRepository,
   apiKey,
   systemInDarkMode,
+  onItemClick,
 }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -415,7 +419,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             </div>
 
             <InputBar
-              onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenSettings={
+                settings.settingButtonOnInputBar === false
+                  ? undefined
+                  : () => setIsSettingsOpen(true)
+              }
               filters={filters}
               onFilterChange={setFilters}
               sort={sort}
@@ -547,6 +555,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               isAiMode={isAiMode}
               onVoiceError={handleVoiceError}
               availableCategories={uniqueCategories}
+              onItemClick={onItemClick}
             />
           </main>
 
