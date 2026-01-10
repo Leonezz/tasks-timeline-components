@@ -427,7 +427,7 @@ export const SettingsPageAdvanced = ({
                 }
                 className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="dueDate">Due Date</option>
+                <option value="dueAt">Due Date</option>
                 <option value="createdAt">Created Date</option>
                 <option value="priority">Priority</option>
                 <option value="title">Title</option>

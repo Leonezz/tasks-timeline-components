@@ -1,7 +1,7 @@
 import type { Meta } from "@storybook/react-vite";
 
 const meta: Meta = {
-  title: "Getting Started",
+  title: "00-Introduction/Getting Started",
   parameters: {
     layout: "centered",
   },

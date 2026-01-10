@@ -259,7 +259,7 @@ export const getToolDefinitions = (): FunctionDeclaration[] => {
             description: "Task priority: low, medium, or high.",
             enum: ["low", "medium", "high"],
           },
-          dueDate: {
+          dueAt: {
             type: Type.STRING,
             description: "ISO 8601 date string (YYYY-MM-DD).",
           },
@@ -333,7 +333,7 @@ export const getToolDefinitions = (): FunctionDeclaration[] => {
             ],
           },
           priority: { type: Type.STRING, enum: ["low", "medium", "high"] },
-          dueDate: { type: Type.STRING },
+          dueAt: { type: Type.STRING },
           category: { type: Type.STRING },
           tags: { type: Type.ARRAY, items: { type: Type.STRING } },
         },

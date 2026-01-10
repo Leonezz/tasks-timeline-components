@@ -1,9 +1,14 @@
 import type { Priority, Task } from "@/types";
-import * as Popover from "@radix-ui/react-popover";
 import { Icon } from "./Icon";
 import { useAppContext } from "./AppContext";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  PopoverClose,
+} from "./ui/popover";
 
 export interface PriorityPopoverProps {
   task: Task;
@@ -25,54 +30,53 @@ export const PriorityPopover = ({
   const { portalContainer } = useAppContext();
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button className={cn(badgeClass, colorClass)} title="Change Priority">
           <Icon name="Flag" size={10} strokeWidth={p === "high" ? 3 : 2} />
           <span className="capitalize">{p}</span>
         </button>
-      </Popover.Trigger>
-      <Popover.Portal container={portalContainer}>
-        <Popover.Content
-          side="bottom"
-          align="start"
-          sideOffset={4}
-          className="z-9999 outline-none"
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        className="z-9999 outline-none w-auto p-1"
+        container={portalContainer}
+      >
+        <MotionDiv
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col gap-1"
         >
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-1 rounded-lg border flex flex-col gap-1 w-24 shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-xl border-slate-200/60"
-          >
-            {(["high", "medium", "low"] as Priority[]).map((opt) => (
-              <Popover.Close key={opt} asChild>
-                <button
-                  onClick={() => onUpdate({ ...task, priority: opt })}
-                  className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
-                    task.priority === opt
-                      ? "bg-slate-100 font-bold"
-                      : "hover:bg-slate-50 text-slate-600"
-                  )}
-                >
-                  <Icon
-                    name="Flag"
-                    size={10}
-                    className={
-                      opt === "high"
-                        ? "text-rose-500"
-                        : opt === "medium"
-                        ? "text-amber-500"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="capitalize">{opt}</span>
-                </button>
-              </Popover.Close>
-            ))}
-          </MotionDiv>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          {(["high", "medium", "low"] as Priority[]).map((opt) => (
+            <PopoverClose key={opt} asChild>
+              <button
+                onClick={() => onUpdate({ ...task, priority: opt })}
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
+                  task.priority === opt
+                    ? "bg-slate-100 font-bold"
+                    : "hover:bg-slate-50 text-slate-600"
+                )}
+              >
+                <Icon
+                  name="Flag"
+                  size={10}
+                  className={
+                    opt === "high"
+                      ? "text-rose-500"
+                      : opt === "medium"
+                      ? "text-amber-500"
+                      : "text-slate-400"
+                  }
+                />
+                <span className="capitalize">{opt}</span>
+              </button>
+            </PopoverClose>
+          ))}
+        </MotionDiv>
+      </PopoverContent>
+    </Popover>
   );
 };

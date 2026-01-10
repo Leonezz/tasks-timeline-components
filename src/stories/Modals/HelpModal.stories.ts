@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { HelpModal } from "../components/HelpModal";
+import { HelpModal } from "../../components/HelpModal";
 
 const meta: Meta<typeof HelpModal> = {
-  title: "Components/HelpModal",
+  title: "Modals/HelpModal",
   component: HelpModal,
   tags: ["autodocs"],
 };

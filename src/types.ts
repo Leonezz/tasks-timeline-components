@@ -109,7 +109,8 @@ export interface FilterState {
 
 export type SortField =
   | "createdAt"
-  | "dueDate"
+  | "dueAt"
+  | "startAt"
   | "priority"
   | "title"
   | "custom";

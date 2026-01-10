@@ -1,54 +1,42 @@
 import React, { useState } from "react";
-import * as Popover from "@radix-ui/react-popover";
 import * as Lucide from "lucide-react";
 import { Icon } from "./Icon";
 import type {
-  FilterState,
-  SortState,
   SortField,
   Priority,
   TaskStatus,
-  AppSettings,
-  Task,
+  FilterState,
+  SortState,
 } from "../types";
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { MotionDiv, MotionButton } from "./Motion";
 import { useAppContext } from "./AppContext";
+import { useTasksContext } from "../contexts/TasksContext";
+import { useSettingsContext } from "../contexts/SettingsContext";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
 
-interface InputBarProps {
-  onOpenSettings?: () => void;
-  filters: FilterState;
-  onFilterChange: (newFilters: FilterState) => void;
-  sort: SortState;
-  onSortChange: (newSort: SortState) => void;
-  availableTags: string[];
-  availableCategories: string[];
-  settings: AppSettings;
-  onAddTask: (taskPart: Partial<Task>) => void;
-  onAICommand: (input: string) => Promise<void>;
+interface InputBarProps {}
 
-  // Shared State
-  isAiMode: boolean;
-  onToggleAiMode: () => void;
-  onVoiceError: (msg: string) => void;
-}
+export const InputBar: React.FC<InputBarProps> = () => {
+  const { onAddTask, onAICommand, availableTags, availableCategories } =
+    useTasksContext();
+  const {
+    settings,
+    filters,
+    onFilterChange,
+    sort,
+    onSortChange,
+    isAiMode,
+    toggleAiMode,
+    onVoiceError,
+    onOpenSettings,
+  } = useSettingsContext();
 
-export const InputBar: React.FC<InputBarProps> = ({
-  onOpenSettings,
-  filters,
-  onFilterChange,
-  sort,
-  onSortChange,
-  availableTags,
-  availableCategories,
-  settings,
-  onAddTask,
-  onAICommand,
-  isAiMode,
-  onToggleAiMode,
-  onVoiceError,
-}) => {
   const [value, setValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -231,7 +219,7 @@ export const InputBar: React.FC<InputBarProps> = ({
 
             {settings.aiConfig.enabled && (
               <button
-                onClick={onToggleAiMode}
+                onClick={toggleAiMode}
                 className={cn(
                   "p-1.5 rounded-md transition-all duration-200",
                   effectiveAiActive
@@ -452,8 +440,8 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
 }) => {
   const { portalContainer } = useAppContext();
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <MotionButton
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -479,16 +467,16 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             )}
           />
         </MotionButton>
-      </Popover.Trigger>
+      </PopoverTrigger>
 
-      <Popover.Portal container={portalContainer}>
-        <Popover.Content
+      <PopoverContent
           side="bottom"
           align="start"
           sideOffset={8}
           collisionPadding={16}
-          className="outline-none"
+          className="outline-none w-auto p-0"
           style={{ zIndex: 99999 }}
+          container={portalContainer}
         >
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95, y: -5 }}
@@ -514,9 +502,8 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
               {children}
             </div>
           </MotionDiv>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        </PopoverContent>
+    </Popover>
   );
 };
 
@@ -532,7 +519,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
     value: SortField;
     icon: keyof typeof Lucide;
   }[] = [
-    { label: "Due Date", value: "dueDate", icon: "Calendar" },
+    { label: "Due Date", value: "dueAt", icon: "Calendar" },
     { label: "Created Date", value: "createdAt", icon: "Clock" },
     { label: "Priority", value: "priority", icon: "Flag" },
     { label: "Title", value: "title", icon: "Type" },
@@ -550,21 +537,21 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   };
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold rounded-full transition-all shrink-0 outline-none ml-auto active:scale-95">
           <Icon name="ArrowUpDown" size={12} />
           <span>Sort</span>
         </button>
-      </Popover.Trigger>
-      <Popover.Portal container={portalContainer}>
-        <Popover.Content
+      </PopoverTrigger>
+      <PopoverContent
           side="bottom"
           align="end"
           sideOffset={8}
           collisionPadding={16}
-          className="outline-none"
+          className="outline-none w-auto p-0"
           style={{ zIndex: 99999 }}
+          container={portalContainer}
         >
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95, y: -5 }}
@@ -613,8 +600,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
               })}
             </div>
           </MotionDiv>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        </PopoverContent>
+    </Popover>
   );
 };

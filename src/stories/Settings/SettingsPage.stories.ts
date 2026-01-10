@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SettingsPage } from "../components/settings/SettingsPage";
-import type { AppSettings } from "../types";
+import { SettingsPage } from "../../components/settings/SettingsPage";
+import type { AppSettings } from "../../types";
 
 const meta: Meta<typeof SettingsPage> = {
-  title: "Components/SettingsPage",
+  title: "Settings/SettingsPage",
   component: SettingsPage,
   parameters: {
     layout: "fullscreen",

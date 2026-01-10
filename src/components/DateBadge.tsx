@@ -1,11 +1,16 @@
 import type { Task } from "@/types";
-import * as Popover from "@radix-ui/react-popover";
 import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
 import { useState } from "react";
 import { Icon } from "./Icon";
 import { useAppContext } from "./AppContext";
 import { MotionDiv } from "./Motion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  PopoverClose,
+} from "./ui/popover";
 
 interface DateBadgeProps {
   task: Task;
@@ -65,8 +70,8 @@ export const DateBadge = ({
   const { portalContainer } = useAppContext();
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button className={className} title={titleMap[type]}>
           <Icon name={icon} size={10} />
           <span className="font-mono">
@@ -74,36 +79,34 @@ export const DateBadge = ({
             {label}
           </span>
         </button>
-      </Popover.Trigger>
-      <Popover.Portal container={portalContainer}>
-        <Popover.Content
-          side="bottom"
-          align="start"
-          sideOffset={4}
-          className="z-9999 outline-none"
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        className="z-9999 outline-none w-auto p-2.5"
+        container={portalContainer}
+      >
+        <MotionDiv
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
         >
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-2.5 rounded-lg border shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-xl border-slate-200/60"
-          >
-            <input
-              type={inputType}
-              value={val || ""}
-              onChange={(e) => setVal(e.target.value)}
-              className="border border-slate-200 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 mb-3 block w-full"
-            />
-            <Popover.Close asChild>
-              <button
-                onClick={handleDateSave}
-                className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-all"
-              >
-                Save {dateLabel} date
-              </button>
-            </Popover.Close>
-          </MotionDiv>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          <input
+            type={inputType}
+            value={val || ""}
+            onChange={(e) => setVal(e.target.value)}
+            className="border border-slate-200 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 mb-3 block w-full"
+          />
+          <PopoverClose asChild>
+            <button
+              onClick={handleDateSave}
+              className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-all"
+            >
+              Save {dateLabel} date
+            </button>
+          </PopoverClose>
+        </MotionDiv>
+      </PopoverContent>
+    </Popover>
   );
 };

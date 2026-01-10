@@ -21,6 +21,7 @@ import { logger } from "./utils/logger";
 import { BrowserTaskRepository, BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
 import { AppProvider } from "./components/AppContext";
+import { TasksProvider, SettingsProvider } from "./contexts";
 
 // Logic Hooks
 import { useTaskFiltering } from "./hooks/useTaskFiltering";
@@ -400,6 +401,38 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       )}
     >
       <AppProvider container={containerElement}>
+        <TasksProvider
+          value={{
+            tasks: processedTasks,
+            availableCategories: uniqueCategories,
+            availableTags: uniqueTags,
+            onUpdateTask: handleUpdateTask,
+            onDeleteTask: handleDeleteTask,
+            onAddTask: handleAddTask,
+            onEditTask: setEditingTask,
+            onAICommand: handleAICommand,
+            onItemClick,
+          }}
+        >
+          <SettingsProvider
+            value={{
+              settings,
+              updateSettings: (partial) => setSettings((prev) => ({ ...prev, ...partial })),
+              isFocusMode,
+              toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+              isAiMode,
+              toggleAiMode: () => setIsAiMode(!isAiMode),
+              filters,
+              onFilterChange: setFilters,
+              sort,
+              onSortChange: setSort,
+              onVoiceError: handleVoiceError,
+              onOpenSettings:
+                settings.settingButtonOnInputBar === false
+                  ? undefined
+                  : () => setIsSettingsOpen(true),
+            }}
+          >
         <div className="max-w-3xl mx-auto min-h-screen bg-white shadow-xl shadow-slate-200/50 border-x border-slate-100 pb-10 relative">
           <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
             {/* Persistence Status Indicator */}
@@ -418,25 +451,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               )}
             </div>
 
-            <InputBar
-              onOpenSettings={
-                settings.settingButtonOnInputBar === false
-                  ? undefined
-                  : () => setIsSettingsOpen(true)
-              }
-              filters={filters}
-              onFilterChange={setFilters}
-              sort={sort}
-              onSortChange={setSort}
-              availableTags={uniqueTags}
-              availableCategories={uniqueCategories}
-              settings={settings}
-              onAddTask={(t) => handleAddTask(t)}
-              onAICommand={handleAICommand}
-              isAiMode={isAiMode}
-              onToggleAiMode={() => setIsAiMode(!isAiMode)}
-              onVoiceError={handleVoiceError}
-            />
+            <InputBar />
 
             <div className="px-4 sm:px-6 pb-3">
               <div className="flex items-center gap-2">
@@ -543,20 +558,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           </div>
 
           <main className="px-4 sm:px-6 pt-6">
-            <TodoList
-              tasks={processedTasks}
-              onUpdateTask={handleUpdateTask}
-              onAddTask={(task) => handleAddTask(task)}
-              onAICommand={handleAICommand}
-              onEditTask={setEditingTask}
-              onDeleteTask={handleDeleteTask}
-              settings={settings}
-              isFocusMode={isFocusMode}
-              isAiMode={isAiMode}
-              onVoiceError={handleVoiceError}
-              availableCategories={uniqueCategories}
-              onItemClick={onItemClick}
-            />
+            <TodoList />
           </main>
 
           <footer className="mt-10 py-6 text-center text-slate-400 text-xs border-t border-slate-50">
@@ -593,6 +595,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             availableCategories={uniqueCategories}
           />
         </div>
+          </SettingsProvider>
+        </TasksProvider>
       </AppProvider>
     </div>
   );

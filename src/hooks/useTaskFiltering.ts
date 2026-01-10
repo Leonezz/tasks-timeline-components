@@ -1,5 +1,7 @@
 import { useMemo } from "react";
+import { Parser } from "expr-eval";
 import type { Task, FilterState, SortState, Priority } from "../types";
+import { logger } from "../utils/logger";
 
 export const useTaskFiltering = (
   tasks: Task[],
@@ -45,16 +47,19 @@ export const useTaskFiltering = (
     // 2. Script Filtering
     if (filters.enableScript && filters.script.trim()) {
       try {
-        const filterFn = new Function("task", filters.script);
+        const parser = new Parser();
+        const expression = parser.parse(filters.script);
         result = result.filter((t) => {
           try {
-            return Boolean(filterFn(t));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return Boolean(expression.evaluate({ task: t as any }));
           } catch (e) {
-            console.error(`run custom filter script failed with err: ${e}`);
+            logger.error("TaskFiltering", "Custom filter script execution failed", e);
+            return false;
           }
         });
       } catch (e) {
-        console.error(`make or run custom filter script failed with err: ${e}`);
+        logger.error("TaskFiltering", "Custom filter script parsing failed", e);
       }
     }
 
@@ -63,11 +68,13 @@ export const useTaskFiltering = (
       if (sort.field === "custom") {
         if (!sort.script.trim()) return 0;
         try {
-          const sortFn = new Function("a", "b", sort.script);
-          const res = sortFn(a, b);
+          const parser = new Parser();
+          const expression = parser.parse(sort.script);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res = expression.evaluate({ a: a as any, b: b as any });
           return typeof res === "number" ? res : 0;
         } catch (e) {
-          console.error(`make or run custom sort script failed with err: ${e}`);
+          logger.error("TaskFiltering", "Custom sort script failed", e);
           return 0;
         }
       }

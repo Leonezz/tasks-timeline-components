@@ -261,4 +261,27 @@
   --color-amber-200: var(--tt-amber-200);
   --color-amber-500: var(--tt-amber-500);
   --color-amber-700: var(--tt-amber-700);
+
+  /* shadcn/ui Theme Bridge - Maps to existing --tt-* variables */
+  /* These CSS variables are used by shadcn components */
+  --color-background: var(--tt-s-50);
+  --color-foreground: var(--tt-s-900);
+  --color-card: var(--tt-c-paper);
+  --color-card-foreground: var(--tt-s-900);
+  --color-popover: var(--tt-c-paper);
+  --color-popover-foreground: var(--tt-s-900);
+  --color-primary: var(--tt-blue-500);
+  --color-primary-foreground: var(--tt-c-white);
+  --color-secondary: var(--tt-s-100);
+  --color-secondary-foreground: var(--tt-s-900);
+  --color-muted: var(--tt-s-100);
+  --color-muted-foreground: var(--tt-s-500);
+  --color-accent: var(--tt-blue-50);
+  --color-accent-foreground: var(--tt-blue-600);
+  --color-destructive: var(--tt-rose-600);
+  --color-destructive-foreground: var(--tt-c-white);
+  --color-border: var(--tt-s-300);
+  --color-input: var(--tt-s-300);
+  --color-ring: var(--tt-blue-500);
+  --radius: 0.5rem;
 }

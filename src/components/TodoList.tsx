@@ -1,44 +1,24 @@
 import React, { useMemo } from "react";
 import { DateTime } from "luxon";
-import type { Task, DayGroup, AppSettings, DateGroupBy } from "../types";
+import type { Task, DayGroup, DateGroupBy } from "../types";
 import { groupTasksByYearAndDate } from "../utils";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
 import { BacklogSection } from "./BacklogSection";
+import { useTasksContext } from "../contexts/TasksContext";
+import { useSettingsContext } from "../contexts/SettingsContext";
 
 interface TodoListProps {
-  tasks: Task[];
-  onUpdateTask: (task: Task) => void;
-  onAddTask: (task: Partial<Task>) => void;
-  onAICommand: (input: string) => Promise<void>;
-  onEditTask?: (task: Task) => void;
-  onDeleteTask: (id: string) => void;
   className?: string;
-  settings: AppSettings;
-  isFocusMode: boolean;
-
-  // Synced Props
-  isAiMode: boolean;
-  onVoiceError: (msg: string) => void;
-  availableCategories: string[];
-  onItemClick?: (item: Task) => void;
 }
 
-export const TodoList: React.FC<TodoListProps> = ({
-  tasks,
-  onUpdateTask,
-  onAddTask,
-  onAICommand,
-  onEditTask,
-  onDeleteTask,
-  className,
-  settings,
-  isFocusMode,
-  isAiMode,
-  onVoiceError,
-  availableCategories,
-  onItemClick,
-}) => {
+export const TodoList: React.FC<TodoListProps> = ({ className }) => {
+  const {
+    tasks,
+  } = useTasksContext();
+
+  const { settings, isFocusMode } =
+    useSettingsContext();
   const { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
     const today = DateTime.now();
     const todayStr = today.toISODate();
@@ -129,16 +109,6 @@ export const TodoList: React.FC<TodoListProps> = ({
         </div>
         <DaySection
           group={todayGroup}
-          onUpdateTask={onUpdateTask}
-          onAddTask={onAddTask}
-          onAICommand={onAICommand}
-          onEditTask={onEditTask}
-          onDeleteTask={onDeleteTask}
-          settings={settings}
-          isAiMode={isAiMode}
-          onVoiceError={onVoiceError}
-          availableCategories={availableCategories}
-          onItemClick={onItemClick}
         />
       </div>
 
@@ -148,16 +118,6 @@ export const TodoList: React.FC<TodoListProps> = ({
           <YearSection
             key={group.year}
             group={group}
-            onUpdateTask={onUpdateTask}
-            onAddTask={onAddTask}
-            onAICommand={onAICommand}
-            onEditTask={onEditTask}
-            onDeleteTask={onDeleteTask}
-            settings={settings}
-            isAiMode={isAiMode}
-            onVoiceError={onVoiceError}
-            availableCategories={availableCategories}
-            onItemClick={onItemClick}
           />
         ))}
 
@@ -165,12 +125,6 @@ export const TodoList: React.FC<TodoListProps> = ({
       {!isFocusMode && backlogTasks.length > 0 && (
         <BacklogSection
           tasks={backlogTasks}
-          onUpdateTask={onUpdateTask}
-          onEditTask={onEditTask}
-          onDeleteTask={onDeleteTask}
-          settings={settings}
-          availableCategories={availableCategories}
-          onItemClick={onItemClick}
         />
       )}
 

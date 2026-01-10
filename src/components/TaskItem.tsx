@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import * as Popover from "@radix-ui/react-popover";
 import * as Lucide from "lucide-react";
-import type { Task, TaskStatus, AppSettings } from "../types";
+import type { Task, TaskStatus } from "../types";
 import { cn, formatSmartDate, formatRecurrence, formatTime } from "../utils";
 import { Icon } from "./Icon";
 import { MotionDiv, MotionButton } from "./Motion";
@@ -10,28 +9,27 @@ import { DateBadge } from "./DateBadge";
 import { TagBadge } from "./TagBadge";
 import { PriorityPopover } from "./PriorityPopover";
 import { CategoryPopover } from "./CategoryPopover";
+import { useTasksContext } from "../contexts/TasksContext";
+import { useSettingsContext } from "../contexts/SettingsContext";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  PopoverClose,
+} from "./ui/popover";
 
 interface TaskItemProps {
   task: Task;
-  onUpdate: (task: Task) => void;
-  onDelete: (id: string) => void;
-  onEdit?: (task: Task) => void;
-  settings: AppSettings;
   missingStrategies?: string[];
-  availableCategories: string[];
-  onClick?: (item: Task) => void;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
   task,
-  onUpdate,
-  onDelete,
-  onEdit,
-  settings,
   missingStrategies,
-  availableCategories,
-  onClick,
 }) => {
+  const { onUpdateTask, onDeleteTask, onEditTask, availableCategories, onItemClick } =
+    useTasksContext();
+  const { settings } = useSettingsContext();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -84,12 +82,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   }, [isEditing]);
 
   const handleStatusChange = (newStatus: TaskStatus) => {
-    onUpdate({ ...task, status: newStatus });
+    onUpdateTask({ ...task, status: newStatus });
   };
 
   const handleSaveEdit = () => {
     if (editTitle.trim()) {
-      onUpdate({ ...task, title: editTitle });
+      onUpdateTask({ ...task, title: editTitle });
     } else {
       setEditTitle(task.title);
     }
@@ -106,7 +104,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleDeleteClick = () => {
     if (deleteConfirm) {
-      onDelete(task.id);
+      onDeleteTask(task.id);
       if (deleteTimeoutRef.current)
         window.clearTimeout(deleteTimeoutRef.current);
     } else {
@@ -194,7 +192,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const getStrategyLabel = (s: string) => {
     switch (s) {
-      case "dueDate":
+      case "dueAt":
         return "Due Date";
       case "createdAt":
         return "Created Date";
@@ -271,8 +269,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         />
 
         {/* Icon Button */}
-        <Popover.Root>
-          <Popover.Trigger asChild>
+        <Popover>
+          <PopoverTrigger asChild>
             <button
               className={cn(
                 "relative z-10 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus:ring-2 focus:ring-slate-200 rounded-full",
@@ -284,67 +282,65 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             >
               {renderStatusIcon(task.status, 18)}
             </button>
-          </Popover.Trigger>
+          </PopoverTrigger>
 
-          <Popover.Portal container={portalContainer}>
-            <Popover.Content
-              side="bottom"
-              align="start"
-              sideOffset={5}
-              collisionPadding={10}
-              className="z-9999 outline-none"
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={5}
+            collisionPadding={10}
+            className="z-9999 outline-none w-auto p-1.5"
+            container={portalContainer}
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.9, y: -5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -5 }}
+              transition={{ duration: 0.15 }}
             >
-              <MotionDiv
-                initial={{ opacity: 0, scale: 0.9, y: -5 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: -5 }}
-                transition={{ duration: 0.15 }}
-                className="w-35 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1.5 ring-1 ring-slate-900/5"
-              >
-                <div className="flex flex-col gap-0.5">
-                  {statusOptions.map((option) => (
-                    <Popover.Close key={option} asChild>
-                      <button
-                        onClick={() => handleStatusChange(option)}
+              <div className="flex flex-col gap-0.5">
+                {statusOptions.map((option) => (
+                  <PopoverClose key={option} asChild>
+                    <button
+                      onClick={() => handleStatusChange(option)}
+                      className={cn(
+                        // Base styles: removed justify-start! for better standard behavior
+                        "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md transition-all text-left outline-none",
+                        "justify-start! text-left!",
+                        // Active (Selected) State: A solid, subtle background
+                        task.status === option
+                          ? "bg-slate-200/60 text-slate-900 font-semibold"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
+                      )}
+                    >
+                      <div
                         className={cn(
-                          // Base styles: removed justify-start! for better standard behavior
-                          "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md transition-all text-left outline-none",
-                          "justify-start! text-left!",
-                          // Active (Selected) State: A solid, subtle background
+                          "shrink-0",
                           task.status === option
-                            ? "bg-slate-200/60 text-slate-900 font-semibold"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
+                            ? "opacity-100"
+                            : "opacity-70"
                         )}
                       >
-                        <div
-                          className={cn(
-                            "shrink-0",
-                            task.status === option
-                              ? "opacity-100"
-                              : "opacity-70"
-                          )}
-                        >
-                          {renderStatusIcon(option, 14)}
-                        </div>
-                        <span className="capitalize">{option}</span>
-                      </button>
-                    </Popover.Close>
-                  ))}
-                  <div className="h-px bg-slate-100 my-1 mx-1" />
-                  <Popover.Close asChild>
-                    <button
-                      onClick={() => onEdit?.(task)}
-                      className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all text-left outline-none rounded-lg"
-                    >
-                      <Icon name="Pencil" size={14} className="opacity-70" />
-                      <span>Edit Details</span>
+                        {renderStatusIcon(option, 14)}
+                      </div>
+                      <span className="capitalize">{option}</span>
                     </button>
-                  </Popover.Close>
-                </div>
-              </MotionDiv>
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
+                  </PopoverClose>
+                ))}
+                <div className="h-px bg-slate-100 my-1 mx-1" />
+                <PopoverClose asChild>
+                  <button
+                    onClick={() => onEditTask?.(task)}
+                    className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all text-left outline-none rounded-lg"
+                  >
+                    <Icon name="Pencil" size={14} className="opacity-70" />
+                    <span>Edit Details</span>
+                  </button>
+                </PopoverClose>
+              </div>
+            </MotionDiv>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Content */}
@@ -399,18 +395,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             metadataSizeClass
           )}
           onClick={(e) => {
-            if (!onClick) {
+            if (!onItemClick) {
               return;
             }
             if (e.target !== e.currentTarget) {
               return;
             }
-            onClick(task);
+            onItemClick?.(task);
           }}
         >
           <PriorityPopover
             task={task}
-            onUpdate={onUpdate}
+            onUpdate={onUpdateTask}
             badgeClass={badgeClass}
           />
 
@@ -433,7 +429,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           {task.category && (
             <CategoryPopover
               task={task}
-              onUpdate={onUpdate}
+              onUpdate={onUpdateTask}
               badgeClass={badgeClass}
               availableCategories={availableCategories}
             />
@@ -450,7 +446,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   settings.dateFormat
                 )}
                 task={task}
-                onUpdate={onUpdate}
+                onUpdate={onUpdateTask}
                 icon="Plus"
                 className={cn(
                   badgeClass,
@@ -469,7 +465,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               )}
               icon="PlayCircle"
               task={task}
-              onUpdate={onUpdate}
+              onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
                 "text-slate-500 bg-slate-50 border-slate-200"
@@ -487,7 +483,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               )}`}
               icon="Calendar"
               task={task}
-              onUpdate={onUpdate}
+              onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
                 getDueDateColor(task.dueAt, task.status)
@@ -505,7 +501,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               )}`}
               icon="CheckCircle2"
               task={task}
-              onUpdate={onUpdate}
+              onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
                 "text-emerald-600 bg-emerald-50 border-emerald-200"
@@ -529,7 +525,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               key={tag.id}
               tag={tag}
               task={task}
-              onUpdate={onUpdate}
+              onUpdate={onUpdateTask}
               badgeClass={badgeClass}
             />
           ))}

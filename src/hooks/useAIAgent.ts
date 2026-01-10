@@ -49,7 +49,7 @@ export const useAIAgent = (
           status: "todo",
           priority: args.priority || "medium",
           createdAt: new Date().toISOString(),
-          dueAt: args.dueDate || new Date().toISOString().split("T")[0],
+          dueAt: args.dueAt || new Date().toISOString().split("T")[0],
           category: args.category,
           tags: args.tags
             ? args.tags.map((t: string) => ({ id: `tag-${t}`, name: t }))
@@ -103,7 +103,7 @@ export const useAIAgent = (
             ({
               id: t.id,
               title: t.title,
-              dueDate: t.dueAt,
+              dueAt: t.dueAt,
               status: t.status,
             } as unknown as Task)
         ); // Returning partial objects is fine for context usually, but typing says Task[]

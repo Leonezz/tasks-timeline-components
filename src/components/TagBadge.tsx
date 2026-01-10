@@ -1,9 +1,14 @@
 import type { Task } from "@/types";
-import * as Popover from "@radix-ui/react-popover";
 import { Icon } from "./Icon";
 import { useAppContext } from "./AppContext";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  PopoverClose,
+} from "./ui/popover";
 
 export interface TagBadgeProps {
   tag: { id: string; name: string };
@@ -20,8 +25,8 @@ export const TagBadge = ({
 }: TagBadgeProps) => {
   const { portalContainer } = useAppContext();
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button
           className={cn(
             badgeClass,
@@ -32,36 +37,35 @@ export const TagBadge = ({
           <Icon name="Tag" size={10} />
           <span>{tag.name}</span>
         </button>
-      </Popover.Trigger>
-      <Popover.Portal container={portalContainer}>
-        <Popover.Content
-          side="top"
-          align="center"
-          sideOffset={4}
-          className="z-9999 outline-none"
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="center"
+        sideOffset={4}
+        className="z-9999 outline-none w-auto p-0"
+        container={portalContainer}
+      >
+        <MotionDiv
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-1"
         >
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-1 rounded-lg border shadow-2xl overflow-hidden ring-1 ring-slate-900/5 backdrop-blur-2xl border-slate-200/60"
-          >
-            <Popover.Close asChild>
-              <button
-                onClick={() =>
-                  onUpdate({
-                    ...task,
-                    tags: task.tags.filter((t) => t.id !== tag.id),
-                  })
-                }
-                className="flex items-center gap-1.5 text-xs text-rose-600! px-2 py-1 rounded hover:bg-rose-50"
-              >
-                <Icon name="Trash" size={12} />
-                Remove Tag
-              </button>
-            </Popover.Close>
-          </MotionDiv>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          <PopoverClose asChild>
+            <button
+              onClick={() =>
+                onUpdate({
+                  ...task,
+                  tags: task.tags.filter((t) => t.id !== tag.id),
+                })
+              }
+              className="flex items-center gap-1.5 text-xs text-rose-600! px-2 py-1 rounded hover:bg-rose-50"
+            >
+              <Icon name="Trash" size={12} />
+              Remove Tag
+            </button>
+          </PopoverClose>
+        </MotionDiv>
+      </PopoverContent>
+    </Popover>
   );
 };

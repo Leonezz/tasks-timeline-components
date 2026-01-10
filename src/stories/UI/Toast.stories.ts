@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Toast } from "../components/Toast";
-import type { ToastMessage } from "../components/Toast";
+import { Toast } from "../../components/Toast";
+import type { ToastMessage } from "../../components/Toast";
 
 const meta: Meta<typeof Toast> = {
-  title: "Components/Toast",
+  title: "UI/Toast",
   component: Toast,
   tags: ["autodocs"],
   parameters: {

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SettingsModal } from "../components/settings/SettingsModal";
-import type { AppSettings } from "../types";
+import { SettingsModal } from "../../components/settings/SettingsModal";
+import type { AppSettings } from "../../types";
 
 const meta: Meta<typeof SettingsModal> = {
-  title: "Components/SettingsModal",
+  title: "Settings/SettingsModal",
   component: SettingsModal,
   parameters: {
     layout: "fullscreen",
