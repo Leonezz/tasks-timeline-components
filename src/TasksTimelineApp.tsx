@@ -16,7 +16,7 @@ import type {
   SettingsRepository,
 } from "./types";
 import { generateMockData } from "./mockData";
-import { cn, deriveTaskStatus } from "./utils";
+import { cn, deriveTaskStatus, deepEqual } from "./utils";
 import { logger } from "./utils/logger";
 import { BrowserTaskRepository, BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
@@ -88,6 +88,11 @@ export interface TasksTimelineAppProps {
   apiKey?: string;
   systemInDarkMode?: boolean;
   onItemClick?: (item: Task) => void;
+
+  // CRUD operation callbacks for external synchronization
+  onTaskAdded?: (task: Task) => void | Promise<void>;
+  onTaskUpdated?: (task: Task, previous: Task) => void | Promise<void>;
+  onTaskDeleted?: (taskId: string, previous: Task) => void | Promise<void>;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -97,6 +102,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   apiKey,
   systemInDarkMode,
   onItemClick,
+  onTaskAdded,
+  onTaskUpdated,
+  onTaskDeleted,
 }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -226,14 +234,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     loadData();
   }, [taskRepo, settingsRepo, apiKey]); // Re-run if container mounts late
 
-  // Persist Tasks on change (Debounced inside the repository)
-  useEffect(() => {
-    if (tasks.length > 0) {
-      setIsSyncing(true);
-      taskRepo.saveTasks(tasks).then(() => setIsSyncing(false));
-    }
-  }, [tasks, taskRepo]);
-
   // Persist Settings on change
   useEffect(() => {
     if (isSettingsLoaded) {
@@ -308,22 +308,83 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   );
   const stats = useTaskStats(tasks);
 
-  const handleUpdateTask = (updatedTask: Task) => {
+  const handleUpdateTask = async (updatedTask: Task) => {
+    const original = tasks.find((t) => t.id === updatedTask.id);
+
+    if (!original) {
+      console.warn(`Task ${updatedTask.id} not found`);
+      return;
+    }
+
     // Apply auto-status logic whenever a task is updated
     const processed = { ...updatedTask, status: deriveTaskStatus(updatedTask) };
+
+    // ✅ Check if ACTUALLY changed (after processing)
+    if (deepEqual(original, processed)) {
+      logger.info("Task", "No changes detected, skipping update", {
+        id: processed.id,
+      });
+      return; // No-op, skip update entirely
+    }
+
+    // Update local state
     setTasks((prev) =>
       prev.map((t) => (t.id === processed.id ? processed : t))
     );
+
     logger.info("Task", "Updated task", {
       id: processed.id,
       title: processed.title,
     });
+
+    // ✅ Persist only this ONE task (granular update)
+    if (onTaskUpdated) {
+      // Hooks take priority
+      try {
+        await onTaskUpdated(processed, original);
+      } catch (error) {
+        logger.error("Task", "Failed to persist update via hook", { error });
+      }
+    } else {
+      // Fallback to repository for backwards compatibility
+      try {
+        await taskRepo.updateTask(processed);
+      } catch (error) {
+        logger.error("Task", "Failed to persist update via repository", { error });
+      }
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
+  const handleDeleteTask = async (id: string) => {
+    const original = tasks.find((t) => t.id === id);
+
+    if (!original) {
+      console.warn(`Task ${id} not found`);
+      return;
+    }
+
+    // Update local state
     setTasks((prev) => prev.filter((t) => t.id !== id));
+
     addNotification("info", "Task Deleted", "Item removed from your list");
     logger.info("Task", "Deleted task", { id });
+
+    // ✅ Delete only this ONE task (granular delete)
+    if (onTaskDeleted) {
+      // Hooks take priority
+      try {
+        await onTaskDeleted(id, original);
+      } catch (error) {
+        logger.error("Task", "Failed to persist delete via hook", { error });
+      }
+    } else {
+      // Fallback to repository for backwards compatibility
+      try {
+        await taskRepo.deleteTask(id);
+      } catch (error) {
+        logger.error("Task", "Failed to persist delete via repository", { error });
+      }
+    }
   };
 
   const handleEditTaskSave = (updatedTask: Task) => {
@@ -331,7 +392,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     setEditingTask(null);
   };
 
-  const handleAddTask = (
+  const handleAddTask = async (
     dateOrTask: string | Partial<Task>,
     title?: string
   ) => {
@@ -357,11 +418,31 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Auto-evaluate new tasks too (e.g. if added with tomorrow's due date)
     newTask.status = deriveTaskStatus(newTask);
 
+    // Update local state
     setTasks((prev) => [...prev, newTask]);
+
     logger.info("Task", "Created task", {
       id: newTask.id,
       title: newTask.title,
     });
+
+    // ✅ Notify parent about new task
+    if (onTaskAdded) {
+      // Hooks take priority
+      try {
+        await onTaskAdded(newTask);
+      } catch (error) {
+        logger.error("Task", "Failed to persist add via hook", { error });
+      }
+    } else {
+      // Fallback to repository for backwards compatibility
+      // For add, we save entire array since repositories typically expect full state
+      try {
+        await taskRepo.saveTasks([...tasks, newTask]);
+      } catch (error) {
+        logger.error("Task", "Failed to persist add via repository", { error });
+      }
+    }
   };
 
   const { handleAICommand } = useAIAgent(
