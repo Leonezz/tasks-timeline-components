@@ -68,8 +68,8 @@ const settings: AppSettings = {
 
 export const Default: Story = {
   args: {
-    settings: settings,
-    onUpdateSettings: (s) => {},
+    settings,
+    onUpdateSettings: () => {},
 
     availableCategories: [],
     availableTags: [],

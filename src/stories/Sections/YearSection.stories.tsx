@@ -1,41 +1,45 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { YearSection } from "../../components/YearSection";
-import type { YearGroup, FilterState, SortState, Task } from "../../types";
+import type { FilterState, SortState, Task, YearGroup, AppSettings } from "../../types";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { TasksProvider } from "../../contexts/TasksContext";
 import { settingsBuilder, taskBuilder } from "../fixtures";
 import { DateTime } from "luxon";
 import { delay } from "../test-utils";
 
-const meta: Meta<typeof YearSection> = {
+type YearSectionStoryArgs = React.ComponentProps<typeof YearSection> & {
+  settings?: AppSettings;
+};
+
+const meta: Meta<YearSectionStoryArgs> = {
   title: "Sections/YearSection",
-  component: YearSection,
+  component: YearSection as unknown as React.FC<YearSectionStoryArgs>,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
   },
   decorators: [
     (Story, context) => {
-      const [tasks, setTasks] = useState<Task[]>([]);
-      const [isFocusMode, setIsFocusMode] = useState(false);
-      const [isAiMode, setIsAiMode] = useState(false);
-      const [filters, setFilters] = useState<FilterState>({
+      const [tasks, setTasks] = useState<Task[]>([]),
+       [isFocusMode, setIsFocusMode] = useState(false),
+       [isAiMode, setIsAiMode] = useState(false),
+       [filters, setFilters] = useState<FilterState>({
         tags: [],
         categories: [],
         priorities: [],
         statuses: [],
         enableScript: false,
         script: "",
-      });
-      const [sort, setSort] = useState<SortState>({
+      }),
+       [sort, setSort] = useState<SortState>({
         field: "dueAt",
         direction: "asc",
         script: "",
-      });
+      }),
 
-      const tasksContextValue = {
+       tasksContextValue = {
         tasks,
         availableCategories: ["Work", "Personal", "Shopping"],
         availableTags: ["work", "personal", "urgent"],
@@ -61,11 +65,11 @@ const meta: Meta<typeof YearSection> = {
         },
         onEditTask: (task: Task) => console.log("Edit task:", task),
         onAICommand: async (input: string) => console.log("AI command:", input),
-      };
+      },
 
-      const settingsContextValue = {
-        settings: context.args.settings || settingsBuilder.default(),
-        updateSettings: (s: any) => console.log("Update settings:", s),
+       settingsContextValue = {
+        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
+        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
         isFocusMode,
         toggleFocusMode: () => setIsFocusMode(!isFocusMode),
         isAiMode,
@@ -94,24 +98,23 @@ const meta: Meta<typeof YearSection> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const currentYear = DateTime.now().year;
-const today = DateTime.now();
+const currentYear = DateTime.now().year,
 
 // Helper to create YearGroup
-const createYearGroup = (
+ createYearGroup = (
   year: number,
   dayCount: number,
   tasksPerDay: number = 3,
   completedRatio: number = 0.5
 ): YearGroup => {
   const dayGroups = Array.from({ length: dayCount }, (_, i) => {
-    const date = DateTime.local(year, 1, 1).plus({ days: i * 7 });
-    const dayTasks = taskBuilder.many(tasksPerDay, {
+    const date = DateTime.local(year, 1, 1).plus({ days: i * 7 }),
+     dayTasks = taskBuilder.many(tasksPerDay, {
       dueAt: date.toISO()!,
-    });
+    }),
 
     // Mark some as completed based on ratio
-    const completedCount = Math.floor(tasksPerDay * completedRatio);
+     completedCount = Math.floor(tasksPerDay * completedRatio);
     dayTasks.slice(0, completedCount).forEach((t) => {
       t.status = "done";
       t.completedAt = date.toISO()!;
@@ -121,10 +124,10 @@ const createYearGroup = (
       date: date.toISODate()!,
       tasks: dayTasks,
     };
-  });
+  }),
 
-  const allTasks = dayGroups.flatMap((d) => d.tasks);
-  const completedCount = allTasks.filter((t) => t.status === "done").length;
+   allTasks = dayGroups.flatMap((d) => d.tasks),
+   completedCount = allTasks.filter((t) => t.status === "done").length;
 
   return {
     year,
@@ -155,14 +158,14 @@ export const Expanded: Story = {
 export const ProgressBarVisible: Story = {
   args: {
     group: createYearGroup(currentYear, 5, 4, 0.6),
-    settings: settingsBuilder.default(), // showProgressBar: true by default
+    settings: settingsBuilder.default(), // ShowProgressBar: true by default
   },
 };
 
 export const ProgressBarHidden: Story = {
   args: {
     group: createYearGroup(currentYear, 5, 4, 0.6),
-    settings: settingsBuilder.minimalUI(), // showProgressBar: false
+    settings: settingsBuilder.minimalUI(), // ShowProgressBar: false
   },
 };
 

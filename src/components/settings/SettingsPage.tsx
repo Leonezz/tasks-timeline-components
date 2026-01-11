@@ -33,8 +33,8 @@ export const SettingsPage = ({
   inSeperatePage,
   inDarkMode,
 }: SettingsPageProps) => {
-  const [activeTab, setActiveTab] = useState<Tab>("general");
-  const [containerElement, setContainerElement] =
+  const [activeTab, setActiveTab] = useState<Tab>("general"),
+   [containerElement, setContainerElement] =
     useState<HTMLDivElement | null>(null);
   useEffect(() => {
     logger.info(
@@ -47,7 +47,7 @@ export const SettingsPage = ({
     const theme = inDarkMode ? "midnight" : "light";
     logger.info("Settings", "adjust to system theme: ", theme);
     containerElement.setAttribute("data-theme", theme);
-  }, [settings.theme, containerElement, inDarkMode, inSeperatePage]);
+  }, [settings.theme, containerElement, inDarkMode, inSeperatePage, onClose]);
   const renderContent = () => (
     <>
       {/* Header */}

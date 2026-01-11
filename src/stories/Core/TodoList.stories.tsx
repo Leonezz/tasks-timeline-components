@@ -1,49 +1,65 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { within } from "@storybook/test";
+import { expect } from "storybook/test";
 import { TodoList } from "../../components/TodoList";
-import type { Task, FilterState, SortState } from "../../types";
+import type { FilterState, SortState, Task } from "../../types";
 import { TasksProvider } from "../../contexts/TasksContext";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { settingsBuilder, taskBuilder } from "../fixtures";
 import { DateTime } from "luxon";
 
-const meta: Meta<typeof TodoList> = {
+import type { AppSettings } from "../../types";
+
+type TodoListStoryArgs = React.ComponentProps<typeof TodoList> & {
+  tasks?: Task[];
+  settings?: AppSettings;
+  isFocusMode?: boolean;
+  availableCategories?: string[];
+  availableTags?: string[];
+  onItemClick?: (task: Task) => void;
+};
+
+const meta: Meta<TodoListStoryArgs> = {
   title: "Core/TodoList",
-  component: TodoList,
+  component: TodoList as unknown as React.FC<TodoListStoryArgs>,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
   },
   decorators: [
     (Story, context) => {
-      const [tasks, setTasks] = useState<Task[]>(context.args.tasks || []);
-      const [isFocusMode, setIsFocusMode] = useState(
-        context.args.isFocusMode || false
-      );
-      const [isAiMode, setIsAiMode] = useState(false);
-      const [filters, setFilters] = useState<FilterState>({
+      const args = context.args as Record<string, unknown>;
+      const [tasks, setTasks] = useState<Task[]>(args.tasks as Task[] || []),
+       [isFocusMode, setIsFocusMode] = useState(
+        args.isFocusMode || false
+      ),
+       [isAiMode, setIsAiMode] = useState(false),
+       [filters, setFilters] = useState<FilterState>({
         tags: [],
         categories: [],
         priorities: [],
         statuses: [],
         enableScript: false,
         script: "",
-      });
-      const [sort, setSort] = useState<SortState>({
+      }),
+       [sort, setSort] = useState<SortState>({
         field: "dueAt",
         direction: "asc",
         script: "",
-      });
+      }),
 
-      const tasksContextValue = {
+       tasksContextValue = {
         tasks,
-        availableCategories: context.args.availableCategories || [
+        availableCategories: (args.availableCategories as string[]) || [
           "Work",
           "Personal",
           "Shopping",
         ],
-        availableTags: context.args.availableTags || ["work", "personal", "urgent"],
+        availableTags: (args.availableTags as string[]) || [
+          "work",
+          "personal",
+          "urgent",
+        ],
         onUpdateTask: (task: Task) => {
           setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
           console.log("Update task:", task);
@@ -66,13 +82,13 @@ const meta: Meta<typeof TodoList> = {
         },
         onEditTask: (task: Task) => console.log("Edit task:", task),
         onAICommand: async (input: string) => console.log("AI command:", input),
-        onItemClick: context.args.onItemClick,
-      };
+        onItemClick: args.onItemClick as (task: Task) => void,
+      },
 
-      const settingsContextValue = {
-        settings: context.args.settings || settingsBuilder.default(),
-        updateSettings: (s: any) => console.log("Update settings:", s),
-        isFocusMode,
+       settingsContextValue = {
+        settings: (args.settings as AppSettings) || settingsBuilder.default(),
+        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
+        isFocusMode: args.isFocusMode as boolean || false,
         toggleFocusMode: () => setIsFocusMode(!isFocusMode),
         isAiMode,
         toggleAiMode: () => setIsAiMode(!isAiMode),
@@ -100,10 +116,10 @@ const meta: Meta<typeof TodoList> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const today = DateTime.now();
-const yesterday = today.minus({ days: 1 });
-const tomorrow = today.plus({ days: 1 });
-const nextWeek = today.plus({ weeks: 1 });
+const today = DateTime.now(),
+ yesterday = today.minus({ days: 1 }),
+ tomorrow = today.plus({ days: 1 }),
+ nextWeek = today.plus({ weeks: 1 });
 
 // ========================================
 // Core Stories
@@ -138,10 +154,10 @@ export const Default: Story = {
       taskBuilder.base({
         id: "backlog-1",
         title: "Research new framework",
-        dueAt: null,
-        startAt: null,
-        createdAt: null,
-        completedAt: null,
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
       }),
     ],
     settings: settingsBuilder.default(),
@@ -167,24 +183,24 @@ export const BacklogOnly: Story = {
     tasks: [
       taskBuilder.base({
         title: "Undated task 1",
-        dueAt: null,
-        startAt: null,
-        createdAt: null,
-        completedAt: null,
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
       }),
       taskBuilder.base({
         title: "Undated task 2",
-        dueAt: null,
-        startAt: null,
-        createdAt: null,
-        completedAt: null,
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
       }),
       taskBuilder.base({
         title: "Undated task 3",
-        dueAt: null,
-        startAt: null,
-        createdAt: null,
-        completedAt: null,
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
       }),
     ],
     settings: settingsBuilder.default(),
@@ -201,10 +217,10 @@ export const WithManyTasks: Story = {
         today.plus({ days: 10 })
       ),
       ...taskBuilder.many(5, {
-        dueAt: null,
-        startAt: null,
-        createdAt: null,
-        completedAt: null,
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
       }),
     ],
     settings: settingsBuilder.default(),
@@ -228,8 +244,14 @@ export const CompletedHidden: Story = {
   args: {
     tasks: [
       taskBuilder.base({ title: "Todo task", dueAt: today.toISO()! }),
-      taskBuilder.completed({ title: "Completed task 1", dueAt: today.toISO()! }),
-      taskBuilder.completed({ title: "Completed task 2", dueAt: today.toISO()! }),
+      taskBuilder.completed({
+        title: "Completed task 1",
+        dueAt: today.toISO()!,
+      }),
+      taskBuilder.completed({
+        title: "Completed task 2",
+        dueAt: today.toISO()!,
+      }),
       taskBuilder.base({ title: "Another todo", dueAt: tomorrow.toISO()! }),
     ],
     settings: settingsBuilder.withoutCompleted(),
@@ -256,7 +278,7 @@ export const GroupByStartDate: Story = {
       taskBuilder.base({
         title: "Starting next week",
         startAt: nextWeek.toISO()!,
-        dueAt: null,
+        dueAt: undefined,
       }),
     ],
     settings: settingsBuilder.groupByStartDate(),
@@ -268,7 +290,7 @@ export const GroupByCreatedDate: Story = {
     tasks: taskBuilder.many(8).map((task, i) => ({
       ...task,
       createdAt: today.minus({ days: i }).toISO()!,
-      dueAt: null,
+      dueAt: undefined,
     })),
     settings: settingsBuilder.groupByCreatedDate(),
   },
@@ -321,15 +343,17 @@ export const LargeFontSize: Story = {
 
 export const ScrollBehavior: Story = {
   args: {
-    tasks: taskBuilder.manyAcrossDays(50, today.minus({ days: 10 }), today.plus({ days: 30 })),
+    tasks: taskBuilder.manyAcrossDays(
+      50,
+      today.minus({ days: 10 }),
+      today.plus({ days: 30 })
+    ),
     settings: settingsBuilder.default(),
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
 
     await step("Verify many year sections rendered", async () => {
       // TodoList should have year sections
-      const yearSections = canvasElement.querySelectorAll('[data-testid="year-section"]');
       // At minimum, should have content rendered
       expect(canvasElement.textContent).toBeTruthy();
     });

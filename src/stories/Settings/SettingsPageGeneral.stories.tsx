@@ -1,9 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect, within } from "storybook/test";
 import { SettingsPageGeneral } from "../../components/settings/SettingsPageGeneral";
 import type { AppSettings } from "../../types";
 import { settingsBuilder } from "../fixtures";
-import { delay } from "../test-utils";
 
 const meta: Meta<typeof SettingsPageGeneral> = {
   title: "Settings/SettingsPageGeneral",
@@ -20,7 +19,8 @@ const meta: Meta<typeof SettingsPageGeneral> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const handleUpdateSettings = (s: AppSettings) => console.log("Updated settings:", s);
+const handleUpdateSettings = (s: AppSettings) =>
+  console.log("Updated settings:", s);
 
 // ========================================
 // Core Variants
@@ -119,7 +119,7 @@ export const SmallFontSize: Story = {
 export const BaseFontSize: Story = {
   args: {
     ...Default.args,
-    settings: settingsBuilder.default(), // base is default
+    settings: settingsBuilder.default(), // Base is default
   },
 };
 
@@ -338,8 +338,8 @@ export const SelectDefaultCategory: Story = {
 
     await step("Find default category selector", async () => {
       // Look for select dropdown or input field
-      const selects = canvas.queryAllByRole("combobox");
-      const inputs = canvas.queryAllByRole("textbox");
+      const selects = canvas.queryAllByRole("combobox"),
+       inputs = canvas.queryAllByRole("textbox");
       expect(selects.length + inputs.length).toBeGreaterThan(0);
     });
   },

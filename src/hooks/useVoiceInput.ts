@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { logger } from "../utils/logger";
 
 interface SpeechRecognitionErrorEvent extends Event {
@@ -44,13 +44,13 @@ export const useVoiceInput = (
   onResult: (text: string) => void,
   onError: (msg: string) => void
 ) => {
-  const [isListening, setIsListening] = useState(false);
+  const [isListening, setIsListening] = useState(false),
 
-  const start = useCallback(() => {
-    if (!enabled) return;
+   start = useCallback(() => {
+    if (!enabled) {return;}
 
-    const win = window as unknown as WindowWithSpeech;
-    const SpeechRecognitionCtor =
+    const win = window as unknown as WindowWithSpeech,
+     SpeechRecognitionCtor =
       win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) {
@@ -72,7 +72,7 @@ export const useVoiceInput = (
         const errorMsg = event.error;
 
         // Ignore 'no-speech' as it just means silence
-        if (errorMsg === "no-speech") return;
+        if (errorMsg === "no-speech") {return;}
 
         if (errorMsg === "not-allowed") {
           const msg = "Microphone access denied. Please check permissions.";
@@ -103,7 +103,7 @@ export const useVoiceInput = (
       logger.error("Voice", "Initialization failed", e);
       setIsListening(false);
     }
-  }, [enabled, onResult, onError]);
+  }, [enabled, onResult, onError, setIsListening]);
 
   return { isListening, start };
 };

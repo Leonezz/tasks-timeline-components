@@ -17,7 +17,7 @@ export const edgeCaseTasks = {
    * Task with very long title (200+ characters)
    */
   veryLongTitle: taskBuilder.base({
-    title: "A".repeat(200) + " This is an extremely long task title that should test how the UI handles overflow and text wrapping in various contexts",
+    title: `${"A".repeat(200)  } This is an extremely long task title that should test how the UI handles overflow and text wrapping in various contexts`,
   }),
 
   /**
@@ -38,7 +38,7 @@ export const edgeCaseTasks = {
    * Task with no category
    */
   noCategory: taskBuilder.base({
-    category: undefined as any,
+    category: undefined,
   }),
 
   /**

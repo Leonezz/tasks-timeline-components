@@ -22,7 +22,7 @@ const settings: AppSettings = {
   soundEnabled: true,
   fontSize: "base",
   useRelativeDates: true,
-  groupingStrategy: ["dueDate"],
+  groupingStrategy: ["dueAt"],
   aiConfig: {
     enabled: true,
     defaultMode: true,
@@ -70,8 +70,8 @@ export const Default: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    settings: settings,
-    onUpdateSettings: (s) => {},
+    settings,
+    onUpdateSettings: () => {},
 
     availableCategories: [],
     availableTags: [],

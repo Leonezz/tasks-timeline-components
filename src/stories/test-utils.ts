@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import type { Task, TaskStatus } from "../types";
+import { expect, within } from "storybook/test";
 
 /**
  * Test utilities for Storybook interaction testing
@@ -67,7 +67,7 @@ export const waitForElement = async (
 
   while (Date.now() - startTime < timeout) {
     const element = callback();
-    if (element) return element;
+    if (element) {return element;}
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
@@ -118,10 +118,8 @@ export const delay = (ms: number) =>
  * @param tasks - Array of tasks
  * @param status - Status to filter by
  */
-export const getTasksByStatus = (
-  tasks: Task[],
-  status: TaskStatus
-): Task[] => tasks.filter((t) => t.status === status);
+export const getTasksByStatus = (tasks: Task[], status: TaskStatus): Task[] =>
+  tasks.filter((t) => t.status === status);
 
 /**
  * Count tasks by status
@@ -143,9 +141,147 @@ export const countByStatus = (tasks: Task[]): Record<TaskStatus, number> => {
  * @param mockFn - Mock function (from vi.fn())
  * @param expectedArgs - Expected arguments
  */
-export const expectConsoleCalled = (
-  mockFn: any,
-  expectedArgs: any[]
-) => {
-  expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
+export const expectConsoleCalled = (mockFn: unknown, expectedArgs: unknown[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(mockFn as any).toHaveBeenCalledWith(...expectedArgs);
 };
+
+/**
+ * Helper to get the shadow root from a canvas element
+ * This is needed because components using AppProvider render into Shadow DOM
+ */
+export function getShadowRoot(canvasElement: HTMLElement): ShadowRoot | null {
+  // Look for the shadow host element (usually has id="tasks-timeline-app")
+  const shadowHost = canvasElement.querySelector("#tasks-timeline-app");
+  return shadowHost?.shadowRoot || null;
+}
+
+/**
+ * Helper to query inside shadow DOM and portal containers
+ * Use this instead of within(canvasElement) for components that use AppProvider
+ *
+ * This helper handles both:
+ * 1. Content inside the shadow root
+ * 2. Portal content (like popovers) that may render outside shadow root into document.body
+ */
+export function withinShadow(
+  canvasElement: HTMLElement
+): ReturnType<typeof within> {
+  const shadowRoot = getShadowRoot(canvasElement);
+  if (!shadowRoot) {
+    // Fallback: if no shadow root, return canvas element for regular DOM queries
+    console.warn("Shadow root not found, using regular DOM");
+    return within(canvasElement);
+  }
+
+  // Debug logging
+  console.log("[withinShadow] Found shadow root, checking content...");
+  console.log("[withinShadow] Shadow root children:", shadowRoot.children.length);
+  const firstElements = Array.from(shadowRoot.querySelectorAll('*')).slice(0, 5);
+  console.log("[withinShadow] First few elements:", firstElements.map(el => {
+    const className = typeof el.className === 'string' ? el.className.split(' ')[0] : '';
+    return `${el.tagName}${el.id ? `#${  el.id}` : ''}${className ? `.${  className}` : ''}`;
+  }));
+
+  // Get the portal container (Radix portals render to document.body)
+  const portalContainer = canvasElement.ownerDocument?.body,
+
+  // Helper to search in both shadow root and portal container
+   searchBothRoots = (selector: string): HTMLElement[] => {
+    const shadowElements = Array.from(shadowRoot.querySelectorAll(selector)) as HTMLElement[],
+     portalElements = portalContainer
+      ? (Array.from(portalContainer.querySelectorAll(selector)) as HTMLElement[])
+      : [];
+    return [...shadowElements, ...portalElements];
+  },
+
+  // Create a wrapper with query functions
+   queries = within(document.body); // Start with document queries as template
+
+  // Override query functions to search within shadowRoot and portals
+  return {
+    ...queries,
+    getByPlaceholderText: (text: string | RegExp) => {
+      const elements = searchBothRoots('input, textarea'),
+       element = elements.find((el: HTMLElement) => {
+        const placeholder = el.getAttribute('placeholder') || '';
+        if (text instanceof RegExp) {
+          return text.test(placeholder);
+        }
+        return placeholder.toLowerCase().includes(text.toLowerCase());
+      });
+      if (!element) {
+        throw new Error(`Unable to find an element with the placeholder text of: ${text}`);
+      }
+      return element as HTMLElement;
+    },
+    getByRole: (role: string, options?: { name?: string | RegExp }) => {
+      let elements = searchBothRoots(`[role="${role}"]`);
+      if (elements.length === 0 && role === 'button') {
+        elements = searchBothRoots('button');
+      }
+      if (options?.name) {
+        const namePattern = options.name;
+        elements = elements.filter((el) => {
+          const text = el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '';
+          if (namePattern instanceof RegExp) {
+            return namePattern.test(text);
+          }
+          return text.toLowerCase().includes(namePattern.toLowerCase());
+        });
+      }
+      if (elements.length === 0) {
+        throw new Error(`Unable to find an element with the role: ${role}`);
+      }
+      return elements[0];
+    },
+    getByText: (text: string | RegExp) => {
+      const allElements = searchBothRoots('*'),
+       element = allElements.find((el) => {
+        const content = el.textContent || '';
+        if (text instanceof RegExp) {
+          return text.test(content);
+        }
+        return content.includes(text);
+      });
+      if (!element) {
+        throw new Error(`Unable to find an element with the text: ${text}`);
+      }
+      return element;
+    },
+    getByDisplayValue: (value: string | RegExp) => {
+      const inputs = searchBothRoots('input, textarea, select') as HTMLInputElement[],
+       element = inputs.find((el) => {
+        const currentValue = el.value || '';
+        if (value instanceof RegExp) {
+          return value.test(currentValue);
+        }
+        return currentValue === value || currentValue.includes(value);
+      });
+      if (!element) {
+        throw new Error(`Unable to find an element with the display value: ${value}`);
+      }
+      return element as HTMLElement;
+    },
+    queryAllByRole: (role: string) => {
+      const selector = `[role="${role}"]${role === 'button' ? ', button' : ''}`;
+      return searchBothRoots(selector).filter(Boolean);
+    },
+    getAllByRole: (role: string) => {
+      let elements = searchBothRoots(`[role="${role}"]`);
+      if (elements.length === 0 && role === 'button') {
+        elements = searchBothRoots('button');
+      }
+      if (elements.length === 0 && role === 'checkbox') {
+        elements = searchBothRoots('input[type="checkbox"]');
+      }
+      if (elements.length === 0 && role === 'textbox') {
+        elements = searchBothRoots('input[type="text"], textarea');
+      }
+      if (elements.length === 0 && role === 'radio') {
+        elements = searchBothRoots('input[type="radio"]');
+      }
+      return elements;
+    },
+  } as ReturnType<typeof within>;
+}

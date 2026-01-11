@@ -1,9 +1,8 @@
 import { SettingsPageAdvanced } from "../../components/settings/SettingsPageAdvanced";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AppSettings } from "../../types";
-import { within, userEvent } from "@storybook/test";
+import { expect, within } from "storybook/test";
 import { settingsBuilder } from "../fixtures";
-import { delay } from "../test-utils";
 
 const meta: Meta<typeof SettingsPageAdvanced> = {
   title: "Settings/SettingsPageAdvanced",
@@ -109,7 +108,11 @@ export const GeminiProvider: Story = {
         defaultMode: true,
         activeProvider: "gemini",
         providers: {
-          gemini: { apiKey: "test-gemini-key", model: "gemini-2-flash", baseUrl: "" },
+          gemini: {
+            apiKey: "test-gemini-key",
+            model: "gemini-2-flash",
+            baseUrl: "",
+          },
           openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
           anthropic: {
             apiKey: "",
@@ -133,7 +136,11 @@ export const OpenAIProvider: Story = {
         activeProvider: "openai",
         providers: {
           gemini: { apiKey: "", model: "gemini-2-flash", baseUrl: "" },
-          openai: { apiKey: "sk-test-openai-key", model: "gpt-4o", baseUrl: "" },
+          openai: {
+            apiKey: "sk-test-openai-key",
+            model: "gpt-4o",
+            baseUrl: "",
+          },
           anthropic: {
             apiKey: "",
             model: "claude-3-5-sonnet-20240620",
@@ -275,7 +282,9 @@ export const FilterScriptDisabled: Story = {
 
 export const FilterScriptEnabled: Story = {
   args: {
-    settings: settingsBuilder.withFilterScript("return task.priority === 'high';"),
+    settings: settingsBuilder.withFilterScript(
+      "return task.priority === 'high';"
+    ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
   },

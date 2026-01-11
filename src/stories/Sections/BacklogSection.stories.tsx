@@ -1,41 +1,48 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { BacklogSection } from "../../components/BacklogSection";
-import type { Task, FilterState, SortState } from "../../types";
+import type { FilterState, SortState, Task, AppSettings } from "../../types";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { TasksProvider } from "../../contexts/TasksContext";
-import { settingsBuilder, taskBuilder, edgeCaseTasks } from "../fixtures";
+import { edgeCaseTasks, settingsBuilder, taskBuilder } from "../fixtures";
 import { DateTime } from "luxon";
 import { delay } from "../test-utils";
 
-const meta: Meta<typeof BacklogSection> = {
+// Extend component props with story-specific args for decorator usage
+interface BacklogSectionStoryArgs {
+  tasks: Task[];
+  settings?: ReturnType<typeof settingsBuilder.default>;
+}
+
+const meta: Meta<BacklogSectionStoryArgs> = {
   title: "Sections/BacklogSection",
-  component: BacklogSection,
+  component: BacklogSection as unknown as React.FC<BacklogSectionStoryArgs>,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
   },
   decorators: [
     (Story, context) => {
-      const [tasks, setTasks] = useState<Task[]>(context.args.tasks || []);
-      const [isFocusMode, setIsFocusMode] = useState(false);
-      const [isAiMode, setIsAiMode] = useState(false);
-      const [filters, setFilters] = useState<FilterState>({
+      const args = context.args as Record<string, unknown>;
+      const [tasks, setTasks] = useState<Task[]>(args.tasks as Task[] || []),
+       [isFocusMode, setIsFocusMode] = useState(false),
+       [isAiMode, setIsAiMode] = useState(false),
+       [filters, setFilters] = useState<FilterState>({
         tags: [],
         categories: [],
         priorities: [],
         statuses: [],
         enableScript: false,
         script: "",
-      });
-      const [sort, setSort] = useState<SortState>({
+      }),
+       [sort, setSort] = useState<SortState>({
         field: "dueAt",
         direction: "asc",
         script: "",
-      });
+      }),
 
-      const tasksContextValue = {
+       tasksContextValue = {
         tasks,
         availableCategories: ["Work", "Personal", "Shopping"],
         availableTags: ["work", "personal", "urgent"],
@@ -61,11 +68,11 @@ const meta: Meta<typeof BacklogSection> = {
         },
         onEditTask: (task: Task) => console.log("Edit task:", task),
         onAICommand: async (input: string) => console.log("AI command:", input),
-      };
+      },
 
-      const settingsContextValue = {
-        settings: context.args.settings || settingsBuilder.default(),
-        updateSettings: (s: any) => console.log("Update settings:", s),
+       settingsContextValue = {
+        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
+        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
         isFocusMode,
         toggleFocusMode: () => setIsFocusMode(!isFocusMode),
         isAiMode,
@@ -92,15 +99,15 @@ const meta: Meta<typeof BacklogSection> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<BacklogSectionStoryArgs>;
 
 // Helper to create undated tasks (backlog tasks)
 const createUndatedTask = (overrides?: Partial<Task>): Task =>
   taskBuilder.base({
-    dueAt: null,
-    startAt: null,
-    createdAt: null,
-    completedAt: null,
+    dueAt: undefined,
+    startAt: undefined,
+    createdAt: undefined,
+    completedAt: undefined,
     ...overrides,
   });
 
@@ -111,11 +118,17 @@ const createUndatedTask = (overrides?: Partial<Task>): Task =>
 export const Default: Story = {
   args: {
     tasks: [
-      createUndatedTask({ title: "Research new framework", priority: "medium" }),
+      createUndatedTask({
+        title: "Research new framework",
+        priority: "medium",
+      }),
       createUndatedTask({ title: "Update dependencies", priority: "low" }),
       createUndatedTask({ title: "Write blog post", priority: "medium" }),
       createUndatedTask({ title: "Refactor auth module", priority: "high" }),
-      createUndatedTask({ title: "Review security guidelines", priority: "medium" }),
+      createUndatedTask({
+        title: "Review security guidelines",
+        priority: "medium",
+      }),
     ],
     settings: settingsBuilder.default(),
   },
@@ -165,7 +178,10 @@ export const MixedPriorities: Story = {
       createUndatedTask({ title: "High priority task", priority: "high" }),
       createUndatedTask({ title: "High priority task 2", priority: "high" }),
       createUndatedTask({ title: "Medium priority task", priority: "medium" }),
-      createUndatedTask({ title: "Medium priority task 2", priority: "medium" }),
+      createUndatedTask({
+        title: "Medium priority task 2",
+        priority: "medium",
+      }),
       createUndatedTask({ title: "Low priority task", priority: "low" }),
       createUndatedTask({ title: "Low priority task 2", priority: "low" }),
     ],
@@ -209,16 +225,16 @@ export const WithMissingDueDate: Story = {
     tasks: [
       createUndatedTask({
         title: "Task missing due date",
-        dueAt: null,
+        dueAt: undefined,
         startAt: DateTime.now().toISO()!,
       }),
       createUndatedTask({
         title: "Task missing all dates",
-        dueAt: null,
-        startAt: null,
+        dueAt: undefined,
+        startAt: undefined,
       }),
     ],
-    settings: settingsBuilder.default(), // groupingStrategy: ["dueAt"]
+    settings: settingsBuilder.default(), // GroupingStrategy: ["dueAt"]
   },
 };
 
@@ -227,16 +243,16 @@ export const WithMissingStartDate: Story = {
     tasks: [
       createUndatedTask({
         title: "Task missing start date",
-        startAt: null,
+        startAt: undefined,
         dueAt: DateTime.now().toISO()!,
       }),
       createUndatedTask({
         title: "Task missing all dates",
-        startAt: null,
-        dueAt: null,
+        startAt: undefined,
+        dueAt: undefined,
       }),
     ],
-    settings: settingsBuilder.groupByStartDate(), // groupingStrategy: ["startAt"]
+    settings: settingsBuilder.groupByStartDate(), // GroupingStrategy: ["startAt"]
   },
 };
 
@@ -259,7 +275,10 @@ export const ManyTags: Story = {
   args: {
     tasks: [
       createUndatedTask({ ...edgeCaseTasks.manyTags }),
-      createUndatedTask({ title: "Normal task with few tags", tags: [{ id: "1", name: "work" }] }),
+      createUndatedTask({
+        title: "Normal task with few tags",
+        tags: [{ id: "1", name: "work" }],
+      }),
     ],
     settings: settingsBuilder.default(),
   },
@@ -345,8 +364,8 @@ export const TaskInteractions: Story = {
     const canvas = within(canvasElement);
 
     await step("Verify tasks are rendered", async () => {
-      const task1 = canvas.getByText("Task to complete");
-      const task2 = canvas.getByText("Task to edit");
+      const task1 = canvas.getByText("Task to complete"),
+       task2 = canvas.getByText("Task to edit");
       expect(task1).toBeInTheDocument();
       expect(task2).toBeInTheDocument();
     });

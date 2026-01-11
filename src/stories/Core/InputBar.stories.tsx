@@ -1,10 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent } from "storybook/test";
 import { InputBar } from "../../components/InputBar";
-import type { FilterState, SortState, Task } from "../../types";
+import type { FilterState, SortState, Task, AppSettings } from "../../types";
+import { TasksProvider } from "../../contexts/TasksContext";
+import { SettingsProvider } from "../../contexts/SettingsContext";
+import { AppProvider } from "../../components/AppContext";
+import { DateTime } from "luxon";
 import { settingsBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 
 const meta: Meta<typeof InputBar> = {
   title: "Core/InputBar",
@@ -13,173 +17,230 @@ const meta: Meta<typeof InputBar> = {
   parameters: {
     layout: "fullscreen",
   },
-  argTypes: {
-    onAddTask: { action: "task-added" },
-    onAICommand: { action: "ai-command" },
-    onOpenSettings: { action: "settings-opened" },
-    onToggleAiMode: { action: "ai-mode-toggled" },
-    onVoiceError: { action: "voice-error" },
-  },
+  decorators: [
+    (Story, context) => {
+      const [tasks, setTasks] = useState<Task[]>([]),
+       [isFocusMode, setIsFocusMode] = useState(false),
+       [isAiMode, setIsAiMode] = useState(
+        (context.args as Record<string, unknown>).isAiMode as boolean || false
+      ),
+       [filters, setFilters] = useState<FilterState>({
+        tags: [],
+        categories: [],
+        priorities: [],
+        statuses: [],
+        enableScript: false,
+        script: "",
+      }),
+       [sort, setSort] = useState<SortState>({
+        field: "dueAt",
+        direction: "asc",
+        script: "",
+      }),
+
+       tasksContextValue = {
+        tasks,
+        availableCategories: ["Work", "Personal", "Shopping"],
+        availableTags: ["work", "personal", "urgent"],
+        onUpdateTask: (task: Task) => {
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+          console.log("Update task:", task);
+        },
+        onDeleteTask: (id: string) => {
+          setTasks((prev) => prev.filter((t) => t.id !== id));
+          console.log("Delete task:", id);
+        },
+        onAddTask: (task: Partial<Task>) => {
+          const newTask: Task = {
+            id: `task-${Date.now()}`,
+            title: task.title || "New Task",
+            status: "todo",
+            priority: "medium",
+            createdAt: DateTime.now().toISO()!,
+            ...task,
+          } as Task;
+          setTasks((prev) => [...prev, newTask]);
+          console.log("Add task:", newTask);
+        },
+        onEditTask: (task: Task) => console.log("Edit task:", task),
+        onAICommand: async (input: string) => console.log("AI command:", input),
+      },
+
+       settingsContextValue = {
+        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
+        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
+        isFocusMode,
+        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+        isAiMode,
+        toggleAiMode: () => setIsAiMode(!isAiMode),
+        filters,
+        onFilterChange: setFilters,
+        sort,
+        onSortChange: setSort,
+        onVoiceError: (msg: string) => console.error("Voice error:", msg),
+        onOpenSettings: () => console.log("Open settings"),
+      };
+
+      return (
+        <AppProvider container={document.body}>
+          <TasksProvider value={tasksContextValue}>
+            <SettingsProvider value={settingsContextValue}>
+              <div className="w-full max-w-2xl mx-auto p-4">
+                <Story />
+              </div>
+            </SettingsProvider>
+          </TasksProvider>
+        </AppProvider>
+      );
+    },
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const defaultFilterState: FilterState = {
-  tags: [],
-  categories: [],
-  priorities: [],
-  statuses: [],
-  enableScript: false,
-  script: "",
-};
-
-const defaultSortState: SortState = {
-  field: "dueDate",
-  direction: "asc",
-  script: "",
-};
-
-function DefaultInputBar({ settings }: { settings?: any }) {
-  const [isAiMode, setIsAiMode] = useState(false);
-  const [filters, setFilters] = useState<FilterState>(defaultFilterState);
-  const [sort, setSort] = useState<SortState>(defaultSortState);
-
-  const finalSettings = {
-    ...settingsBuilder.default(),
-    aiConfig: {
-      ...settingsBuilder.default().aiConfig,
-      enabled: true,
-    },
-    enableVoiceInput: true,
-    ...settings,
-  };
-
-  return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <InputBar
-        onOpenSettings={() => console.log("Open settings")}
-        filters={filters}
-        onFilterChange={setFilters}
-        sort={sort}
-        onSortChange={setSort}
-        availableTags={["work", "personal", "urgent"]}
-        availableCategories={["Work", "Personal", "Shopping"]}
-        settings={finalSettings}
-        onAddTask={(task: Partial<Task>) => console.log("Add task:", task)}
-        onAICommand={async (input: string) => console.log("AI command:", input)}
-        isAiMode={isAiMode}
-        onToggleAiMode={() => setIsAiMode(!isAiMode)}
-        onVoiceError={(msg: string) => console.error("Voice error:", msg)}
-      />
-    </div>
-  );
-}
+// ========================================
+// Core Variants
+// ========================================
 
 export const Default: Story = {
-  render: () => <DefaultInputBar />,
+  args: {
+    settings: settingsBuilder.default(),
+  },
 };
 
 export const WithoutAI: Story = {
-  render: () => (
-    <DefaultInputBar
-      settings={{
-        aiConfig: { ...settingsBuilder.default().aiConfig, enabled: false },
-      }}
-    />
-  ),
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      aiConfig: { ...settingsBuilder.default().aiConfig, enabled: false },
+    },
+  },
 };
 
 export const WithoutSetting: Story = {
-  render: () => <DefaultInputBar settings={{ settingButtonOnInputBar: false }} />,
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      settingButtonOnInputBar: false,
+    },
+  },
 };
 
 export const WithoutTagsFilter: Story = {
-  render: () => <DefaultInputBar settings={{ tagsFilterOnInputBar: false }} />,
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      tagsFilterOnInputBar: false,
+    },
+  },
 };
 
 export const WithoutCategoryFilter: Story = {
-  render: () => <DefaultInputBar settings={{ categoriesFilterOnInputBar: false }} />,
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      categoriesFilterOnInputBar: false,
+    },
+  },
 };
 
 export const WithoutAllFilter: Story = {
-  render: () => (
-    <DefaultInputBar
-      settings={settingsBuilder.minimalUI()}
-    />
-  ),
+  args: {
+    settings: settingsBuilder.minimalUI(),
+  },
 };
 
 export const WithoutSort: Story = {
-  render: () => <DefaultInputBar settings={{ sortOnInputBar: false }} />,
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      sortOnInputBar: false,
+    },
+  },
 };
 
 export const WithoutAllFilterAndSort: Story = {
-  render: () => (
-    <DefaultInputBar
-      settings={{
-        ...settingsBuilder.minimalUI(),
-        sortOnInputBar: false,
-      }}
-    />
-  ),
+  args: {
+    settings: {
+      ...settingsBuilder.minimalUI(),
+      sortOnInputBar: false,
+    },
+  },
 };
 
 // ========================================
-// NEW STORIES: Theme Variants
+// Theme Variants
 // ========================================
 
 export const DarkMode: Story = {
-  render: () => <DefaultInputBar settings={settingsBuilder.darkMode()} />,
+  args: {
+    settings: settingsBuilder.darkMode(),
+  },
   parameters: {
     backgrounds: { default: "dark" },
   },
 };
 
 export const WithVoiceInput: Story = {
-  render: () => (
-    <DefaultInputBar
-      settings={{
-        enableVoiceInput: true,
-        voiceProvider: "browser",
-      }}
-    />
-  ),
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      enableVoiceInput: true,
+      voiceProvider: "browser",
+    },
+  },
 };
 
 // ========================================
-// NEW STORIES: Interaction Testing
+// AI Mode Variants
+// ========================================
+
+export const AIMode: Story = {
+  args: {
+    settings: settingsBuilder.withAI(),
+    isAiMode: true,
+  },
+};
+
+// ========================================
+// Interaction Testing
 // ========================================
 
 export const SubmitNewTask: Story = {
-  render: () => <DefaultInputBar />,
+  args: {
+    settings: settingsBuilder.default(),
+  },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Type task title", async () => {
-      const input = canvas.getByPlaceholderText(/add a new task/i);
+      const input = canvas.getByPlaceholderText(/quick add/i);
       await userEvent.type(input, "Buy groceries");
       await delay(100);
       expect(input).toHaveValue("Buy groceries");
     });
 
     await step("Submit task with Enter", async () => {
-      const input = canvas.getByPlaceholderText(/add a new task/i);
       await userEvent.keyboard("{Enter}");
-      await delay(300);
+      await delay(500);
+      // Re-query input to get fresh value after potential re-render
+      const updatedInput = canvas.getByPlaceholderText(/quick add/i);
       // Input should be cleared after submission
-      expect(input).toHaveValue("");
+      expect(updatedInput).toHaveValue("");
     });
   },
 };
 
 export const ToggleAIMode: Story = {
-  render: () => <DefaultInputBar />,
+  args: {
+    settings: settingsBuilder.withAI(),
+  },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Find AI toggle button", async () => {
-      // Look for AI mode toggle (this might need adjustment based on actual implementation)
+      // Look for AI mode toggle
       const aiButton = canvas.getByRole("button", { name: /ai/i });
       expect(aiButton).toBeInTheDocument();
     });
@@ -187,21 +248,39 @@ export const ToggleAIMode: Story = {
 };
 
 export const TypeAndClear: Story = {
-  render: () => <DefaultInputBar />,
+  args: {
+    settings: settingsBuilder.default(),
+  },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Type text", async () => {
-      const input = canvas.getByPlaceholderText(/add a new task/i);
+      const input = canvas.getByPlaceholderText(/quick add/i);
       await userEvent.type(input, "Test task");
       expect(input).toHaveValue("Test task");
     });
 
     await step("Clear with Escape", async () => {
-      const input = canvas.getByPlaceholderText(/add a new task/i);
       await userEvent.keyboard("{Escape}");
       await delay(100);
-      // Verify input is cleared (if this behavior exists)
+      // Verify input behavior
+    });
+  },
+};
+
+export const FocusInput: Story = {
+  args: {
+    settings: settingsBuilder.default(),
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Tab to input and verify focus", async () => {
+      await delay(100);
+      const input = canvas.getByPlaceholderText(/quick add/i);
+      await userEvent.click(input);
+      await delay(50);
+      expect(input).toHaveFocus();
     });
   },
 };

@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent } from "storybook/test";
 import { CategoryPopover } from "../../components/CategoryPopover";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 
 const meta: Meta<typeof CategoryPopover> = {
   title: "UI/CategoryPopover",
@@ -18,7 +18,7 @@ const meta: Meta<typeof CategoryPopover> = {
   },
   decorators: [
     (Story) => (
-      <AppProvider>
+      <AppProvider container={document.body}>
         <div className="p-4 bg-slate-50 min-w-[250px]">
           <Story />
         </div>
@@ -31,11 +31,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium";
+  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
 
-const defaultCategories = ["Work", "Personal", "Shopping", "Health", "Finance"];
+ defaultCategories = ["Work", "Personal", "Shopping", "Health", "Finance"],
 
-const handleUpdate = (task: Task) => console.log("Updated task:", task);
+ handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Variants
@@ -151,7 +151,7 @@ export const PopoverOpen: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open category selector popover", async () => {
       const button = canvas.getByRole("button", { name: /Change Category/i });
@@ -182,7 +182,7 @@ export const PopoverWithSuggestions: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -210,7 +210,7 @@ export const TypeNewCategory: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open category selector", async () => {
       const button = canvas.getByRole("button");
@@ -237,7 +237,7 @@ export const TypeNewCategory: Story = {
       });
       await userEvent.click(setButton);
       await delay(100);
-      // onUpdate should be called with category: "New Category"
+      // OnUpdate should be called with category: "New Category"
     });
   },
 };
@@ -250,7 +250,7 @@ export const SelectSuggestion: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -259,15 +259,15 @@ export const SelectSuggestion: Story = {
     });
 
     await step("Click a suggested category", async () => {
-      const buttons = canvas.getAllByRole("button");
+      const buttons = canvas.getAllByRole("button"),
       // Find Personal category button
-      const personalButton = buttons.find((btn) =>
+       personalButton = buttons.find((btn: HTMLElement) =>
         btn.textContent?.includes("Personal")
       );
       if (personalButton) {
         await userEvent.click(personalButton);
         await delay(100);
-        // onUpdate should be called with category: "Personal"
+        // OnUpdate should be called with category: "Personal"
       }
     });
   },
@@ -278,7 +278,7 @@ export const FilterSuggestions: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -295,8 +295,8 @@ export const FilterSuggestions: Story = {
 
     await step("Verify only matching categories shown", async () => {
       // Should show "Health" in suggestions
-      const buttons = canvas.getAllByRole("button");
-      const healthButton = buttons.find((btn) =>
+      const buttons = canvas.getAllByRole("button"),
+       healthButton = buttons.find((btn: HTMLElement) =>
         btn.textContent?.includes("Health")
       );
       expect(healthButton).toBeDefined();
@@ -309,7 +309,7 @@ export const EnterToSave: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -327,7 +327,7 @@ export const EnterToSave: Story = {
     await step("Press Enter to save", async () => {
       await userEvent.keyboard("{Enter}");
       await delay(100);
-      // onUpdate should be called with category: "Quick Entry"
+      // OnUpdate should be called with category: "Quick Entry"
     });
   },
 };
@@ -340,7 +340,7 @@ export const ClearCategory: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -357,7 +357,7 @@ export const ClearCategory: Story = {
     await step("Save empty category", async () => {
       await userEvent.keyboard("{Enter}");
       await delay(100);
-      // onUpdate should be called with category: ""
+      // OnUpdate should be called with category: ""
     });
   },
 };
@@ -403,7 +403,7 @@ export const CaseSensitiveSuggestions: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -436,7 +436,7 @@ export const MaxSuggestionsLimit: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -445,9 +445,9 @@ export const MaxSuggestionsLimit: Story = {
     });
 
     await step("Verify max 5 suggestions shown", async () => {
-      const buttons = canvas.getAllByRole("button");
+      const buttons = canvas.getAllByRole("button"),
       // Count buttons that are category suggestions (excluding "Set to..." button)
-      const suggestionButtons = buttons.filter((btn) =>
+       suggestionButtons = buttons.filter((btn: HTMLElement) =>
         btn.textContent?.match(/^[A-Z]/)
       );
       expect(suggestionButtons.length).toBeLessThanOrEqual(5);
@@ -464,7 +464,7 @@ export const KeyboardNavigation: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Tab to category button", async () => {
       const button = canvas.getByRole("button");
@@ -486,7 +486,7 @@ export const AutoFocusInput: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -507,7 +507,7 @@ export const AriaLabels: Story = {
     ...Default.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Change Category/i });
