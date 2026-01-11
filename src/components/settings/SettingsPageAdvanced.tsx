@@ -26,41 +26,41 @@ export const SettingsPageAdvanced = ({
     onUpdateSettings({
       ...settings,
       enableVoiceInput: !settings.enableVoiceInput,
-    });
-  const setVoiceProvider = (p: VoiceProvider) =>
-    onUpdateSettings({ ...settings, voiceProvider: p });
+    }),
+   setVoiceProvider = (p: VoiceProvider) =>
+    onUpdateSettings({ ...settings, voiceProvider: p }),
 
   // -- AI Settings Handlers --
-  const toggleAIEnabled = () =>
+   toggleAIEnabled = () =>
     onUpdateSettings({
       ...settings,
       aiConfig: { ...settings.aiConfig, enabled: !settings.aiConfig.enabled },
-    });
-  const toggleAIDefault = () =>
+    }),
+   toggleAIDefault = () =>
     onUpdateSettings({
       ...settings,
       aiConfig: {
         ...settings.aiConfig,
         defaultMode: !settings.aiConfig.defaultMode,
       },
-    });
-  const setAIProvider = (p: AIProvider) =>
+    }),
+   setAIProvider = (p: AIProvider) =>
     onUpdateSettings({
       ...settings,
       aiConfig: { ...settings.aiConfig, activeProvider: p },
-    });
-  const setFilters = (f: FilterState) =>
+    }),
+   setFilters = (f: FilterState) =>
     onUpdateSettings({
       ...settings,
       filters: f,
-    });
-  const setSort = (s: SortState) =>
+    }),
+   setSort = (s: SortState) =>
     onUpdateSettings({
       ...settings,
       sort: s,
-    });
+    }),
 
-  const updateProviderConfig = (
+   updateProviderConfig = (
     provider: AIProvider,
     field: "apiKey" | "baseUrl" | "model",
     value: string
@@ -78,9 +78,9 @@ export const SettingsPageAdvanced = ({
         },
       },
     });
-  };
+  },
 
-  const activeProviderConfig =
+   activeProviderConfig =
     settings.aiConfig.providers[settings.aiConfig.activeProvider];
 
   return (

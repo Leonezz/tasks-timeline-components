@@ -1,17 +1,17 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { DateTime } from "luxon";
 import type { DayGroup } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
-import { formatRelativeDate, cn } from "../utils";
+import { cn, formatRelativeDate } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "./ui/collapsible";
 
 interface DaySectionProps {
@@ -19,42 +19,42 @@ interface DaySectionProps {
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
-  const { onAddTask, onAICommand } = useTasksContext();
-  const { settings, isAiMode, onVoiceError } = useSettingsContext();
-  const [isOpen, setIsOpen] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(
+  const { onAddTask, onAICommand } = useTasksContext(),
+   { settings, isAiMode, onVoiceError } = useSettingsContext(),
+   [isOpen, setIsOpen] = useState(true),
+   [isAdding, setIsAdding] = useState(false),
+   [newTaskTitle, setNewTaskTitle] = useState(""),
+   [selectedCategory, setSelectedCategory] = useState(
     settings.defaultCategory
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  ),
+   [isLoading, setIsLoading] = useState(false),
+   inputRef = useRef<HTMLInputElement>(null);
 
   // Reset category to default when adding starts
   useEffect(() => {
-    if (isAdding) setSelectedCategory(settings.defaultCategory);
+    if (isAdding) {setSelectedCategory(settings.defaultCategory);}
   }, [isAdding, settings.defaultCategory]);
 
   // Voice Input for this section
   const { isListening, start: startVoice } = useVoiceInput(
     settings.enableVoiceInput,
-    (text) => setNewTaskTitle((prev) => (prev ? prev + " " + text : text)),
+    (text) => setNewTaskTitle((prev) => (prev ? `${prev  } ${  text}` : text)),
     onVoiceError
-  );
+  ),
 
   // Parse the ISO date string from the group key
-  const dt = DateTime.fromISO(group.date);
-  const dayOfWeek = dt.toFormat("ccc"); // Mon, Tue
+   dt = DateTime.fromISO(group.date),
+   dayOfWeek = dt.toFormat("ccc"), // Mon, Tue
 
-  const isWeekend = dt.weekday > 5;
-  const calendarColor = isWeekend
+   isWeekend = dt.weekday > 5,
+   calendarColor = isWeekend
     ? "text-rose-500 bg-rose-50 border-rose-100"
-    : "text-slate-600 bg-slate-50 border-slate-200";
+    : "text-slate-600 bg-slate-50 border-slate-200",
 
-  const relative = formatRelativeDate(group.date);
-  const isRelative =
-    relative === "Today" || relative === "Tomorrow" || relative === "Yesterday";
-  const displayDate = dt.toFormat(settings.dateFormat);
+   relative = formatRelativeDate(group.date),
+   isRelative =
+    relative === "Today" || relative === "Tomorrow" || relative === "Yesterday",
+   displayDate = dt.toFormat(settings.dateFormat);
 
   useEffect(() => {
     if (isAdding && inputRef.current) {
@@ -62,8 +62,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
     }
   }, [isAdding]);
 
-  const stats = useMemo(() => {
-    return group.tasks.reduce(
+  const stats = useMemo(() => group.tasks.reduce(
       (acc, task) => {
         if (task.status === "done") {
           acc.done++;
@@ -75,10 +74,9 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
         return acc;
       },
       { done: 0, urgent: 0, open: 0 }
-    );
-  }, [group.tasks]);
+    ), [group.tasks]),
 
-  const handleCreate = async () => {
+   handleCreate = async () => {
     if (!newTaskTitle.trim()) {
       setIsAdding(false);
       return;
@@ -105,17 +103,17 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  },
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleCreate();
+   handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {handleCreate();}
     if (e.key === "Escape") {
       setIsAdding(false);
       setNewTaskTitle("");
     }
-  };
+  },
 
-  const iconTopSpacing =
+   iconTopSpacing =
     {
       sm: "mt-0.5",
       base: "mt-0.5",
@@ -271,7 +269,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                                 !e.relatedTarget ||
                                 !e.relatedTarget.closest(".add-row-actions")
                               ) {
-                                if (!newTaskTitle) setIsAdding(false);
+                                if (!newTaskTitle) {setIsAdding(false);}
                               }
                             }}
                             placeholder={

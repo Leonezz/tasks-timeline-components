@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent } from "storybook/test";
 import { TagBadge } from "../../components/TagBadge";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 
 const meta: Meta<typeof TagBadge> = {
   title: "UI/TagBadge",
@@ -18,8 +18,8 @@ const meta: Meta<typeof TagBadge> = {
   },
   decorators: [
     (Story) => (
-      <AppProvider>
-        <div className="p-4 bg-slate-50 min-w-[200px]">
+      <AppProvider container={document.body}>
+        <div className="p-4 bg-slate-50 min-w-50">
           <Story />
         </div>
       </AppProvider>
@@ -31,9 +31,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium";
+  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
 
-const handleUpdate = (task: Task) => console.log("Updated task:", task);
+ handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Variants
@@ -147,7 +147,7 @@ export const PopoverOpen: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Click tag to open remove popover", async () => {
       const button = canvas.getByRole("button", { name: /Click to remove/i });
@@ -167,7 +167,7 @@ export const HoverState: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Hover over tag badge", async () => {
       const button = canvas.getByRole("button");
@@ -195,7 +195,7 @@ export const RemoveTag: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Click tag to open popover", async () => {
       const button = canvas.getByRole("button", { name: /Click to remove/i });
@@ -207,7 +207,7 @@ export const RemoveTag: Story = {
       const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
       await userEvent.click(removeButton);
       await delay(100);
-      // onUpdate should be called with tags array without this tag
+      // OnUpdate should be called with tags array without this tag
     });
   },
 };
@@ -222,7 +222,7 @@ export const RemoveLastTag: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -234,7 +234,7 @@ export const RemoveLastTag: Story = {
       const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
       await userEvent.click(removeButton);
       await delay(100);
-      // onUpdate should be called with empty tags array
+      // OnUpdate should be called with empty tags array
     });
   },
 };
@@ -247,7 +247,7 @@ export const RemoveFromManyTags: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -259,7 +259,7 @@ export const RemoveFromManyTags: Story = {
       const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
       await userEvent.click(removeButton);
       await delay(100);
-      // onUpdate should be called with 4 tags remaining
+      // OnUpdate should be called with 4 tags remaining
     });
   },
 };
@@ -269,7 +269,7 @@ export const ClickOutsideToClose: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -400,9 +400,7 @@ export const UUIDTagId: Story = {
   args: {
     tag: { id: "550e8400-e29b-41d4-a716-446655440000", name: "uuid-tag" },
     task: taskBuilder.base({
-      tags: [
-        { id: "550e8400-e29b-41d4-a716-446655440000", name: "uuid-tag" },
-      ],
+      tags: [{ id: "550e8400-e29b-41d4-a716-446655440000", name: "uuid-tag" }],
     }),
     onUpdate: handleUpdate,
     badgeClass,
@@ -445,7 +443,7 @@ export const DefaultBlueColor: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify default blue styling", async () => {
       const button = canvas.getByRole("button");
@@ -460,7 +458,7 @@ export const HoverRoseColor: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Hover to trigger rose color transition", async () => {
       const button = canvas.getByRole("button");
@@ -480,7 +478,7 @@ export const KeyboardNavigation: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Tab to tag badge", async () => {
       const button = canvas.getByRole("button");
@@ -502,7 +500,7 @@ export const AriaLabels: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Click to remove/i });
@@ -516,7 +514,7 @@ export const ScreenReaderText: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify tag name is readable", async () => {
       const button = canvas.getByRole("button");
@@ -542,7 +540,7 @@ export const RapidRemoveClicks: Story = {
     ...SingleTag.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");

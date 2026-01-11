@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Task } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "./ui/collapsible";
 
 interface BacklogSectionProps {
@@ -15,8 +15,8 @@ interface BacklogSectionProps {
 }
 
 export const BacklogSection: React.FC<BacklogSectionProps> = ({ tasks }) => {
-  const { settings } = useSettingsContext();
-  const [isOpen, setIsOpen] = useState(true);
+  const { settings } = useSettingsContext(),
+   [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="mt-8 pt-4 border-t border-slate-100">

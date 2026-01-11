@@ -14,8 +14,7 @@ interface ThemeSectionProps {
   setTheme: (t: ThemeOption) => void;
 }
 
-export const ThemeSection = ({ theme, setTheme }: ThemeSectionProps) => {
-  return (
+export const ThemeSection = ({ theme, setTheme }: ThemeSectionProps) => (
     <>
       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
         Appearance
@@ -51,4 +50,3 @@ export const ThemeSection = ({ theme, setTheme }: ThemeSectionProps) => {
       </div>
     </>
   );
-};

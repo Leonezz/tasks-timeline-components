@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import type { YearGroup } from "../types";
 import { DaySection } from "./DaySection";
 import { cn } from "../utils";
@@ -7,8 +7,8 @@ import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "./ui/collapsible";
 
 interface YearSectionProps {
@@ -16,9 +16,9 @@ interface YearSectionProps {
 }
 
 export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
-  const { settings } = useSettingsContext();
-  const [isOpen, setIsOpen] = useState(true);
-  const progressPercent =
+  const { settings } = useSettingsContext(),
+   [isOpen, setIsOpen] = useState(true),
+   progressPercent =
     Math.round((group.completedTasks / group.totalTasks) * 100) || 0;
 
   return (

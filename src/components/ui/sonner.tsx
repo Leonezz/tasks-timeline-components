@@ -1,16 +1,15 @@
 import {
+  AlertTriangle,
   CheckCircle2,
   Info,
   Loader2,
   XCircle,
-  AlertTriangle,
 } from "lucide-react"
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  return (
+const Toaster = ({ ...props }: ToasterProps) => (
     <Sonner
       theme="light"
       className="toaster group"
@@ -35,6 +34,5 @@ const Toaster = ({ ...props }: ToasterProps) => {
       {...props}
     />
   )
-}
 
 export { Toaster }

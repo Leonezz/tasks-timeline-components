@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { DateTime } from "luxon";
-import type { Task, DayGroup, DateGroupBy } from "../types";
+import type { DateGroupBy, DayGroup, Task } from "../types";
 import { groupTasksByYearAndDate } from "../utils";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
@@ -15,24 +15,24 @@ interface TodoListProps {
 export const TodoList: React.FC<TodoListProps> = ({ className }) => {
   const {
     tasks,
-  } = useTasksContext();
+  } = useTasksContext(),
 
-  const { settings, isFocusMode } =
-    useSettingsContext();
-  const { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
-    const today = DateTime.now();
-    const todayStr = today.toISODate();
+   { settings, isFocusMode } =
+    useSettingsContext(),
+   { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
+    const today = DateTime.now(),
+     todayStr = today.toISODate(),
 
     // 1. Filter based on "Show Completed" setting
-    const visibleTasks = settings.showCompleted
+     visibleTasks = settings.showCompleted
       ? tasks
-      : tasks.filter((t) => t.status !== "done" && t.status !== "cancelled");
+      : tasks.filter((t) => t.status !== "done" && t.status !== "cancelled"),
 
     // 2. Identify "Dated" vs "Truly Undated" tasks
-    const datedTasks: Task[] = [];
-    const trulyUndatedTasks: Task[] = [];
+     datedTasks: Task[] = [],
+     trulyUndatedTasks: Task[] = [],
 
-    const dateFields: DateGroupBy[] = [
+     dateFields: DateGroupBy[] = [
       "dueAt",
       "startAt",
       "createdAt",

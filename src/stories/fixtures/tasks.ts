@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 import { DateTime } from "luxon";
-import type { Task, Priority, TaskStatus, Tag } from "../../types";
+import type { Priority, Tag, Task, TaskStatus } from "../../types";
 
 /**
  * Task builder factory for creating Task mock data
@@ -36,9 +36,11 @@ export const taskBuilder = {
   overdue: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "overdue",
-      dueAt: DateTime.now().minus({ days: faker.number.int({ min: 1, max: 7 }) }).toISO(),
+      dueAt: DateTime.now()
+        .minus({ days: faker.number.int({ min: 1, max: 7 }) })
+        .toISO(),
       priority: "high",
-      title: "Overdue: " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `Overdue: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -51,7 +53,7 @@ export const taskBuilder = {
       completedAt: DateTime.now()
         .minus({ hours: faker.number.int({ min: 1, max: 48 }) })
         .toISO(),
-      title: "✓ " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `✓ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -61,7 +63,9 @@ export const taskBuilder = {
   dueToday: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "due",
-      dueAt: DateTime.now().plus({ hours: faker.number.int({ min: 1, max: 23 }) }).toISO(),
+      dueAt: DateTime.now()
+        .plus({ hours: faker.number.int({ min: 1, max: 23 }) })
+        .toISO(),
       priority: "high",
       ...overrides,
     }),
@@ -81,7 +85,9 @@ export const taskBuilder = {
   scheduled: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "scheduled",
-      startAt: DateTime.now().plus({ days: faker.number.int({ min: 1, max: 14 }) }).toISO(),
+      startAt: DateTime.now()
+        .plus({ days: faker.number.int({ min: 1, max: 14 }) })
+        .toISO(),
       ...overrides,
     }),
 
@@ -91,7 +97,9 @@ export const taskBuilder = {
   doing: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "doing",
-      startAt: DateTime.now().minus({ hours: faker.number.int({ min: 1, max: 5 }) }).toISO(),
+      startAt: DateTime.now()
+        .minus({ hours: faker.number.int({ min: 1, max: 5 }) })
+        .toISO(),
       ...overrides,
     }),
 
@@ -101,7 +109,7 @@ export const taskBuilder = {
   cancelled: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "cancelled",
-      title: "✗ " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `✗ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -112,7 +120,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
-      title: "🔁 " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `🔁 ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -123,7 +131,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=DAILY;INTERVAL=1",
-      title: "🔁 Daily: " + faker.lorem.sentence({ min: 2, max: 4 }),
+      title: `🔁 Daily: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -134,7 +142,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: `FREQ=WEEKLY;INTERVAL=1;BYDAY=${weekday}`,
-      title: "🔁 Weekly: " + faker.lorem.sentence({ min: 2, max: 4 }),
+      title: `🔁 Weekly: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -145,7 +153,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1",
-      title: "🔁 Monthly: " + faker.lorem.sentence({ min: 2, max: 4 }),
+      title: `🔁 Monthly: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -169,7 +177,16 @@ export const taskBuilder = {
   highPriority: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       priority: "high",
-      title: "❗ " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `❗ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      ...overrides,
+    }),
+
+  /**
+   * Medium priority task
+   */
+  mediumPriority: (overrides?: Partial<Task>): Task =>
+    taskBuilder.base({
+      priority: "medium",
       ...overrides,
     }),
 
@@ -221,23 +238,22 @@ export const taskBuilder = {
     count: number,
     startDate: DateTime = DateTime.now().minus({ days: 30 }),
     endDate: DateTime = DateTime.now().plus({ days: 30 })
-  ): Task[] => {
-    return Array.from({ length: count }, (_, i) => {
+  ): Task[] => Array.from({ length: count }, (_, i) => {
       const randomDate = DateTime.fromMillis(
         faker.date
           .between({ from: startDate.toJSDate(), to: endDate.toJSDate() })
           .getTime()
-      );
+      ),
 
-      const statuses: TaskStatus[] = [
+       statuses: TaskStatus[] = [
         "todo",
         "doing",
         "done",
         "scheduled",
         "overdue",
         "due",
-      ];
-      const priorities: Priority[] = ["low", "medium", "high"];
+      ],
+       priorities: Priority[] = ["low", "medium", "high"];
 
       return taskBuilder.base({
         id: `task-${i}`,
@@ -249,8 +265,7 @@ export const taskBuilder = {
             ? randomDate.toISO() ?? undefined
             : undefined,
       });
-    });
-  },
+    }),
 
   /**
    * Create tasks for specific categories
@@ -264,7 +279,7 @@ export const taskBuilder = {
   work: (count: number = 5): Task[] =>
     taskBuilder.many(count, {
       category: "Work",
-      title: "Work: " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `Work: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
     }),
 
   /**
@@ -273,7 +288,7 @@ export const taskBuilder = {
   personal: (count: number = 5): Task[] =>
     taskBuilder.many(count, {
       category: "Personal",
-      title: "Personal: " + faker.lorem.sentence({ min: 3, max: 6 }),
+      title: `Personal: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
     }),
 
   /**

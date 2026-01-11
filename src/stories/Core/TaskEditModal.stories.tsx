@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
-import { within, userEvent, waitFor } from "@storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { TaskEditModal } from "../../components/TaskEditModal";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
@@ -40,10 +39,10 @@ const defaultTask = taskBuilder.base({
     { id: "1", name: "work" },
     { id: "2", name: "setup" },
   ],
-});
+}),
 
-const handleSave = (task: Task) => console.log("Save task:", task);
-const handleClose = () => console.log("Close modal");
+ handleSave = (task: Task) => console.log("Save task:", task),
+ handleClose = () => console.log("Close modal");
 
 // ========================================
 // Core Stories
@@ -84,7 +83,8 @@ export const AllFieldsFilled: Story = {
     isOpen: true,
     task: taskBuilder.base({
       title: "Complete quarterly report",
-      description: "Compile and analyze Q4 2024 performance metrics for executive review",
+      description:
+        "Compile and analyze Q4 2024 performance metrics for executive review",
       priority: "high",
       category: "Work",
       tags: [
@@ -278,7 +278,7 @@ export const VeryLongTitle: Story = {
   args: {
     ...Default.args,
     task: taskBuilder.base({
-      title: "A".repeat(200) + " very long title that should wrap properly",
+      title: `${"A".repeat(200)  } very long title that should wrap properly`,
     }),
   },
 };
@@ -288,7 +288,8 @@ export const VeryLongDescription: Story = {
     ...Default.args,
     task: taskBuilder.base({
       title: "Task with long description",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(50),
+      description:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(50),
     }),
   },
 };
@@ -337,7 +338,8 @@ export const UnicodeContent: Story = {
     ...Default.args,
     task: taskBuilder.base({
       title: "🎉 Unicode test: 日本語 中文 العربية 🚀",
-      description: "Testing emoji and international characters: 你好世界 مرحبا بك ハロー・ワールド",
+      description:
+        "Testing emoji and international characters: 你好世界 مرحبا بك ハロー・ワールド",
       category: "測試",
     }),
   },
@@ -476,7 +478,7 @@ export const SaveTask: Story = {
       const saveButton = canvas.getByRole("button", { name: /save/i });
       await userEvent.click(saveButton);
       await delay(100);
-      // onSave should be called
+      // OnSave should be called
     });
   },
 };

@@ -22,8 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   availableTags,
   availableCategories,
-}) => {
-  return (
+}) => (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -55,4 +54,3 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       )}
     </AnimatePresence>
   );
-};

@@ -34,9 +34,9 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       case "info":
         return "Info";
     }
-  };
+  },
 
-  const getStyles = () => {
+   getStyles = () => {
     // Base: Neutral Paper with Blur + Subtle Shadow
     const base =
       "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.chronos-app[data-theme='dark']_&]:bg-slate-800/95 [.chronos-app[data-theme='dark']_&]:shadow-black/20 [.chronos-app[data-theme='dark']_&]:border-slate-700/50";
@@ -59,9 +59,9 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
           "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.chronos-app[data-theme='dark']_&]:border-y-blue-500/20 [.chronos-app[data-theme='dark']_&]:border-r-blue-500/20"
         );
     }
-  };
+  },
 
-  const getIconColor = () => {
+   getIconColor = () => {
     switch (toast.type) {
       case "success":
         return "text-emerald-500 [.chronos-app[data-theme='dark']_&]:text-emerald-400";

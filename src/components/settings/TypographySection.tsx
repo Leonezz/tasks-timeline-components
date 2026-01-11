@@ -15,8 +15,7 @@ interface TypographySectionProps {
 export const TypographySection = ({
   fontSize,
   setFontSize,
-}: TypographySectionProps) => {
-  return (
+}: TypographySectionProps) => (
     <>
       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
         Typography
@@ -45,4 +44,3 @@ export const TypographySection = ({
       </div>
     </>
   );
-};

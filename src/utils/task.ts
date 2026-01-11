@@ -1,8 +1,16 @@
 import { DateTime } from "luxon";
-import type { Task, YearGroup, DayGroup, TaskStatus, DateGroupBy } from "../types";
+import type {
+  DateGroupBy,
+  DayGroup,
+  Task,
+  TaskStatus,
+  YearGroup,
+} from "../types";
 
 const safeDate = (dateStr: string): DateTime => {
-  if (!dateStr) return DateTime.invalid("No date");
+  if (!dateStr) {
+    return DateTime.invalid("No date");
+  }
   const dt = DateTime.fromISO(dateStr);
   return dt.isValid ? dt : DateTime.invalid("Invalid ISO");
 };
@@ -13,9 +21,9 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
     return task.status;
   }
 
-  const now = DateTime.now();
-  const today = now.toISODate() || "";
-  const tomorrow = now.plus({ days: 1 }).toISODate();
+  const now = DateTime.now(),
+    today = now.toISODate() || "",
+    tomorrow = now.plus({ days: 1 }).toISODate();
 
   // 2. Overdue: Due date is strictly in the past
   if (task.dueAt && task.dueAt < today) {
@@ -41,7 +49,7 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
   }
 
   // 6. Fallbacks: If manual status was set to a state that is no longer valid based on dates, reset to todo
-  // e.g. was 'doing' but user cleared start date
+  // E.g. was 'doing' but user cleared start date
   if (["due", "overdue", "scheduled", "doing"].includes(task.status)) {
     return "todo";
   }
@@ -53,13 +61,13 @@ export const groupTasksByYearAndDate = (
   tasks: Task[],
   strategies: DateGroupBy[] = ["dueAt"]
 ): YearGroup[] => {
-  const groups: Record<number, Record<string, Task[]>> = {};
-  const allPossibleDateFields: DateGroupBy[] = [
-    "dueAt",
-    "startAt",
-    "createdAt",
-    "completedAt",
-  ];
+  const groups: Record<number, Record<string, Task[]>> = {},
+    allPossibleDateFields: DateGroupBy[] = [
+      "dueAt",
+      "startAt",
+      "createdAt",
+      "completedAt",
+    ];
 
   tasks.forEach((task) => {
     const datesToUse: string[] = [];
@@ -67,7 +75,9 @@ export const groupTasksByYearAndDate = (
     // Try active strategies
     strategies.forEach((strategy) => {
       const val = task[strategy];
-      if (val && safeDate(val).isValid) datesToUse.push(val);
+      if (val && safeDate(val).isValid) {
+        datesToUse.push(val);
+      }
     });
 
     // Fallback
@@ -82,13 +92,19 @@ export const groupTasksByYearAndDate = (
     }
 
     datesToUse.forEach((dateKey) => {
-      const dt = safeDate(dateKey);
-      const year = dt.year;
-      const dayStr = dt.toISODate();
-      if (!dayStr) return;
+      const dt = safeDate(dateKey),
+        { year } = dt,
+        dayStr = dt.toISODate();
+      if (!dayStr) {
+        return;
+      }
 
-      if (!groups[year]) groups[year] = {};
-      if (!groups[year][dayStr]) groups[year][dayStr] = [];
+      if (!groups[year]) {
+        groups[year] = {};
+      }
+      if (!groups[year][dayStr]) {
+        groups[year][dayStr] = [];
+      }
 
       if (!groups[year][dayStr].includes(task)) {
         groups[year][dayStr].push(task);
@@ -101,20 +117,16 @@ export const groupTasksByYearAndDate = (
     .sort((a, b) => b - a);
 
   return sortedYears.map((year) => {
-    const yearTasks = groups[year];
-    const sortedDays = Object.keys(yearTasks).sort((a, b) =>
-      b.localeCompare(a)
-    );
-
-    const dayGroups: DayGroup[] = sortedDays.map((date) => ({
-      date,
-      tasks: yearTasks[date],
-    }));
-
-    const allTasksInYear = Object.values(yearTasks).flat();
-    const completed = allTasksInYear.filter(
-      (t) => t.status === "done" || t.status === "cancelled"
-    ).length;
+    const yearTasks = groups[year],
+      sortedDays = Object.keys(yearTasks).sort((a, b) => b.localeCompare(a)),
+      dayGroups: DayGroup[] = sortedDays.map((date) => ({
+        date,
+        tasks: yearTasks[date],
+      })),
+      allTasksInYear = Object.values(yearTasks).flat(),
+      completed = allTasksInYear.filter(
+        (t) => t.status === "done" || t.status === "cancelled"
+      ).length;
 
     return {
       year,

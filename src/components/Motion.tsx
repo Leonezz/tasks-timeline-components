@@ -1,8 +1,8 @@
 import React from "react";
-import { motion, type HTMLMotionProps } from "framer-motion";
+import { type HTMLMotionProps, motion } from "framer-motion";
 
 // Encapsulated Motion components to ensure strict typing of props like className and onClick
-// which might be inferred as missing in some strict TypeScript environments with framer-motion.
+// Which might be inferred as missing in some strict TypeScript environments with framer-motion.
 
 export const MotionDiv = React.forwardRef<
   HTMLDivElement,

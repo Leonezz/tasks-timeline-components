@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent } from "storybook/test";
 import { PriorityPopover } from "../../components/PriorityPopover";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 
 const meta: Meta<typeof PriorityPopover> = {
   title: "UI/PriorityPopover",
@@ -18,8 +18,8 @@ const meta: Meta<typeof PriorityPopover> = {
   },
   decorators: [
     (Story) => (
-      <AppProvider>
-        <div className="p-4 bg-slate-50 min-w-[200px]">
+      <AppProvider container={document.body}>
+        <div className="p-4 bg-slate-50 min-w-50">
           <Story />
         </div>
       </AppProvider>
@@ -31,9 +31,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium";
+  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
 
-const handleUpdate = (task: Task) => console.log("Updated task:", task);
+ handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Priority Variants
@@ -81,12 +81,12 @@ export const HighPriorityBold: Story = {
     task: taskBuilder.highPriority({ title: "Urgent task" }),
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify high priority has bold flag icon", async () => {
-      const button = canvas.getByRole("button");
+      const button = canvas.getByRole("button"),
       // High priority should have strokeWidth of 3
-      const icon = button.querySelector("svg");
+       icon = button.querySelector("svg");
       expect(icon).toBeInTheDocument();
     });
   },
@@ -107,7 +107,7 @@ export const PopoverOpen: Story = {
     ...MediumPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open priority selector popover", async () => {
       const button = canvas.getByRole("button", { name: /Change Priority/i });
@@ -116,9 +116,9 @@ export const PopoverOpen: Story = {
     });
 
     await step("Verify all priority options visible", async () => {
-      const highOption = canvas.getByText(/high/i);
-      const mediumOption = canvas.getByText(/medium/i);
-      const lowOption = canvas.getByText(/low/i);
+      const highOption = canvas.getByText(/high/i),
+       mediumOption = canvas.getByText(/medium/i),
+       lowOption = canvas.getByText(/low/i);
 
       expect(highOption).toBeInTheDocument();
       expect(mediumOption).toBeInTheDocument();
@@ -132,7 +132,7 @@ export const PopoverWithSelectedIndicator: Story = {
     ...HighPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -142,9 +142,9 @@ export const PopoverWithSelectedIndicator: Story = {
 
     await step("Verify current priority is highlighted", async () => {
       // High priority button should have bg-slate-100 and font-bold
-      const options = canvas.getAllByRole("button");
+      const options = canvas.getAllByRole("button"),
       // First button is the trigger, find the "high" option
-      const highOption = options.find((btn) =>
+       highOption = options.find((btn: HTMLElement) =>
         btn.textContent?.toLowerCase().includes("high")
       );
       expect(highOption).toBeDefined();
@@ -163,7 +163,7 @@ export const ChangePriorityToHigh: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open priority selector", async () => {
       const button = canvas.getByRole("button", { name: /Change Priority/i });
@@ -172,15 +172,15 @@ export const ChangePriorityToHigh: Story = {
     });
 
     await step("Click high priority option", async () => {
-      const options = canvas.getAllByRole("button");
-      const highOption = options.find((btn) =>
+      const options = canvas.getAllByRole("button"),
+       highOption = options.find((btn: HTMLElement) =>
         btn.textContent?.toLowerCase().includes("high")
       );
       if (highOption) {
         await userEvent.click(highOption);
         await delay(100);
       }
-      // onUpdate should be called with priority: "high"
+      // OnUpdate should be called with priority: "high"
     });
   },
 };
@@ -192,7 +192,7 @@ export const ChangePriorityToMedium: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -201,8 +201,8 @@ export const ChangePriorityToMedium: Story = {
     });
 
     await step("Select medium priority", async () => {
-      const options = canvas.getAllByRole("button");
-      const mediumOption = options.find((btn) =>
+      const options = canvas.getAllByRole("button"),
+       mediumOption = options.find((btn: HTMLElement) =>
         btn.textContent?.toLowerCase().includes("medium")
       );
       if (mediumOption) {
@@ -220,7 +220,7 @@ export const ChangePriorityToLow: Story = {
     badgeClass,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -229,8 +229,8 @@ export const ChangePriorityToLow: Story = {
     });
 
     await step("Select low priority", async () => {
-      const options = canvas.getAllByRole("button");
-      const lowOption = options.find((btn) =>
+      const options = canvas.getAllByRole("button"),
+       lowOption = options.find((btn: HTMLElement) =>
         btn.textContent?.toLowerCase().includes("low")
       );
       if (lowOption) {
@@ -246,7 +246,7 @@ export const ClickOutsideToClose: Story = {
     ...MediumPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -272,7 +272,7 @@ export const HighPriorityRoseColor: Story = {
     ...HighPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify high priority uses rose color", async () => {
       const button = canvas.getByRole("button");
@@ -287,7 +287,7 @@ export const MediumPriorityAmberColor: Story = {
     ...MediumPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify medium priority uses amber color", async () => {
       const button = canvas.getByRole("button");
@@ -301,7 +301,7 @@ export const LowPrioritySlateColor: Story = {
     ...LowPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify low priority uses slate/gray color", async () => {
       const button = canvas.getByRole("button");
@@ -319,7 +319,7 @@ export const KeyboardNavigation: Story = {
     ...MediumPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Tab to priority button", async () => {
       const button = canvas.getByRole("button");
@@ -347,7 +347,7 @@ export const AriaLabels: Story = {
     ...HighPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Change Priority/i });
@@ -361,7 +361,7 @@ export const ScreenReaderText: Story = {
     ...MediumPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify priority text is readable", async () => {
       const button = canvas.getByRole("button");
@@ -379,7 +379,7 @@ export const RapidPriorityChanges: Story = {
     ...LowPriority.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open popover", async () => {
       const button = canvas.getByRole("button");
@@ -388,8 +388,8 @@ export const RapidPriorityChanges: Story = {
     });
 
     await step("Quickly change priority multiple times", async () => {
-      const options = canvas.getAllByRole("button");
-      const highOption = options.find((btn) =>
+      const options = canvas.getAllByRole("button"),
+       highOption = options.find((btn: HTMLElement) =>
         btn.textContent?.toLowerCase().includes("high")
       );
 

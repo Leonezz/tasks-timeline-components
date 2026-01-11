@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Icon } from "./Icon";
 
 interface HelpModalProps {
@@ -7,8 +7,7 @@ interface HelpModalProps {
   onClose: () => void;
 }
 
-export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
-  return (
+export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -202,4 +201,3 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
       )}
     </AnimatePresence>
   );
-};

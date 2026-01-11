@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect } from "storybook/test";
 import { TasksTimelineApp } from "../../TasksTimelineApp";
 import type { Task } from "../../types";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 
 const meta: Meta<typeof TasksTimelineApp> = {
   title: "Core/TasksTimelineApp",
@@ -36,12 +36,12 @@ export const WithItemClick: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
-
+    const canvas = withinShadow(canvasElement);
     await step("Verify app is rendered", async () => {
+      await delay(500);
       // Should have input bar
       const inputs = canvas.queryAllByRole("textbox");
-      expect(canvasElement.textContent).toBeTruthy();
+      expect(inputs.length).toBeGreaterThan(0);
     });
   },
 };
@@ -89,7 +89,7 @@ export const OpenSettings: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Find and click settings button", async () => {
       await delay(500); // Wait for app to initialize
@@ -105,7 +105,7 @@ export const ToggleFocusMode: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Find Focus mode toggle", async () => {
       await delay(500);
@@ -121,7 +121,7 @@ export const FilterByStatus: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Find status filter buttons", async () => {
       await delay(500);
@@ -137,7 +137,7 @@ export const AddNewTask: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Find input bar", async () => {
       await delay(500);
@@ -153,12 +153,13 @@ export const ScrollTasks: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify scrollable content", async () => {
       await delay(500);
-      // App should render with scrollable task list
-      expect(canvasElement.textContent).toBeTruthy();
+      // App should render with buttons and input
+      const buttons = canvas.queryAllByRole("button");
+      expect(buttons.length).toBeGreaterThan(0);
     });
   },
 };
@@ -168,7 +169,7 @@ export const ViewTaskStats: Story = {
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify dashboard stats are visible", async () => {
       await delay(500);
@@ -185,7 +186,7 @@ export const ViewTaskStats: Story = {
 
 export const NoOnItemClick: Story = {
   args: {
-    // onItemClick is optional, should work without it
+    // OnItemClick is optional, should work without it
   },
 };
 

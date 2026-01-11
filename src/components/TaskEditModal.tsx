@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { RRule, Frequency, Weekday } from "rrule";
+import { AnimatePresence, motion } from "framer-motion";
+import { Frequency, RRule, Weekday } from "rrule";
 import { DateTime } from "luxon";
-import type { Task, Priority } from "../types";
+import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
 import { cn } from "../utils";
 
@@ -19,9 +19,9 @@ const FREQUENCY_OPTIONS = [
   { value: RRule.WEEKLY, label: "Weekly" },
   { value: RRule.MONTHLY, label: "Monthly" },
   { value: RRule.YEARLY, label: "Yearly" },
-];
+],
 
-const WEEKDAYS = [
+ WEEKDAYS = [
   { label: "M", val: RRule.MO },
   { label: "T", val: RRule.TU },
   { label: "W", val: RRule.WE },
@@ -29,9 +29,9 @@ const WEEKDAYS = [
   { label: "F", val: RRule.FR },
   { label: "S", val: RRule.SA },
   { label: "S", val: RRule.SU },
-];
+],
 
-const MONTHS = [
+ MONTHS = [
   "Jan",
   "Feb",
   "Mar",
@@ -59,18 +59,18 @@ const EditForm: React.FC<EditFormProps> = ({
   onClose,
   availableCategories,
 }) => {
-  const [editedTask, setEditedTask] = useState<Task>(task);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [editedTask, setEditedTask] = useState<Task>(task),
+   [isCategoryOpen, setIsCategoryOpen] = useState(false),
 
   // Initialize Recurrence State lazily
-  const [recurrenceState, setRecurrenceState] = useState(() => {
-    let freq: Frequency = RRule.WEEKLY;
-    let interval = 1;
-    let byWeekDay: Weekday[] = [];
-    let byMonth: number[] = [];
-    let byMonthDay: number[] = [];
-    let start = "";
-    let end = "";
+   [recurrenceState, setRecurrenceState] = useState(() => {
+    let freq: Frequency = RRule.WEEKLY,
+     interval = 1,
+     byWeekDay: Weekday[] = [],
+     byMonth: number[] = [],
+     byMonthDay: number[] = [],
+     start = "",
+     end = "";
 
     if (task.isRecurring && task.recurringInterval) {
       try {
@@ -107,33 +107,33 @@ const EditForm: React.FC<EditFormProps> = ({
         }
       } catch (e) {
         console.error(`parse recurrence rule failed with err: ${e}`);
-        // defaults
+        // Defaults
       }
     }
     return { freq, interval, byWeekDay, byMonth, byMonthDay, start, end };
-  });
+  }),
 
-  const updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
+   updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
     setRecurrenceState((prev) => ({ ...prev, ...updates }));
-  };
+  },
 
-  const handleSave = () => {
+   handleSave = () => {
     const finalTask = { ...editedTask };
 
     // Construct RRule string if recurring
     if (finalTask.isRecurring) {
       try {
         const { start, end, freq, interval, byWeekDay, byMonth, byMonthDay } =
-          recurrenceState;
+          recurrenceState,
         // Helper to convert ISO string to JS Date for RRule
-        const dtStart = start ? DateTime.fromISO(start).toJSDate() : undefined;
-        const until = end
+         dtStart = start ? DateTime.fromISO(start).toJSDate() : undefined,
+         until = end
           ? DateTime.fromISO(end).endOf("day").toJSDate()
-          : undefined;
+          : undefined,
 
-        const rule = new RRule({
-          freq: freq,
-          interval: interval,
+         rule = new RRule({
+          freq,
+          interval,
           byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
           bymonth: freq === RRule.YEARLY && byMonth.length > 0 ? byMonth : null,
           bymonthday:
@@ -142,7 +142,7 @@ const EditForm: React.FC<EditFormProps> = ({
               ? byMonthDay
               : null,
           dtstart: dtStart,
-          until: until,
+          until,
         });
         finalTask.recurringInterval = rule.toString();
       } catch (e) {
@@ -153,29 +153,29 @@ const EditForm: React.FC<EditFormProps> = ({
     }
 
     onSave(finalTask);
-  };
+  },
 
-  const toggleRecurrence = () => {
+   toggleRecurrence = () => {
     setEditedTask((prev) => ({ ...prev, isRecurring: !prev.isRecurring }));
-  };
+  },
 
-  const filteredCategories = availableCategories.filter(
+   filteredCategories = availableCategories.filter(
     (c) =>
       c.toLowerCase().includes((editedTask.category || "").toLowerCase()) &&
       c.toLowerCase() !== (editedTask.category || "").toLowerCase()
-  );
+  ),
 
-  const toDateTimeInput = (isoStr?: string) => {
-    if (!isoStr) return "";
+   toDateTimeInput = (isoStr?: string) => {
+    if (!isoStr) {return "";}
     const dt = DateTime.fromISO(isoStr);
-    if (!dt.isValid) return "";
+    if (!dt.isValid) {return "";}
     return dt.toFormat("yyyy-MM-dd'T'HH:mm");
-  };
+  },
 
-  const fromDateTimeInput = (val: string) => {
-    if (!val) return "";
+   fromDateTimeInput = (val: string) => {
+    if (!val) {return "";}
     const dt = DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm");
-    if (dt.isValid) return dt.toISO() || "";
+    if (dt.isValid) {return dt.toISO() || "";}
     return "";
   };
 
@@ -492,8 +492,8 @@ const EditForm: React.FC<EditFormProps> = ({
                               <button
                                 key={day.label + day.val.weekday}
                                 onClick={() => {
-                                  const prev = recurrenceState.byWeekDay;
-                                  const exists = prev.some(
+                                  const prev = recurrenceState.byWeekDay,
+                                   exists = prev.some(
                                     (d) => d.weekday === day.val.weekday
                                   );
                                   updateRecurrence({
@@ -529,8 +529,8 @@ const EditForm: React.FC<EditFormProps> = ({
                             </label>
                             <div className="grid grid-cols-6 gap-1">
                               {MONTHS.map((m, idx) => {
-                                const mVal = idx + 1;
-                                const isSelected =
+                                const mVal = idx + 1,
+                                 isSelected =
                                   recurrenceState.byMonth.includes(mVal);
                                 return (
                                   <button
@@ -635,8 +635,8 @@ const EditForm: React.FC<EditFormProps> = ({
                             byMonthDay,
                             start,
                             end,
-                          } = recurrenceState;
-                          const rule = new RRule({
+                          } = recurrenceState,
+                           rule = new RRule({
                             freq,
                             interval,
                             byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
@@ -696,8 +696,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   task,
   onSave,
   availableCategories,
-}) => {
-  return (
+}) => (
     <AnimatePresence>
       {isOpen && task && (
         <>
@@ -726,4 +725,3 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
       )}
     </AnimatePresence>
   );
-};

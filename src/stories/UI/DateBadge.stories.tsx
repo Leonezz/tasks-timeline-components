@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { expect, userEvent } from "storybook/test";
 import { DateBadge } from "../../components/DateBadge";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, withinShadow } from "../test-utils";
 import { DateTime } from "luxon";
 
 const meta: Meta<typeof DateBadge> = {
@@ -19,8 +19,8 @@ const meta: Meta<typeof DateBadge> = {
   },
   decorators: [
     (Story) => (
-      <AppProvider>
-        <div className="p-4 bg-slate-50 min-w-[200px]">
+      <AppProvider container={document.body}>
+        <div className="p-4 bg-slate-50 min-w-50">
           <Story />
         </div>
       </AppProvider>
@@ -31,17 +31,17 @@ const meta: Meta<typeof DateBadge> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const today = DateTime.now();
-const tomorrow = today.plus({ days: 1 });
-const yesterday = today.minus({ days: 1 });
+const today = DateTime.now(),
+ tomorrow = today.plus({ days: 1 }),
+ yesterday = today.minus({ days: 1 }),
 
-const defaultTask = taskBuilder.base({
+ defaultTask = taskBuilder.base({
   id: "1",
   title: "Sample Task",
   dueAt: today.toISODate()!,
-});
+}),
 
-const handleUpdate = (task: Task) => console.log("Updated task:", task);
+ handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Due Date Stories
@@ -202,7 +202,7 @@ export const DateOnlyInput: Story = {
     ...DueDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open date picker popover", async () => {
       const button = canvas.getByRole("button");
@@ -223,7 +223,7 @@ export const DateTimeInput: Story = {
     ...StartDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open datetime picker popover", async () => {
       const button = canvas.getByRole("button");
@@ -250,7 +250,7 @@ export const ChangeDueDate: Story = {
     ...DueDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open date picker", async () => {
       const button = canvas.getByRole("button", { name: /Change Due Date/i });
@@ -269,7 +269,7 @@ export const ChangeDueDate: Story = {
       const saveButton = canvas.getByRole("button", { name: /Save/i });
       await userEvent.click(saveButton);
       await delay(100);
-      // onUpdate should be called with new dueDate
+      // OnUpdate should be called with new dueDate
     });
   },
 };
@@ -279,7 +279,7 @@ export const ChangeStartDate: Story = {
     ...StartDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open datetime picker", async () => {
       const button = canvas.getByRole("button", {
@@ -292,8 +292,8 @@ export const ChangeStartDate: Story = {
     await step("Change datetime value", async () => {
       const input = canvas.getByDisplayValue(
         today.toFormat("yyyy-MM-dd'T'HH:mm")
-      );
-      const newDateTime = tomorrow.set({ hour: 10, minute: 0 });
+      ),
+       newDateTime = tomorrow.set({ hour: 10, minute: 0 });
       await userEvent.clear(input);
       await userEvent.type(input, newDateTime.toFormat("yyyy-MM-dd'T'HH:mm"));
       await delay(100);
@@ -312,7 +312,7 @@ export const ClearDate: Story = {
     ...DueDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Open date picker", async () => {
       const button = canvas.getByRole("button");
@@ -330,7 +330,7 @@ export const ClearDate: Story = {
       const saveButton = canvas.getByRole("button", { name: /Save/i });
       await userEvent.click(saveButton);
       await delay(100);
-      // onUpdate should be called with empty dueDate
+      // OnUpdate should be called with empty dueDate
     });
   },
 };
@@ -386,7 +386,7 @@ export const KeyboardNavigation: Story = {
     ...DueDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Tab to badge button", async () => {
       const button = canvas.getByRole("button");
@@ -408,7 +408,7 @@ export const AriaLabels: Story = {
     ...DueDate.args,
   },
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+    const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Change Due Date/i });

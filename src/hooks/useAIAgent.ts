@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from "react";
-import { GoogleGenAI, type FunctionCall, type Part } from "@google/genai";
-import type { Task, AppSettings } from "../types";
+import React, { useEffect, useRef } from "react";
+import { type FunctionCall, GoogleGenAI, type Part } from "@google/genai";
+import type { AppSettings, Task } from "../types";
 import { getToolDefinitions } from "../utils";
 import { logger } from "../utils/logger";
 
@@ -36,8 +36,8 @@ export const useAIAgent = (
     call: FunctionCall
   ): Promise<ToolExecutionResult | Task[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const args = call.args as Record<string, any>;
-    const currentTasks = tasksRef.current;
+    const args = call.args as Record<string, any>,
+     currentTasks = tasksRef.current;
     logger.info("AI", `Executing tool: ${call.name}`, args);
 
     switch (call.name) {
@@ -57,7 +57,7 @@ export const useAIAgent = (
         };
 
         setTasks((prev) => {
-          if (prev.find((t) => t.id === newTask.id)) return prev;
+          if (prev.find((t) => t.id === newTask.id)) {return prev;}
           return [...prev, newTask];
         });
 
@@ -77,9 +77,9 @@ export const useAIAgent = (
       case "query_tasks": {
         let results = currentTasks;
         if (args.status)
-          results = results.filter((t) => t.status === args.status);
+          {results = results.filter((t) => t.status === args.status);}
         if (args.date)
-          results = results.filter((t) => {
+          {results = results.filter((t) => {
             const dates = [
               "startAt",
               "createdAt",
@@ -92,7 +92,7 @@ export const useAIAgent = (
               }
             }
             return false;
-          });
+          });}
         if (args.search) {
           const q = args.search.toLowerCase();
           results = results.filter((t) => t.title.toLowerCase().includes(q));
@@ -110,8 +110,8 @@ export const useAIAgent = (
       }
 
       case "update_task": {
-        let updated = false;
-        let taskTitle = "";
+        let taskTitle = "",
+         updated = false;
         const changedFields: string[] = [];
 
         setTasks((prev) =>
@@ -123,7 +123,7 @@ export const useAIAgent = (
               Object.keys(args).forEach((key) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 if (key !== "id" && args[key] !== (t as any)[key])
-                  changedFields.push(key);
+                  {changedFields.push(key);}
               });
               return { ...t, ...args };
             }
@@ -146,7 +146,7 @@ export const useAIAgent = (
             fields: changedFields,
           });
           return { success: true, message: "Updated" };
-        } else {
+        } 
           onNotify(
             "error",
             "Update Failed",
@@ -156,7 +156,7 @@ export const useAIAgent = (
             id: args.id,
           });
           return { success: false, message: "Task not found" };
-        }
+        
       }
 
       case "delete_task": {
@@ -166,7 +166,7 @@ export const useAIAgent = (
           onNotify("info", "Task Deleted", `Removed "${taskToDelete.title}"`);
           logger.info("AI", "Tool Result: Task Deleted", { id: args.id });
           return { success: true, message: "Deleted" };
-        } else {
+        } 
           onNotify(
             "error",
             "Delete Failed",
@@ -176,16 +176,16 @@ export const useAIAgent = (
             id: args.id,
           });
           return { success: false, message: "Task not found" };
-        }
+        
       }
 
       default:
         logger.error("AI", `Unknown tool called: ${call.name}`);
         return { error: "Unknown tool" };
     }
-  };
+  },
 
-  const handleAICommand = async (input: string) => {
+   handleAICommand = async (input: string) => {
     const config =
       settings.aiConfig.providers[settings.aiConfig.activeProvider];
 
@@ -200,8 +200,8 @@ export const useAIAgent = (
     }
 
     // Always initialize GoogleGenAI with the externally provided process.env.API_KEY
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const tools = getToolDefinitions();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }),
+     tools = getToolDefinitions();
 
     try {
       logger.info("AI", "Sending prompt to Gemini", {
@@ -212,8 +212,8 @@ export const useAIAgent = (
         model: config.model || "gemini-3-flash-preview",
         config: {
           systemInstruction:
-            "You are a task manager agent. You have tools to query, create, update, and delete tasks. When asked to modify tasks based on criteria (e.g. 'all tasks next week'), ALWAYS query_tasks first to get their IDs. Today is " +
-            new Date().toISOString(),
+            `You are a task manager agent. You have tools to query, create, update, and delete tasks. When asked to modify tasks based on criteria (e.g. 'all tasks next week'), ALWAYS query_tasks first to get their IDs. Today is ${ 
+            new Date().toISOString()}`,
           tools: [{ functionDeclarations: tools }],
         },
       });
@@ -246,7 +246,7 @@ export const useAIAgent = (
             functionResponse: {
               id: call.id,
               name: call.name,
-              response: { result: result },
+              response: { result },
             },
           });
         }

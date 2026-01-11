@@ -15,8 +15,8 @@ class Logger {
     message: string,
     data?: unknown
   ) {
-    const timestamp = new Date().toLocaleTimeString();
-    const prefix = `%c[TasksTimeline][${timestamp}][${context}]`;
+    const timestamp = new Date().toLocaleTimeString(),
+     prefix = `%c[TasksTimeline][${timestamp}][${context}]`;
 
     switch (level) {
       case "info":

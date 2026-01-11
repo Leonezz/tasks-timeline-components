@@ -1,8 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 
 // Define tool declarations for Gemini Function Calling
-export const getToolDefinitions = (): FunctionDeclaration[] => {
-  return [
+export const getToolDefinitions = (): FunctionDeclaration[] => [
     {
       name: "create_task",
       description: "Creates a new task with given properties.",
@@ -115,4 +114,3 @@ export const getToolDefinitions = (): FunctionDeclaration[] => {
       },
     },
   ];
-};
