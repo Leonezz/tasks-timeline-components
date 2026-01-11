@@ -74,7 +74,7 @@ export const CategoryPopover = ({
               <PopoverClose key={s} asChild>
                 <button
                   onClick={() => onUpdate({ ...task, category: s })}
-                  className="text-left px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 justify-start!"
+                  className="text-left px-2 py-1.5 text-xs text-slate-600 hover:opacity-80 rounded flex items-center gap-2 justify-start!"
                 >
                   <Icon name="Folder" size={10} className="opacity-50" />
                   {s}
@@ -84,7 +84,7 @@ export const CategoryPopover = ({
             <PopoverClose asChild>
               <button
                 onClick={() => onUpdate({ ...task, category: val })}
-                className="text-center px-2 py-1.5 text-xs text-blue-600! hover:bg-blue-50 rounded font-medium mt-1"
+                className="text-center px-2 py-1.5 text-xs text-blue-600! hover:opacity-80 rounded font-medium mt-1"
               >
                 Set to "{val}"
               </button>

@@ -57,7 +57,7 @@ export const PriorityPopover = ({
                   "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
                   task.priority === opt
                     ? "bg-slate-100 font-bold"
-                    : "hover:bg-slate-50 text-slate-600"
+                    : "hover:opacity-80 text-slate-600"
                 )}
               >
                 <Icon

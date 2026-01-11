@@ -272,7 +272,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {availableTags.map((tag) => (
                   <label
                     key={tag}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -310,7 +310,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -342,7 +342,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {(["low", "medium", "high"] as Priority[]).map((p) => (
                   <label
                     key={p}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer capitalize transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -386,7 +386,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 ).map((s) => (
                   <label
                     key={s}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50/80 rounded-lg cursor-pointer capitalize transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer capitalize transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -450,7 +450,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
-              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800"
           )}
         >
           {label}
@@ -575,7 +575,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
                       "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-all outline-none",
                       isSelected
                         ? "bg-slate-100 text-slate-900 font-medium"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        : "text-slate-600 hover:text-slate-900 hover:opacity-80"
                     )}
                   >
                     <div className="flex items-center gap-2">

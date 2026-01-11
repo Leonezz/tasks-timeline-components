@@ -308,7 +308,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                         // Active (Selected) State: A solid, subtle background
                         task.status === option
                           ? "bg-slate-200/60 text-slate-900 font-semibold"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
+                          : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]"
                       )}
                     >
                       <div
@@ -329,7 +329,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 <PopoverClose asChild>
                   <button
                     onClick={() => onEditTask?.(task)}
-                    className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all text-left outline-none rounded-lg"
+                    className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 transition-all text-left outline-none rounded-lg"
                   >
                     <Icon name="Pencil" size={14} className="opacity-70" />
                     <span>Edit Details</span>
