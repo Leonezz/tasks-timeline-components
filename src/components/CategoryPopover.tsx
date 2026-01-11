@@ -1,14 +1,14 @@
 import type { Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContext";
+import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import { useState } from "react";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
 } from "./ui/popover";
 
 export interface CategoryPopoverProps {
@@ -24,13 +24,13 @@ export const CategoryPopover = ({
   availableCategories,
   badgeClass,
 }: CategoryPopoverProps) => {
-  const [val, setVal] = useState(task.category || "");
+  const [val, setVal] = useState(task.category || ""),
   // Filter available categories for suggestions
-  const suggestions =
+   suggestions =
     availableCategories
       .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
-      .slice(0, 5) || [];
-  const { portalContainer } = useAppContext();
+      .slice(0, 5) || [],
+   { portalContainer } = useAppContext();
 
   return (
     <Popover>

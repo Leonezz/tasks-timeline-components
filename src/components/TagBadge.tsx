@@ -1,13 +1,13 @@
 import type { Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContext";
+import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
 } from "./ui/popover";
 
 export interface TagBadgeProps {

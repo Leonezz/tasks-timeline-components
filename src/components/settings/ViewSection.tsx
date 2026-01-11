@@ -2,20 +2,7 @@ import type { DateGroupBy } from "@/types";
 import { cn } from "@/utils";
 import { MotionSpan } from "../Motion";
 import { Icon } from "../Icon";
-
-const GROUP_STRATEGIES: { id: DateGroupBy; label: string }[] = [
-  { id: "dueAt", label: "Due Date" },
-  { id: "createdAt", label: "Created Date" },
-  { id: "startAt", label: "Start Date" },
-  { id: "completedAt", label: "Completed Date" },
-];
-
-export const DATE_FORMATS = [
-  { value: "MMM d", label: "Oct 24" },
-  { value: "EEE, MMM d", label: "Mon, Oct 24" },
-  { value: "yyyy-MM-dd", label: "2023-10-24" },
-  { value: "dd/MM/yyyy", label: "24/10/2023" },
-];
+import { GROUP_STRATEGIES, DATE_FORMATS } from "./ViewSectionConstants";
 
 interface ViewSectionProps {
   showCompleted: boolean;
@@ -55,8 +42,7 @@ export const ViewSection = ({
   availableCategories,
   groupingStrategy,
   toggleGroupingStrategy,
-}: ViewSectionProps) => {
-  return (
+}: ViewSectionProps) => (
     <>
       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
         View Options
@@ -277,4 +263,3 @@ export const ViewSection = ({
       </div>
     </>
   );
-};

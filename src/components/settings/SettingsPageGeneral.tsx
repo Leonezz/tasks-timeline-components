@@ -1,7 +1,8 @@
 import type { AppSettings, DateGroupBy, FontSize, ThemeOption } from "@/types";
 import { ThemeSection } from "./ThemeSection";
 import { TypographySection } from "./TypographySection";
-import { DATE_FORMATS, ViewSection } from "./ViewSection";
+import { ViewSection } from "./ViewSection";
+import { DATE_FORMATS } from "./ViewSectionConstants";
 import { useState } from "react";
 
 interface SettingsPageGeneralProps {
@@ -16,48 +17,48 @@ export const SettingsPageGeneral = ({
   availableCategories,
 }: SettingsPageGeneralProps) => {
   const setFontSize = (size: FontSize) =>
-    onUpdateSettings({ ...settings, fontSize: size });
-  const setTheme = (theme: ThemeOption) =>
-    onUpdateSettings({ ...settings, theme });
-  const setDateFormat = (fmt: string) =>
-    onUpdateSettings({ ...settings, dateFormat: fmt });
-  const setDefaultCategory = (cat: string) =>
-    onUpdateSettings({ ...settings, defaultCategory: cat });
+    onUpdateSettings({ ...settings, fontSize: size }),
+   setTheme = (theme: ThemeOption) =>
+    onUpdateSettings({ ...settings, theme }),
+   setDateFormat = (fmt: string) =>
+    onUpdateSettings({ ...settings, dateFormat: fmt }),
+   setDefaultCategory = (cat: string) =>
+    onUpdateSettings({ ...settings, defaultCategory: cat }),
 
   // -- App Settings Handlers --
-  const toggleShowCompleted = () =>
-    onUpdateSettings({ ...settings, showCompleted: !settings.showCompleted });
-  const toggleRelativeDates = () =>
+   toggleShowCompleted = () =>
+    onUpdateSettings({ ...settings, showCompleted: !settings.showCompleted }),
+   toggleRelativeDates = () =>
     onUpdateSettings({
       ...settings,
       useRelativeDates: !settings.useRelativeDates,
-    });
-  const toggleProgressBar = () =>
+    }),
+   toggleProgressBar = () =>
     onUpdateSettings({
       ...settings,
       showProgressBar: !settings.showProgressBar,
-    });
-  const toggleDefaultFocus = () =>
+    }),
+   toggleDefaultFocus = () =>
     onUpdateSettings({
       ...settings,
       defaultFocusMode: !settings.defaultFocusMode,
-    });
-  const toggleGroupingStrategy = (s: DateGroupBy) => {
-    const current = settings.groupingStrategy;
-    const exists = current.includes(s);
+    }),
+   toggleGroupingStrategy = (s: DateGroupBy) => {
+    const current = settings.groupingStrategy,
+     exists = current.includes(s);
 
     let newList: DateGroupBy[];
     if (exists) {
-      if (current.length === 1) return;
+      if (current.length === 1) {return;}
       newList = current.filter((item) => item !== s);
     } else {
       newList = [...current, s];
     }
     onUpdateSettings({ ...settings, groupingStrategy: newList });
-  };
+  },
 
-  const [isCustomFormat, setIsCustomFormat] = useState(
-    !DATE_FORMATS.some((f) => f.value === settings.dateFormat)
+   [isCustomFormat, setIsCustomFormat] = useState(
+    !DATE_FORMATS.some((f: { value: string }) => f.value === settings.dateFormat)
   );
 
   return (

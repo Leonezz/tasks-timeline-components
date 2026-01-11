@@ -1,13 +1,13 @@
 import type { Priority, Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContext";
+import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
 } from "./ui/popover";
 
 export interface PriorityPopoverProps {
@@ -23,9 +23,9 @@ export const PriorityPopover = ({
 }: PriorityPopoverProps) => {
   const p = task.priority;
   let colorClass = "text-slate-600 bg-slate-100 border-slate-200";
-  if (p === "high") colorClass = "text-rose-700 bg-rose-100 border-rose-200";
+  if (p === "high") {colorClass = "text-rose-700 bg-rose-100 border-rose-200";}
   if (p === "medium")
-    colorClass = "text-amber-700 bg-amber-100 border-amber-200";
+    {colorClass = "text-amber-700 bg-amber-100 border-amber-200";}
 
   const { portalContainer } = useAppContext();
 

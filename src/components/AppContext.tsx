@@ -1,18 +1,12 @@
-import React, { createContext, useContext } from "react";
+import React from "react";
 import root from "react-shadow";
 import styles from "../index.css?inline";
-
-interface AppContextType {
-  portalContainer: HTMLElement | null;
-}
-
-const AppContext = createContext<AppContextType>({ portalContainer: null });
+import { AppContext } from "./AppContextProvider";
 
 export const AppProvider: React.FC<{
   container: HTMLElement | null;
   children: React.ReactNode;
-}> = ({ container, children }) => {
-  return (
+}> = ({ container, children }) => (
     <root.div id="tasks-timeline-app">
       <style>{styles}</style>
       <AppContext.Provider value={{ portalContainer: container }}>
@@ -20,6 +14,4 @@ export const AppProvider: React.FC<{
       </AppContext.Provider>
     </root.div>
   );
-};
 
-export const useAppContext = () => useContext(AppContext);

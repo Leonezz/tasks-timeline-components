@@ -2,16 +2,16 @@ import React, { useState } from "react";
 import * as Lucide from "lucide-react";
 import { Icon } from "./Icon";
 import type {
-  SortField,
-  Priority,
-  TaskStatus,
   FilterState,
+  Priority,
+  SortField,
   SortState,
+  TaskStatus,
 } from "../types";
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
-import { MotionDiv, MotionButton } from "./Motion";
-import { useAppContext } from "./AppContext";
+import { MotionButton, MotionDiv } from "./Motion";
+import { useAppContext } from "./AppContextProvider";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
@@ -20,12 +20,13 @@ import {
   PopoverTrigger,
 } from "./ui/popover";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface InputBarProps {}
 
 export const InputBar: React.FC<InputBarProps> = () => {
   const { onAddTask, onAICommand, availableTags, availableCategories } =
-    useTasksContext();
-  const {
+    useTasksContext(),
+   {
     settings,
     filters,
     onFilterChange,
@@ -35,22 +36,22 @@ export const InputBar: React.FC<InputBarProps> = () => {
     toggleAiMode,
     onVoiceError,
     onOpenSettings,
-  } = useSettingsContext();
+  } = useSettingsContext(),
 
-  const [value, setValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+   [value, setValue] = useState(""),
+   [isLoading, setIsLoading] = useState(false),
 
   // Use shared voice hook
-  const { isListening, start } = useVoiceInput(
+   { isListening, start } = useVoiceInput(
     settings.enableVoiceInput,
-    (text) => setValue((prev) => (prev ? prev + " " + text : text)),
+    (text) => setValue((prev) => (prev ? `${prev  } ${  text}` : text)),
     onVoiceError
-  );
+  ),
 
-  const effectiveAiActive = settings.aiConfig.enabled && isAiMode;
+   effectiveAiActive = settings.aiConfig.enabled && isAiMode,
 
-  const handleSubmit = async () => {
-    if (!value.trim() || isLoading) return;
+   handleSubmit = async () => {
+    if (!value.trim() || isLoading) {return;}
     setIsLoading(true);
     try {
       if (effectiveAiActive) {
@@ -65,37 +66,37 @@ export const InputBar: React.FC<InputBarProps> = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  },
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSubmit();
-  };
+   handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {handleSubmit();}
+  },
 
-  const toggleFilter = (key: keyof FilterState, value: string) => {
+   toggleFilter = (key: keyof FilterState, value: string) => {
     const currentList = filters[key];
     if (Array.isArray(currentList)) {
       // Safe cast because we only call this with values appropriate for the key (Tags, Cats, etc.)
-      const list = currentList as string[];
-      const newList = list.includes(value)
+      const list = currentList as string[],
+       newList = list.includes(value)
         ? list.filter((item) => item !== value)
         : [...list, value];
       // Dynamic key assignment requires partial cast or specific handling, partial cast is cleanest here for brevity
       onFilterChange({ ...filters, [key]: newList });
     }
-  };
+  },
 
-  const clearFilterKey = (key: keyof FilterState) => {
+   clearFilterKey = (key: keyof FilterState) => {
     onFilterChange({ ...filters, [key]: [] });
-  };
+  },
 
-  const isActive = (key: keyof FilterState) => {
+   isActive = (key: keyof FilterState) => {
     const val = filters[key];
-    if (Array.isArray(val)) return val.length > 0;
-    if (typeof val === "string") return val.length > 0;
+    if (Array.isArray(val)) {return val.length > 0;}
+    if (typeof val === "string") {return val.length > 0;}
     return false;
-  };
+  },
 
-  const getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
+   getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
     switch (status) {
       case "todo":
         return "Circle";
@@ -116,9 +117,9 @@ export const InputBar: React.FC<InputBarProps> = () => {
       default:
         return "Circle";
     }
-  };
+  },
 
-  const getStatusColor = (status: TaskStatus) => {
+   getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case "done":
         return "text-emerald-500";
@@ -137,9 +138,9 @@ export const InputBar: React.FC<InputBarProps> = () => {
       default:
         return "text-slate-400";
     }
-  };
+  },
 
-  const getPriorityColor = (p: Priority) => {
+   getPriorityColor = (p: Priority) => {
     switch (p) {
       case "high":
         return "text-rose-500";
@@ -513,8 +514,8 @@ interface SortPopoverProps {
 }
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
-  const { portalContainer } = useAppContext();
-  const fields: {
+  const { portalContainer } = useAppContext(),
+   fields: {
     label: string;
     value: SortField;
     icon: keyof typeof Lucide;
@@ -523,9 +524,9 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
     { label: "Created Date", value: "createdAt", icon: "Clock" },
     { label: "Priority", value: "priority", icon: "Flag" },
     { label: "Title", value: "title", icon: "Type" },
-  ];
+  ],
 
-  const handleFieldSelect = (field: SortField) => {
+   handleFieldSelect = (field: SortField) => {
     if (sort.field === field) {
       onSortChange({
         ...sort,

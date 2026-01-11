@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as Lucide from "lucide-react";
 import type { Task, TaskStatus } from "../types";
-import { cn, formatSmartDate, formatRecurrence, formatTime } from "../utils";
+import { cn, formatRecurrence, formatSmartDate, formatTime } from "../utils";
 import { Icon } from "./Icon";
-import { MotionDiv, MotionButton } from "./Motion";
-import { useAppContext } from "./AppContext";
+import { MotionButton, MotionDiv } from "./Motion";
+import { useAppContext } from "./AppContextProvider";
 import { DateBadge } from "./DateBadge";
 import { TagBadge } from "./TagBadge";
 import { PriorityPopover } from "./PriorityPopover";
@@ -13,9 +13,9 @@ import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
 } from "./ui/popover";
 
 interface TaskItemProps {
@@ -28,46 +28,46 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   missingStrategies,
 }) => {
   const { onUpdateTask, onDeleteTask, onEditTask, availableCategories, onItemClick } =
-    useTasksContext();
-  const { settings } = useSettingsContext();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const deleteTimeoutRef = useRef<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { portalContainer } = useAppContext();
+    useTasksContext(),
+   { settings } = useSettingsContext(),
+   [isEditing, setIsEditing] = useState(false),
+   [editTitle, setEditTitle] = useState(task.title),
+   [deleteConfirm, setDeleteConfirm] = useState(false),
+   deleteTimeoutRef = useRef<number | null>(null),
+   inputRef = useRef<HTMLInputElement>(null),
+   { portalContainer } = useAppContext(),
 
-  const isDone = task.status === "done";
-  const isCancelled = task.status === "cancelled";
-  const today = new Date().toISOString().split("T")[0];
+   isDone = task.status === "done",
+   isCancelled = task.status === "cancelled",
+   today = new Date().toISOString().split("T")[0],
 
   // Highlight logic
-  const isUrgent =
+   isUrgent =
     !isDone &&
     !isCancelled &&
     task.priority === "high" &&
     (task.status === "overdue" ||
       task.status === "due" ||
-      (task.dueAt && task.dueAt <= today));
+      (task.dueAt && task.dueAt <= today)),
 
   // Font size mapping
-  const fontSizeClass =
+   fontSizeClass =
     {
       sm: "text-sm",
       base: "text-base",
       lg: "text-lg",
       xl: "text-xl",
-    }[settings.fontSize] || "text-sm";
+    }[settings.fontSize] || "text-sm",
 
-  const iconTopSpacing =
+   iconTopSpacing =
     {
       sm: "mt-0.5",
       base: "mt-0.5",
       lg: "mt-1",
       xl: "mt-1.5",
-    }[settings.fontSize] || "mt-0.5";
+    }[settings.fontSize] || "mt-0.5",
 
-  const metadataSizeClass =
+   metadataSizeClass =
     {
       sm: "text-[10px]",
       base: "text-[11px]",
@@ -83,51 +83,51 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleStatusChange = (newStatus: TaskStatus) => {
     onUpdateTask({ ...task, status: newStatus });
-  };
+  },
 
-  const handleSaveEdit = () => {
+   handleSaveEdit = () => {
     if (editTitle.trim()) {
       onUpdateTask({ ...task, title: editTitle });
     } else {
       setEditTitle(task.title);
     }
     setIsEditing(false);
-  };
+  },
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSaveEdit();
+   handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {handleSaveEdit();}
     if (e.key === "Escape") {
       setEditTitle(task.title);
       setIsEditing(false);
     }
-  };
+  },
 
-  const handleDeleteClick = () => {
+   handleDeleteClick = () => {
     if (deleteConfirm) {
       onDeleteTask(task.id);
       if (deleteTimeoutRef.current)
-        window.clearTimeout(deleteTimeoutRef.current);
+        {window.clearTimeout(deleteTimeoutRef.current);}
     } else {
       setDeleteConfirm(true);
       deleteTimeoutRef.current = window.setTimeout(() => {
         setDeleteConfirm(false);
       }, 2000); // 2 seconds to confirm
     }
-  };
+  },
 
-  const getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
+   getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
     if (status === "done" || status === "cancelled")
-      return "text-emerald-600 bg-emerald-50 border-emerald-200";
-    if (!dateStr) return "text-slate-400";
+      {return "text-emerald-600 bg-emerald-50 border-emerald-200";}
+    if (!dateStr) {return "text-slate-400";}
 
-    if (status === "overdue") return "text-rose-600 bg-rose-50 border-rose-200";
-    if (dateStr < today) return "text-rose-600 bg-rose-50 border-rose-200";
-    if (dateStr === today) return "text-amber-600 bg-amber-50 border-amber-200";
+    if (status === "overdue") {return "text-rose-600 bg-rose-50 border-rose-200";}
+    if (dateStr < today) {return "text-rose-600 bg-rose-50 border-rose-200";}
+    if (dateStr === today) {return "text-amber-600 bg-amber-50 border-amber-200";}
 
     return "text-emerald-600 bg-emerald-50 border-emerald-200";
-  };
+  },
 
-  const getLineColor = (status: TaskStatus) => {
+   getLineColor = (status: TaskStatus) => {
     switch (status) {
       case "done":
         return "bg-emerald-500";
@@ -146,9 +146,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       default:
         return "bg-slate-200";
     }
-  };
+  },
 
-  const getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
+   getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
     switch (status) {
       case "done":
         return "CheckCircle2";
@@ -167,9 +167,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       default:
         return "Circle";
     }
-  };
+  },
 
-  const getStatusColor = (status: TaskStatus) => {
+   getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case "done":
         return "text-emerald-500";
@@ -188,9 +188,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       default:
         return "text-slate-300 group-hover:text-slate-400";
     }
-  };
+  },
 
-  const getStrategyLabel = (s: string) => {
+   getStrategyLabel = (s: string) => {
     switch (s) {
       case "dueAt":
         return "Due Date";
@@ -203,20 +203,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       default:
         return s;
     }
-  };
+  },
 
-  const renderStatusIcon = (status: TaskStatus, size = 16) => {
-    return (
+   renderStatusIcon = (status: TaskStatus, size = 16) => (
       <Icon
         name={getStatusIconName(status)}
         size={size}
         className={getStatusColor(status)}
         strokeWidth={status === "done" ? 2.5 : 2}
       />
-    );
-  };
+    ),
 
-  const statusOptions: TaskStatus[] = [
+   statusOptions: TaskStatus[] = [
     "todo",
     "doing",
     "scheduled",
@@ -225,11 +223,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     "due",
     "overdue",
     "cancelled",
-  ];
-  const dueTime = task.dueAt ? formatTime(task.dueAt) : null;
-  const startTime = task.startAt ? formatTime(task.startAt) : null;
-  const displayTime = dueTime || startTime;
-  const badgeClass =
+  ],
+   dueTime = task.dueAt ? formatTime(task.dueAt) : null,
+   startTime = task.startAt ? formatTime(task.startAt) : null,
+   displayTime = dueTime || startTime,
+   badgeClass =
     "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
 
   return (

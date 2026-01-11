@@ -3,13 +3,13 @@ import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
 import { useState } from "react";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContext";
+import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
-  PopoverClose,
 } from "./ui/popover";
 
 interface DateBadgeProps {
@@ -34,19 +34,19 @@ export const DateBadge = ({
   task,
 }: DateBadgeProps) => {
   const [val, setVal] = useState(() => {
-    if (!date) return "";
+    if (!date) {return "";}
     const dt = DateTime.fromISO(date);
     return dt.isValid
       ? type === "startAt" || type === "createdAt" || type === "completedAt"
         ? dt.toFormat("yyyy-MM-dd'T'HH:mm")
         : dt.toISODate()
       : "";
-  });
-  const dateLabel = type.endsWith("At")
+  }),
+   dateLabel = type.endsWith("At")
     ? type.slice(0, type.length - 2).toUpperCase()
-    : "";
+    : "",
 
-  const handleDateSave = () => {
+   handleDateSave = () => {
     let newDate = "";
     if (val) {
       newDate =
@@ -55,19 +55,19 @@ export const DateBadge = ({
           : DateTime.fromISO(val).toISODate() || "";
     }
     onUpdate({ ...task, [type]: newDate });
-  };
+  },
 
-  const inputType =
+   inputType =
     type === "startAt" || type === "createdAt" || type === "completedAt"
       ? "datetime-local"
-      : "date";
-  const titleMap = {
+      : "date",
+   titleMap = {
     dueDate: "Change Due Date",
     startAt: "Change Start Date",
     createdAt: "Change Created Date",
     completedAt: "Change Completed Date",
-  };
-  const { portalContainer } = useAppContext();
+  },
+   { portalContainer } = useAppContext();
 
   return (
     <Popover>

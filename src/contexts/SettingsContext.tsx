@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { type ReactNode, createContext, useContext } from "react";
 import type { AppSettings, FilterState, SortState } from "../types";
 
+/* eslint-disable react-refresh/only-export-components */
 export interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
