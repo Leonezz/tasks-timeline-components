@@ -1,36 +1,114 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { within, userEvent } from "@storybook/test";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { DaySection } from "../../components/DaySection";
-import type { Task, DayGroup } from "../../types";
+import type { DayGroup, FilterState, SortState, Task, AppSettings } from "../../types";
+import { TasksProvider } from "../../contexts/TasksContext";
+import { SettingsProvider } from "../../contexts/SettingsContext";
 import { DateTime } from "luxon";
 import { settingsBuilder, taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
 
-const meta: Meta<typeof DaySection> = {
+// Extend component props with story-specific args for decorator usage
+interface DaySectionStoryArgs {
+  group: DayGroup;
+  settings?: ReturnType<typeof settingsBuilder.default>;
+  isAiMode?: boolean;
+  availableCategories?: string[];
+}
+
+const meta: Meta<DaySectionStoryArgs> = {
   title: "Sections/DaySection",
-  component: DaySection,
+  component: DaySection as unknown as React.FC<DaySectionStoryArgs>,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
   },
-  argTypes: {
-    onUpdateTask: { action: "task-updated" },
-    onAddTask: { action: "task-added" },
-    onAICommand: { action: "ai-command" },
-    onEditTask: { action: "task-edited" },
-    onDeleteTask: { action: "task-deleted" },
-    onVoiceError: { action: "voice-error" },
-  },
+  decorators: [
+    (Story, context) => {
+      const [tasks, setTasks] = useState<Task[]>([]),
+       [isFocusMode, setIsFocusMode] = useState(false),
+       [isAiMode, setIsAiMode] = useState(context.args.isAiMode || false),
+       [filters, setFilters] = useState<FilterState>({
+        tags: [],
+        categories: [],
+        priorities: [],
+        statuses: [],
+        enableScript: false,
+        script: "",
+      }),
+       [sort, setSort] = useState<SortState>({
+        field: "dueAt",
+        direction: "asc",
+        script: "",
+      }),
+
+       tasksContextValue = {
+        tasks,
+        availableCategories: context.args.availableCategories || [
+          "Work",
+          "Personal",
+          "Shopping",
+        ],
+        availableTags: ["work", "personal", "urgent"],
+        onUpdateTask: (task: Task) => {
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+          console.log("Update task:", task);
+        },
+        onDeleteTask: (id: string) => {
+          setTasks((prev) => prev.filter((t) => t.id !== id));
+          console.log("Delete task:", id);
+        },
+        onAddTask: (task: Partial<Task>) => {
+          const newTask: Task = {
+            id: `task-${Date.now()}`,
+            title: task.title || "New Task",
+            status: "todo",
+            priority: "medium",
+            createdAt: DateTime.now().toISO()!,
+            ...task,
+          } as Task;
+          setTasks((prev) => [...prev, newTask]);
+          console.log("Add task:", newTask);
+        },
+        onEditTask: (task: Task) => console.log("Edit task:", task),
+        onAICommand: async (input: string) => console.log("AI command:", input),
+      },
+
+       settingsContextValue = {
+        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
+        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
+        isFocusMode,
+        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+        isAiMode,
+        toggleAiMode: () => setIsAiMode(!isAiMode),
+        filters,
+        onFilterChange: setFilters,
+        sort,
+        onSortChange: setSort,
+        onVoiceError: (msg: string) => console.error("Voice error:", msg),
+        onOpenSettings: () => console.log("Open settings"),
+      };
+
+      return (
+        <TasksProvider value={tasksContextValue}>
+          <SettingsProvider value={settingsContextValue}>
+            <div className="p-4">
+              <Story />
+            </div>
+          </SettingsProvider>
+        </TasksProvider>
+      );
+    },
+  ],
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<DaySectionStoryArgs>;
 
-// Shared mock data using fixtures
-const defaultSettings = settingsBuilder.default();
-const today = DateTime.now();
+const today = DateTime.now(),
 
-const mockTasks: Task[] = [
+ mockTasks: Task[] = [
   taskBuilder.base({
     id: "1",
     title: "Review pull requests",
@@ -59,16 +137,9 @@ const mockTasks: Task[] = [
     category: "Work",
     tags: [{ id: "3", name: "deploy" }],
   }),
-];
+],
 
-const handleUpdateTask = (task: Task) => console.log("Update task:", task);
-const handleAddTask = (task: Partial<Task>) => console.log("Add task:", task);
-const handleAICommand = async (input: string) => console.log("AI command:", input);
-const handleEditTask = (task: Task) => console.log("Edit task:", task);
-const handleDeleteTask = (id: string) => console.log("Delete task:", id);
-const handleVoiceError = (msg: string) => console.error("Voice error:", msg);
-
-const mockDayGroup: DayGroup = {
+ mockDayGroup: DayGroup = {
   date: today.toISO()!.split("T")[0],
   tasks: mockTasks,
 };
@@ -76,21 +147,11 @@ const mockDayGroup: DayGroup = {
 export const Default: Story = {
   args: {
     group: mockDayGroup,
-    onUpdateTask: handleUpdateTask,
-    onAddTask: handleAddTask,
-    onAICommand: handleAICommand,
-    onEditTask: handleEditTask,
-    onDeleteTask: handleDeleteTask,
-    settings: defaultSettings,
-    isAiMode: false,
-    onVoiceError: handleVoiceError,
-    availableCategories: ["Work", "Personal", "Shopping"],
   },
 };
 
 export const WithFewTasks: Story = {
   args: {
-    ...Default.args,
     group: {
       ...mockDayGroup,
       tasks: mockTasks.slice(0, 1),
@@ -100,7 +161,6 @@ export const WithFewTasks: Story = {
 
 export const WithManyTasks: Story = {
   args: {
-    ...Default.args,
     group: {
       ...mockDayGroup,
       tasks: taskBuilder.many(12, { dueAt: today.toISO()! }),
@@ -110,7 +170,6 @@ export const WithManyTasks: Story = {
 
 export const Empty: Story = {
   args: {
-    ...Default.args,
     group: {
       date: today.toISO()!.split("T")[0],
       tasks: [],
@@ -120,7 +179,6 @@ export const Empty: Story = {
 
 export const Weekend: Story = {
   args: {
-    ...Default.args,
     group: {
       date: today.set({ weekday: 6 }).toISO()!.split("T")[0], // Saturday
       tasks: mockTasks,
@@ -129,12 +187,11 @@ export const Weekend: Story = {
 };
 
 // ========================================
-// NEW STORIES: Status Variants
+// Status Variants
 // ========================================
 
 export const WithCompletedTasks: Story = {
   args: {
-    ...Default.args,
     group: {
       date: today.toISO()!.split("T")[0],
       tasks: [
@@ -154,7 +211,6 @@ export const WithCompletedTasks: Story = {
 
 export const WithOverdueTasks: Story = {
   args: {
-    ...Default.args,
     group: {
       date: today.toISO()!.split("T")[0],
       tasks: [
@@ -174,25 +230,33 @@ export const WithOverdueTasks: Story = {
 
 export const MixedPriorities: Story = {
   args: {
-    ...Default.args,
     group: {
       date: today.toISO()!.split("T")[0],
       tasks: [
-        taskBuilder.highPriority({ title: "High priority task", dueAt: today.toISO()! }),
-        taskBuilder.mediumPriority({ title: "Medium priority task", dueAt: today.toISO()! }),
-        taskBuilder.lowPriority({ title: "Low priority task", dueAt: today.toISO()! }),
+        taskBuilder.highPriority({
+          title: "High priority task",
+          dueAt: today.toISO()!,
+        }),
+        taskBuilder.mediumPriority({
+          title: "Medium priority task",
+          dueAt: today.toISO()!,
+        }),
+        taskBuilder.lowPriority({
+          title: "Low priority task",
+          dueAt: today.toISO()!,
+        }),
       ],
     },
   },
 };
 
 // ========================================
-// NEW STORIES: Theme Variants
+// Theme Variants
 // ========================================
 
 export const DarkMode: Story = {
   args: {
-    ...Default.args,
+    group: mockDayGroup,
     settings: settingsBuilder.darkMode(),
   },
   parameters: {
@@ -202,19 +266,19 @@ export const DarkMode: Story = {
 
 export const AIMode: Story = {
   args: {
-    ...Default.args,
-    isAiMode: true,
+    group: mockDayGroup,
     settings: settingsBuilder.withAI(),
+    isAiMode: true,
   },
 };
 
 // ========================================
-// NEW STORIES: Interaction Testing
+// Interaction Testing
 // ========================================
 
 export const AddTaskInline: Story = {
   args: {
-    ...Default.args,
+    group: mockDayGroup,
   },
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
@@ -230,8 +294,7 @@ export const AddTaskInline: Story = {
 
 export const UpdateTaskStatus: Story = {
   args: {
-    ...Default.args,
-    onUpdateTask: (task: Task) => console.log("Task updated:", task),
+    group: mockDayGroup,
   },
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
@@ -245,4 +308,3 @@ export const UpdateTaskStatus: Story = {
     });
   },
 };
-
