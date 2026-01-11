@@ -242,21 +242,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         (isDone || isCancelled) && "opacity-60",
         isUrgent
           ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
-          : "hover:bg-slate-50 border border-transparent",
+          : "hover:bg-slate-50 border border-transparent"
       )}
     >
       {/* Timeline Column */}
       <div
         className={cn(
           "relative flex flex-col items-center shrink-0 w-6",
-          iconTopSpacing,
+          iconTopSpacing
         )}
       >
         {/* Head Line */}
         <div
           className={cn(
             "absolute -top-1 h-6.5 w-px left-1/2 -translate-x-1/2 group-first:hidden",
-            "bg-slate-200",
+            "bg-slate-200"
           )}
         />
 
@@ -264,7 +264,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2 group-last:hidden",
-            getLineColor(task.status),
+            getLineColor(task.status)
           )}
         />
 
@@ -276,7 +276,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 "relative z-10 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus:ring-2 focus:ring-slate-200 rounded-full",
                 isUrgent
                   ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
-                  : "bg-white hover:bg-slate-50",
+                  : "bg-white hover:bg-slate-50"
               )}
               title={`Change Status (Current: ${task.status})`}
             >
@@ -289,7 +289,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             align="start"
             sideOffset={5}
             collisionPadding={10}
-            className="z-9999 outline-none w-auto p-1.5"
+            className="z-9999 outline-none w-44 p-1.5"
             container={portalContainer}
           >
             <MotionDiv
@@ -301,38 +301,40 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <div className="flex flex-col gap-0.5">
                 {statusOptions.map((option) => (
                   <PopoverClose key={option} asChild>
-                    <button
-                      onClick={() => handleStatusChange(option)}
-                      className={cn(
-                        // Base styles: removed justify-start! for better standard behavior
-                        "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md transition-all text-left outline-none",
-                        "justify-start! text-left!",
-                        // Active (Selected) State: A solid, subtle background
-                        task.status === option
-                          ? "bg-slate-200/60 text-slate-900 font-semibold"
-                          : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]",
-                      )}
-                    >
+                    <button onClick={() => handleStatusChange(option)}>
                       <div
                         className={cn(
-                          "shrink-0",
-                          task.status === option ? "opacity-100" : "opacity-70",
+                          // Base styles: removed justify-start! for better standard behavior
+                          "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium font-mono rounded-lg transition-all hover:bg-slate-300 text-left outline-none",
+                          "justify-start! text-left!",
+                          // Active (Selected) State: A solid, subtle background
+                          task.status === option
+                            ? "bg-slate-200/60 text-slate-900 font-semibold"
+                            : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]"
                         )}
                       >
-                        {renderStatusIcon(option, 14)}
+                        <div
+                          className={cn(
+                            "shrink-0",
+                            task.status === option
+                              ? "opacity-100"
+                              : "opacity-70"
+                          )}
+                        >
+                          {renderStatusIcon(option, 14)}
+                        </div>
+                        <span className="capitalize">{option}</span>
                       </div>
-                      <span className="capitalize">{option}</span>
                     </button>
                   </PopoverClose>
                 ))}
                 <div className="h-px bg-slate-100 my-1 mx-1" />
                 <PopoverClose asChild>
-                  <button
-                    onClick={() => onEditTask?.(task)}
-                    className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 transition-all text-left outline-none rounded-lg"
-                  >
-                    <Icon name="Pencil" size={14} className="opacity-70" />
-                    <span>Edit Details</span>
+                  <button onClick={() => onEditTask?.(task)}>
+                    <div className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 hover:bg-slate-300 transition-all text-left outline-none rounded-lg">
+                      <Icon name="Pencil" size={14} className="opacity-70" />
+                      <span>Edit Details</span>
+                    </div>
                   </button>
                 </PopoverClose>
               </div>
@@ -355,7 +357,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               onKeyDown={handleKeyDown}
               className={cn(
                 "flex-1 min-w-0 bg-transparent border-b border-blue-400 focus:outline-none font-medium text-slate-800 pb-0.5",
-                fontSizeClass,
+                fontSizeClass
               )}
             />
           ) : (
@@ -368,7 +370,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   isDone && "line-through text-slate-500 decoration-slate-300",
                   isCancelled &&
                     "line-through text-slate-400 decoration-slate-300",
-                  isUrgent && "text-rose-700 font-semibold",
+                  isUrgent && "text-rose-700 font-semibold"
                 )}
               >
                 {task.title}
@@ -390,7 +392,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "flex flex-wrap items-center gap-2 font-medium text-slate-500",
-            metadataSizeClass,
+            metadataSizeClass
           )}
           onClick={(e) => {
             if (!onItemClick) {
@@ -441,14 +443,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 label={formatSmartDate(
                   task.createdAt,
                   settings.useRelativeDates,
-                  settings.dateFormat,
+                  settings.dateFormat
                 )}
                 task={task}
                 onUpdate={onUpdateTask}
                 icon="Plus"
                 className={cn(
                   badgeClass,
-                  "text-slate-500 bg-slate-50 border-slate-200",
+                  "text-slate-500 bg-slate-50 border-slate-200"
                 )}
               />
             )}
@@ -459,14 +461,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={formatSmartDate(
                 task.startAt,
                 settings.useRelativeDates,
-                settings.dateFormat,
+                settings.dateFormat
               )}
               icon="PlayCircle"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200",
+                "text-slate-500 bg-slate-50 border-slate-200"
               )}
             />
           )}
@@ -477,14 +479,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={`Due: ${formatSmartDate(
                 task.dueAt,
                 settings.useRelativeDates,
-                settings.dateFormat,
+                settings.dateFormat
               )}`}
               icon="Calendar"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                getDueDateColor(task.dueAt, task.status),
+                getDueDateColor(task.dueAt, task.status)
               )}
             />
           )}
@@ -495,14 +497,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={`Done: ${formatSmartDate(
                 task.completedAt,
                 settings.useRelativeDates,
-                settings.dateFormat,
+                settings.dateFormat
               )}`}
               icon="CheckCircle2"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-emerald-600 bg-emerald-50 border-emerald-200",
+                "text-emerald-600 bg-emerald-50 border-emerald-200"
               )}
             />
           )}
@@ -510,7 +512,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <div
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-100 border-slate-200 cursor-default",
+                "text-slate-500 bg-slate-100 border-slate-200 cursor-default"
               )}
               title={formatRecurrence(task.recurringInterval)}
             >
@@ -555,7 +557,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           "absolute top-2 right-1 p-1.5 rounded transition-all",
           deleteConfirm
             ? "bg-rose-100 text-rose-600 opacity-100"
-            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100",
+            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100"
         )}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}

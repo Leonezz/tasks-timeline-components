@@ -39,7 +39,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
     { isListening, start } = useVoiceInput(
       settings.enableVoiceInput,
       (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
-      onVoiceError,
+      onVoiceError
     ),
     effectiveAiActive = settings.aiConfig.enabled && isAiMode,
     handleSubmit = async () => {
@@ -178,7 +178,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               "w-full bg-white pl-10 pr-24 py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
-                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
+                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
             )}
             placeholder={
               isListening
@@ -202,7 +202,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200 relative",
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                 )}
                 disabled={isListening}
                 title="Voice Input"
@@ -218,7 +218,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200",
                   effectiveAiActive
                     ? "text-purple-600 bg-purple-50 hover:bg-purple-100 ring-1 ring-purple-200"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                 )}
                 title={
                   effectiveAiActive
@@ -265,7 +265,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {availableTags.map((tag) => (
                   <label
                     key={tag}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -303,7 +303,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -335,7 +335,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 {(["low", "medium", "high"] as Priority[]).map((p) => (
                   <label
                     key={p}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer capitalize transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -379,7 +379,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 ).map((s) => (
                   <label
                     key={s}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:opacity-90 rounded-lg cursor-pointer capitalize transition-colors group"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
                   >
                     <input
                       type="checkbox"
@@ -443,7 +443,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
-              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800",
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800"
           )}
         >
           {label}
@@ -457,7 +457,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             size={12}
             className={cn(
               "transition-transform duration-200",
-              isActive ? "text-slate-300" : "opacity-40",
+              isActive ? "text-slate-300" : "opacity-40"
             )}
           />
         </MotionButton>
@@ -556,38 +556,41 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
           <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100/50 mb-1">
             Sort By
           </div>
-          <div className="flex flex-col gap-0.5 px-3">
+          <div className="flex flex-col gap-0.5">
             {fields.map((f) => {
               const isSelected = sort.field === f.value;
               return (
                 <button
                   key={f.value}
                   onClick={() => handleFieldSelect(f.value)}
-                  className={cn(
-                    "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-all outline-none",
-                    isSelected
-                      ? "bg-slate-100 text-slate-900 font-medium"
-                      : "text-slate-600 hover:text-slate-900 hover:opacity-80",
-                  )}
                 >
-                  <div className="flex items-center gap-2">
-                    <Icon
-                      name={f.icon}
-                      size={14}
-                      className={isSelected ? "text-blue-500" : "opacity-70"}
-                    />
-                    <span>{f.label}</span>
-                  </div>
-                  {isSelected && (
-                    <div className="flex items-center gap-1 text-blue-500">
+                  <div
+                    className={cn(
+                      "flex items-center justify-start! text-sm rounded-lg outline-none hover:bg-slate-300 font-mono w-full p-2",
+                      isSelected
+                        ? "text-slate-900"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
                       <Icon
-                        name={
-                          sort.direction === "asc" ? "ArrowUp" : "ArrowDown"
-                        }
+                        name={f.icon}
                         size={14}
+                        className={isSelected ? "text-blue-500" : "opacity-70"}
                       />
+                      <span>{f.label}</span>
                     </div>
-                  )}
+                    {isSelected && (
+                      <div className="flex items-center gap-1 text-blue-500">
+                        <Icon
+                          name={
+                            sort.direction === "asc" ? "ArrowUp" : "ArrowDown"
+                          }
+                          size={18}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}

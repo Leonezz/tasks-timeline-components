@@ -54,27 +54,28 @@ export const PriorityPopover = ({
         >
           {(["high", "medium", "low"] as Priority[]).map((opt) => (
             <PopoverClose key={opt} asChild>
-              <button
-                onClick={() => onUpdate({ ...task, priority: opt })}
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
-                  task.priority === opt
-                    ? "bg-slate-100 font-bold"
-                    : "hover:opacity-80 text-slate-600",
-                )}
-              >
-                <Icon
-                  name="Flag"
-                  size={10}
-                  className={
-                    opt === "high"
-                      ? "text-rose-500"
-                      : opt === "medium"
-                        ? "text-amber-500"
-                        : "text-slate-400"
-                  }
-                />
-                <span className="capitalize">{opt}</span>
+              <button onClick={() => onUpdate({ ...task, priority: opt })}>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start! hover:bg-slate-300",
+                    task.priority === opt
+                      ? "bg-rose-300 font-bold"
+                      : "hover:opacity-80 text-slate-600"
+                  )}
+                >
+                  <Icon
+                    name="Flag"
+                    size={10}
+                    className={
+                      opt === "high"
+                        ? "text-rose-500"
+                        : opt === "medium"
+                          ? "text-amber-500"
+                          : "text-slate-400"
+                    }
+                  />
+                  <span className="capitalize">{opt}</span>
+                </div>
               </button>
             </PopoverClose>
           ))}
