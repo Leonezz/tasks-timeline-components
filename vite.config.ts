@@ -8,7 +8,6 @@ import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
 import pkg from "./package.json";
 import * as child from "child_process";
-
 const commitHash = () => {
   try {
     return child.execSync("git rev-parse --short HEAD").toString().trim();
@@ -17,12 +16,10 @@ const commitHash = () => {
     return "unknown";
   }
 };
-
 const dirname =
   typeof __dirname !== "undefined"
     ? __dirname
     : path.dirname(fileURLToPath(import.meta.url));
-
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {

@@ -15,11 +15,5 @@
     "outDir": "./dist"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": [
-    "src/stories",
-    "src/**/*.stories.ts",
-    "src/App.tsx",
-    "src/mockData.ts",
-    "src/storage.ts"
-  ]
+  "exclude": ["src/App.tsx", "src/mockData.ts", "src/storage.ts"]
 }

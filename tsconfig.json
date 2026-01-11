@@ -29,5 +29,5 @@
     }
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "**/*.stories.ts", "**/*.stories.tsx"]
+  "exclude": ["node_modules", "dist"]
 }
