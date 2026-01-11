@@ -25,12 +25,12 @@ export const CategoryPopover = ({
   badgeClass,
 }: CategoryPopoverProps) => {
   const [val, setVal] = useState(task.category || ""),
-  // Filter available categories for suggestions
-   suggestions =
-    availableCategories
-      .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
-      .slice(0, 5) || [],
-   { portalContainer } = useAppContext();
+    // Filter available categories for suggestions
+    suggestions =
+      availableCategories
+        .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
+        .slice(0, 5) || [],
+    { portalContainer } = useAppContext();
 
   return (
     <Popover>
@@ -38,7 +38,7 @@ export const CategoryPopover = ({
         <button
           className={cn(
             badgeClass,
-            "text-slate-600 bg-slate-100 border-slate-200"
+            "text-slate-600 bg-slate-100 border-slate-200",
           )}
           title="Change Category"
         >

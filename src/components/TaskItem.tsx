@@ -27,53 +27,53 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   missingStrategies,
 }) => {
-  const { onUpdateTask, onDeleteTask, onEditTask, availableCategories, onItemClick } =
-    useTasksContext(),
-   { settings } = useSettingsContext(),
-   [isEditing, setIsEditing] = useState(false),
-   [editTitle, setEditTitle] = useState(task.title),
-   [deleteConfirm, setDeleteConfirm] = useState(false),
-   deleteTimeoutRef = useRef<number | null>(null),
-   inputRef = useRef<HTMLInputElement>(null),
-   { portalContainer } = useAppContext(),
-
-   isDone = task.status === "done",
-   isCancelled = task.status === "cancelled",
-   today = new Date().toISOString().split("T")[0],
-
-  // Highlight logic
-   isUrgent =
-    !isDone &&
-    !isCancelled &&
-    task.priority === "high" &&
-    (task.status === "overdue" ||
-      task.status === "due" ||
-      (task.dueAt && task.dueAt <= today)),
-
-  // Font size mapping
-   fontSizeClass =
-    {
-      sm: "text-sm",
-      base: "text-base",
-      lg: "text-lg",
-      xl: "text-xl",
-    }[settings.fontSize] || "text-sm",
-
-   iconTopSpacing =
-    {
-      sm: "mt-0.5",
-      base: "mt-0.5",
-      lg: "mt-1",
-      xl: "mt-1.5",
-    }[settings.fontSize] || "mt-0.5",
-
-   metadataSizeClass =
-    {
-      sm: "text-[10px]",
-      base: "text-[11px]",
-      lg: "text-xs",
-      xl: "text-sm",
-    }[settings.fontSize] || "text-[11px]";
+  const {
+      onUpdateTask,
+      onDeleteTask,
+      onEditTask,
+      availableCategories,
+      onItemClick,
+    } = useTasksContext(),
+    { settings } = useSettingsContext(),
+    [isEditing, setIsEditing] = useState(false),
+    [editTitle, setEditTitle] = useState(task.title),
+    [deleteConfirm, setDeleteConfirm] = useState(false),
+    deleteTimeoutRef = useRef<number | null>(null),
+    inputRef = useRef<HTMLInputElement>(null),
+    { portalContainer } = useAppContext(),
+    isDone = task.status === "done",
+    isCancelled = task.status === "cancelled",
+    today = new Date().toISOString().split("T")[0],
+    // Highlight logic
+    isUrgent =
+      !isDone &&
+      !isCancelled &&
+      task.priority === "high" &&
+      (task.status === "overdue" ||
+        task.status === "due" ||
+        (task.dueAt && task.dueAt <= today)),
+    // Font size mapping
+    fontSizeClass =
+      {
+        sm: "text-sm",
+        base: "text-base",
+        lg: "text-lg",
+        xl: "text-xl",
+      }[settings.fontSize] || "text-sm",
+    iconTopSpacing =
+      {
+        sm: "mt-0.5",
+        base: "mt-0.5",
+        lg: "mt-1",
+        xl: "mt-1.5",
+      }[settings.fontSize] || "mt-0.5",
+    metadataSizeClass =
+      {
+        sm: "text-[10px]",
+        base: "text-[11px]",
+        lg: "text-xs",
+        xl: "text-sm",
+      }[settings.fontSize] || "text-[11px]";
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -82,130 +82,133 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   }, [isEditing]);
 
   const handleStatusChange = (newStatus: TaskStatus) => {
-    onUpdateTask({ ...task, status: newStatus });
-  },
-
-   handleSaveEdit = () => {
-    if (editTitle.trim()) {
-      onUpdateTask({ ...task, title: editTitle });
-    } else {
-      setEditTitle(task.title);
-    }
-    setIsEditing(false);
-  },
-
-   handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {handleSaveEdit();}
-    if (e.key === "Escape") {
-      setEditTitle(task.title);
+      onUpdateTask({ ...task, status: newStatus });
+    },
+    handleSaveEdit = () => {
+      if (editTitle.trim()) {
+        onUpdateTask({ ...task, title: editTitle });
+      } else {
+        setEditTitle(task.title);
+      }
       setIsEditing(false);
-    }
-  },
+    },
+    handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSaveEdit();
+      }
+      if (e.key === "Escape") {
+        setEditTitle(task.title);
+        setIsEditing(false);
+      }
+    },
+    handleDeleteClick = () => {
+      if (deleteConfirm) {
+        onDeleteTask(task.id);
+        if (deleteTimeoutRef.current) {
+          window.clearTimeout(deleteTimeoutRef.current);
+        }
+      } else {
+        setDeleteConfirm(true);
+        deleteTimeoutRef.current = window.setTimeout(() => {
+          setDeleteConfirm(false);
+        }, 2000); // 2 seconds to confirm
+      }
+    },
+    getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
+      if (status === "done" || status === "cancelled") {
+        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      }
+      if (!dateStr) {
+        return "text-slate-400";
+      }
 
-   handleDeleteClick = () => {
-    if (deleteConfirm) {
-      onDeleteTask(task.id);
-      if (deleteTimeoutRef.current)
-        {window.clearTimeout(deleteTimeoutRef.current);}
-    } else {
-      setDeleteConfirm(true);
-      deleteTimeoutRef.current = window.setTimeout(() => {
-        setDeleteConfirm(false);
-      }, 2000); // 2 seconds to confirm
-    }
-  },
+      if (status === "overdue") {
+        return "text-rose-600 bg-rose-50 border-rose-200";
+      }
+      if (dateStr < today) {
+        return "text-rose-600 bg-rose-50 border-rose-200";
+      }
+      if (dateStr === today) {
+        return "text-amber-600 bg-amber-50 border-amber-200";
+      }
 
-   getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
-    if (status === "done" || status === "cancelled")
-      {return "text-emerald-600 bg-emerald-50 border-emerald-200";}
-    if (!dateStr) {return "text-slate-400";}
-
-    if (status === "overdue") {return "text-rose-600 bg-rose-50 border-rose-200";}
-    if (dateStr < today) {return "text-rose-600 bg-rose-50 border-rose-200";}
-    if (dateStr === today) {return "text-amber-600 bg-amber-50 border-amber-200";}
-
-    return "text-emerald-600 bg-emerald-50 border-emerald-200";
-  },
-
-   getLineColor = (status: TaskStatus) => {
-    switch (status) {
-      case "done":
-        return "bg-emerald-500";
-      case "doing":
-        return "bg-sky-500";
-      case "scheduled":
-        return "bg-blue-500";
-      case "due":
-        return "bg-amber-500";
-      case "overdue":
-        return "bg-rose-500";
-      case "cancelled":
-        return "bg-slate-300";
-      case "unplanned":
-        return "bg-purple-500";
-      default:
-        return "bg-slate-200";
-    }
-  },
-
-   getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
-    switch (status) {
-      case "done":
-        return "CheckCircle2";
-      case "doing":
-        return "PlayCircle";
-      case "scheduled":
-        return "Clock";
-      case "due":
-        return "AlertCircle";
-      case "overdue":
-        return "AlertTriangle";
-      case "cancelled":
-        return "XCircle";
-      case "unplanned":
-        return "Zap";
-      default:
-        return "Circle";
-    }
-  },
-
-   getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case "done":
-        return "text-emerald-500";
-      case "doing":
-        return "text-sky-500";
-      case "scheduled":
-        return "text-blue-500";
-      case "due":
-        return "text-amber-500";
-      case "overdue":
-        return "text-rose-500";
-      case "cancelled":
-        return "text-slate-300";
-      case "unplanned":
-        return "text-purple-500";
-      default:
-        return "text-slate-300 group-hover:text-slate-400";
-    }
-  },
-
-   getStrategyLabel = (s: string) => {
-    switch (s) {
-      case "dueAt":
-        return "Due Date";
-      case "createdAt":
-        return "Created Date";
-      case "startAt":
-        return "Start Date";
-      case "completedAt":
-        return "Completed Date";
-      default:
-        return s;
-    }
-  },
-
-   renderStatusIcon = (status: TaskStatus, size = 16) => (
+      return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    },
+    getLineColor = (status: TaskStatus) => {
+      switch (status) {
+        case "done":
+          return "bg-emerald-500";
+        case "doing":
+          return "bg-sky-500";
+        case "scheduled":
+          return "bg-blue-500";
+        case "due":
+          return "bg-amber-500";
+        case "overdue":
+          return "bg-rose-500";
+        case "cancelled":
+          return "bg-slate-300";
+        case "unplanned":
+          return "bg-purple-500";
+        default:
+          return "bg-slate-200";
+      }
+    },
+    getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
+      switch (status) {
+        case "done":
+          return "CheckCircle2";
+        case "doing":
+          return "PlayCircle";
+        case "scheduled":
+          return "Clock";
+        case "due":
+          return "AlertCircle";
+        case "overdue":
+          return "AlertTriangle";
+        case "cancelled":
+          return "XCircle";
+        case "unplanned":
+          return "Zap";
+        default:
+          return "Circle";
+      }
+    },
+    getStatusColor = (status: TaskStatus) => {
+      switch (status) {
+        case "done":
+          return "text-emerald-500";
+        case "doing":
+          return "text-sky-500";
+        case "scheduled":
+          return "text-blue-500";
+        case "due":
+          return "text-amber-500";
+        case "overdue":
+          return "text-rose-500";
+        case "cancelled":
+          return "text-slate-300";
+        case "unplanned":
+          return "text-purple-500";
+        default:
+          return "text-slate-300 group-hover:text-slate-400";
+      }
+    },
+    getStrategyLabel = (s: string) => {
+      switch (s) {
+        case "dueAt":
+          return "Due Date";
+        case "createdAt":
+          return "Created Date";
+        case "startAt":
+          return "Start Date";
+        case "completedAt":
+          return "Completed Date";
+        default:
+          return s;
+      }
+    },
+    renderStatusIcon = (status: TaskStatus, size = 16) => (
       <Icon
         name={getStatusIconName(status)}
         size={size}
@@ -213,22 +216,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         strokeWidth={status === "done" ? 2.5 : 2}
       />
     ),
-
-   statusOptions: TaskStatus[] = [
-    "todo",
-    "doing",
-    "scheduled",
-    "done",
-    "unplanned",
-    "due",
-    "overdue",
-    "cancelled",
-  ],
-   dueTime = task.dueAt ? formatTime(task.dueAt) : null,
-   startTime = task.startAt ? formatTime(task.startAt) : null,
-   displayTime = dueTime || startTime,
-   badgeClass =
-    "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
+    statusOptions: TaskStatus[] = [
+      "todo",
+      "doing",
+      "scheduled",
+      "done",
+      "unplanned",
+      "due",
+      "overdue",
+      "cancelled",
+    ],
+    dueTime = task.dueAt ? formatTime(task.dueAt) : null,
+    startTime = task.startAt ? formatTime(task.startAt) : null,
+    displayTime = dueTime || startTime,
+    badgeClass =
+      "flex items-center gap-1.5 px-2 h-5 rounded border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
 
   return (
     <MotionDiv
@@ -240,21 +242,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         (isDone || isCancelled) && "opacity-60",
         isUrgent
           ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
-          : "hover:bg-slate-50 border border-transparent"
+          : "hover:bg-slate-50 border border-transparent",
       )}
     >
       {/* Timeline Column */}
       <div
         className={cn(
           "relative flex flex-col items-center shrink-0 w-6",
-          iconTopSpacing
+          iconTopSpacing,
         )}
       >
         {/* Head Line */}
         <div
           className={cn(
             "absolute -top-1 h-6.5 w-px left-1/2 -translate-x-1/2 group-first:hidden",
-            "bg-slate-200"
+            "bg-slate-200",
           )}
         />
 
@@ -262,7 +264,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2 group-last:hidden",
-            getLineColor(task.status)
+            getLineColor(task.status),
           )}
         />
 
@@ -274,7 +276,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 "relative z-10 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus:ring-2 focus:ring-slate-200 rounded-full",
                 isUrgent
                   ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
-                  : "bg-white hover:bg-slate-50"
+                  : "bg-white hover:bg-slate-50",
               )}
               title={`Change Status (Current: ${task.status})`}
             >
@@ -308,15 +310,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                         // Active (Selected) State: A solid, subtle background
                         task.status === option
                           ? "bg-slate-200/60 text-slate-900 font-semibold"
-                          : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]"
+                          : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]",
                       )}
                     >
                       <div
                         className={cn(
                           "shrink-0",
-                          task.status === option
-                            ? "opacity-100"
-                            : "opacity-70"
+                          task.status === option ? "opacity-100" : "opacity-70",
                         )}
                       >
                         {renderStatusIcon(option, 14)}
@@ -355,7 +355,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               onKeyDown={handleKeyDown}
               className={cn(
                 "flex-1 min-w-0 bg-transparent border-b border-blue-400 focus:outline-none font-medium text-slate-800 pb-0.5",
-                fontSizeClass
+                fontSizeClass,
               )}
             />
           ) : (
@@ -368,7 +368,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   isDone && "line-through text-slate-500 decoration-slate-300",
                   isCancelled &&
                     "line-through text-slate-400 decoration-slate-300",
-                  isUrgent && "text-rose-700 font-semibold"
+                  isUrgent && "text-rose-700 font-semibold",
                 )}
               >
                 {task.title}
@@ -390,7 +390,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "flex flex-wrap items-center gap-2 font-medium text-slate-500",
-            metadataSizeClass
+            metadataSizeClass,
           )}
           onClick={(e) => {
             if (!onItemClick) {
@@ -441,14 +441,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 label={formatSmartDate(
                   task.createdAt,
                   settings.useRelativeDates,
-                  settings.dateFormat
+                  settings.dateFormat,
                 )}
                 task={task}
                 onUpdate={onUpdateTask}
                 icon="Plus"
                 className={cn(
                   badgeClass,
-                  "text-slate-500 bg-slate-50 border-slate-200"
+                  "text-slate-500 bg-slate-50 border-slate-200",
                 )}
               />
             )}
@@ -459,14 +459,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={formatSmartDate(
                 task.startAt,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}
               icon="PlayCircle"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200"
+                "text-slate-500 bg-slate-50 border-slate-200",
               )}
             />
           )}
@@ -477,14 +477,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={`Due: ${formatSmartDate(
                 task.dueAt,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}`}
               icon="Calendar"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                getDueDateColor(task.dueAt, task.status)
+                getDueDateColor(task.dueAt, task.status),
               )}
             />
           )}
@@ -495,14 +495,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               label={`Done: ${formatSmartDate(
                 task.completedAt,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}`}
               icon="CheckCircle2"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-emerald-600 bg-emerald-50 border-emerald-200"
+                "text-emerald-600 bg-emerald-50 border-emerald-200",
               )}
             />
           )}
@@ -510,7 +510,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <div
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-100 border-slate-200 cursor-default"
+                "text-slate-500 bg-slate-100 border-slate-200 cursor-default",
               )}
               title={formatRecurrence(task.recurringInterval)}
             >
@@ -555,7 +555,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           "absolute top-2 right-1 p-1.5 rounded transition-all",
           deleteConfirm
             ? "bg-rose-100 text-rose-600 opacity-100"
-            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100"
+            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100",
         )}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}

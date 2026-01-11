@@ -34,12 +34,13 @@ export const SettingsPage = ({
   inDarkMode,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("general"),
-   [containerElement, setContainerElement] =
-    useState<HTMLDivElement | null>(null);
+    [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
+      null,
+    );
   useEffect(() => {
     logger.info(
       "Settings",
-      `system in dark mode: ${inDarkMode}, in seperate page: ${inSeperatePage}, onClose: ${onClose}`
+      `system in dark mode: ${inDarkMode}, in seperate page: ${inSeperatePage}, onClose: ${onClose}`,
     );
     if (!inSeperatePage || !containerElement) {
       return;
@@ -68,7 +69,7 @@ export const SettingsPage = ({
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "general"
                   ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-500 hover:text-slate-700",
               )}
             >
               General
@@ -79,7 +80,7 @@ export const SettingsPage = ({
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "advanced"
                   ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-500 hover:text-slate-700",
               )}
             >
               Advanced
@@ -90,7 +91,7 @@ export const SettingsPage = ({
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "docs"
                   ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-500 hover:text-slate-700",
               )}
             >
               Docs
@@ -101,7 +102,7 @@ export const SettingsPage = ({
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "about"
                   ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-500 hover:text-slate-700",
               )}
             >
               About

@@ -230,7 +230,10 @@ export const settingsBuilder = {
   /**
    * Custom filter script enabled
    */
-  withFilterScript: (script: string, overrides?: Partial<AppSettings>): AppSettings => ({
+  withFilterScript: (
+    script: string,
+    overrides?: Partial<AppSettings>,
+  ): AppSettings => ({
     ...settingsBuilder.default(),
     filters: {
       tags: [],
@@ -246,7 +249,10 @@ export const settingsBuilder = {
   /**
    * Custom sort script enabled
    */
-  withSortScript: (script: string, overrides?: Partial<AppSettings>): AppSettings => ({
+  withSortScript: (
+    script: string,
+    overrides?: Partial<AppSettings>,
+  ): AppSettings => ({
     ...settingsBuilder.default(),
     sort: {
       field: "createdAt",

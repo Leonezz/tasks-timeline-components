@@ -26,51 +26,49 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   }, [toast.id, onDismiss]);
 
   const getIcon = () => {
-    switch (toast.type) {
-      case "success":
-        return "CheckCircle2";
-      case "error":
-        return "AlertCircle";
-      case "info":
-        return "Info";
-    }
-  },
+      switch (toast.type) {
+        case "success":
+          return "CheckCircle2";
+        case "error":
+          return "AlertCircle";
+        case "info":
+          return "Info";
+      }
+    },
+    getStyles = () => {
+      // Base: Neutral Paper with Blur + Subtle Shadow
+      const base =
+        "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.chronos-app[data-theme='dark']_&]:bg-slate-800/95 [.chronos-app[data-theme='dark']_&]:shadow-black/20 [.chronos-app[data-theme='dark']_&]:border-slate-700/50";
 
-   getStyles = () => {
-    // Base: Neutral Paper with Blur + Subtle Shadow
-    const base =
-      "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.chronos-app[data-theme='dark']_&]:bg-slate-800/95 [.chronos-app[data-theme='dark']_&]:shadow-black/20 [.chronos-app[data-theme='dark']_&]:border-slate-700/50";
-
-    // Semantic Borders (Subtle)
-    switch (toast.type) {
-      case "success":
-        return cn(
-          base,
-          "border-l-4 border-l-emerald-500 border-y-emerald-100/50 border-r-emerald-100/50 [.chronos-app[data-theme='dark']_&]:border-y-emerald-500/20 [.chronos-app[data-theme='dark']_&]:border-r-emerald-500/20"
-        );
-      case "error":
-        return cn(
-          base,
-          "border-l-4 border-l-rose-500 border-y-rose-100/50 border-r-rose-100/50 [.chronos-app[data-theme='dark']_&]:border-y-rose-500/20 [.chronos-app[data-theme='dark']_&]:border-r-rose-500/20"
-        );
-      case "info":
-        return cn(
-          base,
-          "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.chronos-app[data-theme='dark']_&]:border-y-blue-500/20 [.chronos-app[data-theme='dark']_&]:border-r-blue-500/20"
-        );
-    }
-  },
-
-   getIconColor = () => {
-    switch (toast.type) {
-      case "success":
-        return "text-emerald-500 [.chronos-app[data-theme='dark']_&]:text-emerald-400";
-      case "error":
-        return "text-rose-500 [.chronos-app[data-theme='dark']_&]:text-rose-400";
-      case "info":
-        return "text-blue-500 [.chronos-app[data-theme='dark']_&]:text-blue-400";
-    }
-  };
+      // Semantic Borders (Subtle)
+      switch (toast.type) {
+        case "success":
+          return cn(
+            base,
+            "border-l-4 border-l-emerald-500 border-y-emerald-100/50 border-r-emerald-100/50 [.chronos-app[data-theme='dark']_&]:border-y-emerald-500/20 [.chronos-app[data-theme='dark']_&]:border-r-emerald-500/20",
+          );
+        case "error":
+          return cn(
+            base,
+            "border-l-4 border-l-rose-500 border-y-rose-100/50 border-r-rose-100/50 [.chronos-app[data-theme='dark']_&]:border-y-rose-500/20 [.chronos-app[data-theme='dark']_&]:border-r-rose-500/20",
+          );
+        case "info":
+          return cn(
+            base,
+            "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.chronos-app[data-theme='dark']_&]:border-y-blue-500/20 [.chronos-app[data-theme='dark']_&]:border-r-blue-500/20",
+          );
+      }
+    },
+    getIconColor = () => {
+      switch (toast.type) {
+        case "success":
+          return "text-emerald-500 [.chronos-app[data-theme='dark']_&]:text-emerald-400";
+        case "error":
+          return "text-rose-500 [.chronos-app[data-theme='dark']_&]:text-rose-400";
+        case "info":
+          return "text-blue-500 [.chronos-app[data-theme='dark']_&]:text-blue-400";
+      }
+    };
 
   return (
     <MotionDiv
@@ -80,7 +78,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       exit={{ opacity: 0, x: 20, scale: 0.9 }}
       className={cn(
         "flex items-start gap-3 p-4 rounded-lg max-w-sm w-full pointer-events-auto text-slate-800 [.chronos-app[data-theme='dark']_&]:text-slate-100",
-        getStyles()
+        getStyles(),
       )}
     >
       <div className={cn("mt-0.5 shrink-0", getIconColor())}>

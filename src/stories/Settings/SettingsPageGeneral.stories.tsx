@@ -339,7 +339,7 @@ export const SelectDefaultCategory: Story = {
     await step("Find default category selector", async () => {
       // Look for select dropdown or input field
       const selects = canvas.queryAllByRole("combobox"),
-       inputs = canvas.queryAllByRole("textbox");
+        inputs = canvas.queryAllByRole("textbox");
       expect(selects.length + inputs.length).toBeGreaterThan(0);
     });
   },

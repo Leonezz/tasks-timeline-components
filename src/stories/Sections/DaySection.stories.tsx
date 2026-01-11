@@ -2,7 +2,13 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { DaySection } from "../../components/DaySection";
-import type { DayGroup, FilterState, SortState, Task, AppSettings } from "../../types";
+import type {
+  DayGroup,
+  FilterState,
+  SortState,
+  Task,
+  AppSettings,
+} from "../../types";
 import { TasksProvider } from "../../contexts/TasksContext";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { DateTime } from "luxon";
@@ -27,68 +33,70 @@ const meta: Meta<DaySectionStoryArgs> = {
   decorators: [
     (Story, context) => {
       const [tasks, setTasks] = useState<Task[]>([]),
-       [isFocusMode, setIsFocusMode] = useState(false),
-       [isAiMode, setIsAiMode] = useState(context.args.isAiMode || false),
-       [filters, setFilters] = useState<FilterState>({
-        tags: [],
-        categories: [],
-        priorities: [],
-        statuses: [],
-        enableScript: false,
-        script: "",
-      }),
-       [sort, setSort] = useState<SortState>({
-        field: "dueAt",
-        direction: "asc",
-        script: "",
-      }),
-
-       tasksContextValue = {
-        tasks,
-        availableCategories: context.args.availableCategories || [
-          "Work",
-          "Personal",
-          "Shopping",
-        ],
-        availableTags: ["work", "personal", "urgent"],
-        onUpdateTask: (task: Task) => {
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          console.log("Update task:", task);
+        [isFocusMode, setIsFocusMode] = useState(false),
+        [isAiMode, setIsAiMode] = useState(context.args.isAiMode || false),
+        [filters, setFilters] = useState<FilterState>({
+          tags: [],
+          categories: [],
+          priorities: [],
+          statuses: [],
+          enableScript: false,
+          script: "",
+        }),
+        [sort, setSort] = useState<SortState>({
+          field: "dueAt",
+          direction: "asc",
+          script: "",
+        }),
+        tasksContextValue = {
+          tasks,
+          availableCategories: context.args.availableCategories || [
+            "Work",
+            "Personal",
+            "Shopping",
+          ],
+          availableTags: ["work", "personal", "urgent"],
+          onUpdateTask: (task: Task) => {
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            console.log("Update task:", task);
+          },
+          onDeleteTask: (id: string) => {
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+            console.log("Delete task:", id);
+          },
+          onAddTask: (task: Partial<Task>) => {
+            const newTask: Task = {
+              id: `task-${Date.now()}`,
+              title: task.title || "New Task",
+              status: "todo",
+              priority: "medium",
+              createdAt: DateTime.now().toISO()!,
+              ...task,
+            } as Task;
+            setTasks((prev) => [...prev, newTask]);
+            console.log("Add task:", newTask);
+          },
+          onEditTask: (task: Task) => console.log("Edit task:", task),
+          onAICommand: async (input: string) =>
+            console.log("AI command:", input),
         },
-        onDeleteTask: (id: string) => {
-          setTasks((prev) => prev.filter((t) => t.id !== id));
-          console.log("Delete task:", id);
-        },
-        onAddTask: (task: Partial<Task>) => {
-          const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: task.title || "New Task",
-            status: "todo",
-            priority: "medium",
-            createdAt: DateTime.now().toISO()!,
-            ...task,
-          } as Task;
-          setTasks((prev) => [...prev, newTask]);
-          console.log("Add task:", newTask);
-        },
-        onEditTask: (task: Task) => console.log("Edit task:", task),
-        onAICommand: async (input: string) => console.log("AI command:", input),
-      },
-
-       settingsContextValue = {
-        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
-        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
-        isFocusMode,
-        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
-        isAiMode,
-        toggleAiMode: () => setIsAiMode(!isAiMode),
-        filters,
-        onFilterChange: setFilters,
-        sort,
-        onSortChange: setSort,
-        onVoiceError: (msg: string) => console.error("Voice error:", msg),
-        onOpenSettings: () => console.log("Open settings"),
-      };
+        settingsContextValue = {
+          settings:
+            ((context.args as Record<string, unknown>)
+              .settings as AppSettings) || settingsBuilder.default(),
+          updateSettings: (_s: Partial<AppSettings>) =>
+            console.log("Update settings:", _s),
+          isFocusMode,
+          toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+          isAiMode,
+          toggleAiMode: () => setIsAiMode(!isAiMode),
+          filters,
+          onFilterChange: setFilters,
+          sort,
+          onSortChange: setSort,
+          onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          onOpenSettings: () => console.log("Open settings"),
+        };
 
       return (
         <TasksProvider value={tasksContextValue}>
@@ -107,42 +115,40 @@ export default meta;
 type Story = StoryObj<DaySectionStoryArgs>;
 
 const today = DateTime.now(),
-
- mockTasks: Task[] = [
-  taskBuilder.base({
-    id: "1",
-    title: "Review pull requests",
-    description: "Check and approve pending PRs",
-    status: "todo",
-    priority: "high",
-    dueAt: today.toISO()!,
-    category: "Work",
-    tags: [{ id: "1", name: "work" }],
-  }),
-  taskBuilder.base({
-    id: "2",
-    title: "Update documentation",
-    status: "todo",
-    priority: "medium",
-    dueAt: today.toISO()!,
-    category: "Work",
-    tags: [{ id: "2", name: "docs" }],
-  }),
-  taskBuilder.base({
-    id: "3",
-    title: "Deploy to production",
-    status: "scheduled",
-    priority: "high",
-    dueAt: today.toISO()!,
-    category: "Work",
-    tags: [{ id: "3", name: "deploy" }],
-  }),
-],
-
- mockDayGroup: DayGroup = {
-  date: today.toISO()!.split("T")[0],
-  tasks: mockTasks,
-};
+  mockTasks: Task[] = [
+    taskBuilder.base({
+      id: "1",
+      title: "Review pull requests",
+      description: "Check and approve pending PRs",
+      status: "todo",
+      priority: "high",
+      dueAt: today.toISO()!,
+      category: "Work",
+      tags: [{ id: "1", name: "work" }],
+    }),
+    taskBuilder.base({
+      id: "2",
+      title: "Update documentation",
+      status: "todo",
+      priority: "medium",
+      dueAt: today.toISO()!,
+      category: "Work",
+      tags: [{ id: "2", name: "docs" }],
+    }),
+    taskBuilder.base({
+      id: "3",
+      title: "Deploy to production",
+      status: "scheduled",
+      priority: "high",
+      dueAt: today.toISO()!,
+      category: "Work",
+      tags: [{ id: "3", name: "deploy" }],
+    }),
+  ],
+  mockDayGroup: DayGroup = {
+    date: today.toISO()!.split("T")[0],
+    tasks: mockTasks,
+  };
 
 export const Default: Story = {
   args: {

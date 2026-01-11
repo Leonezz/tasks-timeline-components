@@ -31,9 +31,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
-
- handleUpdate = (task: Task) => console.log("Updated task:", task);
+    "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
+  handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Priority Variants
@@ -85,8 +84,8 @@ export const HighPriorityBold: Story = {
 
     await step("Verify high priority has bold flag icon", async () => {
       const button = canvas.getByRole("button"),
-      // High priority should have strokeWidth of 3
-       icon = button.querySelector("svg");
+        // High priority should have strokeWidth of 3
+        icon = button.querySelector("svg");
       expect(icon).toBeInTheDocument();
     });
   },
@@ -117,8 +116,8 @@ export const PopoverOpen: Story = {
 
     await step("Verify all priority options visible", async () => {
       const highOption = canvas.getByText(/high/i),
-       mediumOption = canvas.getByText(/medium/i),
-       lowOption = canvas.getByText(/low/i);
+        mediumOption = canvas.getByText(/medium/i),
+        lowOption = canvas.getByText(/low/i);
 
       expect(highOption).toBeInTheDocument();
       expect(mediumOption).toBeInTheDocument();
@@ -143,10 +142,10 @@ export const PopoverWithSelectedIndicator: Story = {
     await step("Verify current priority is highlighted", async () => {
       // High priority button should have bg-slate-100 and font-bold
       const options = canvas.getAllByRole("button"),
-      // First button is the trigger, find the "high" option
-       highOption = options.find((btn: HTMLElement) =>
-        btn.textContent?.toLowerCase().includes("high")
-      );
+        // First button is the trigger, find the "high" option
+        highOption = options.find((btn: HTMLElement) =>
+          btn.textContent?.toLowerCase().includes("high"),
+        );
       expect(highOption).toBeDefined();
     });
   },
@@ -173,9 +172,9 @@ export const ChangePriorityToHigh: Story = {
 
     await step("Click high priority option", async () => {
       const options = canvas.getAllByRole("button"),
-       highOption = options.find((btn: HTMLElement) =>
-        btn.textContent?.toLowerCase().includes("high")
-      );
+        highOption = options.find((btn: HTMLElement) =>
+          btn.textContent?.toLowerCase().includes("high"),
+        );
       if (highOption) {
         await userEvent.click(highOption);
         await delay(100);
@@ -202,9 +201,9 @@ export const ChangePriorityToMedium: Story = {
 
     await step("Select medium priority", async () => {
       const options = canvas.getAllByRole("button"),
-       mediumOption = options.find((btn: HTMLElement) =>
-        btn.textContent?.toLowerCase().includes("medium")
-      );
+        mediumOption = options.find((btn: HTMLElement) =>
+          btn.textContent?.toLowerCase().includes("medium"),
+        );
       if (mediumOption) {
         await userEvent.click(mediumOption);
         await delay(100);
@@ -230,9 +229,9 @@ export const ChangePriorityToLow: Story = {
 
     await step("Select low priority", async () => {
       const options = canvas.getAllByRole("button"),
-       lowOption = options.find((btn: HTMLElement) =>
-        btn.textContent?.toLowerCase().includes("low")
-      );
+        lowOption = options.find((btn: HTMLElement) =>
+          btn.textContent?.toLowerCase().includes("low"),
+        );
       if (lowOption) {
         await userEvent.click(lowOption);
         await delay(100);
@@ -389,9 +388,9 @@ export const RapidPriorityChanges: Story = {
 
     await step("Quickly change priority multiple times", async () => {
       const options = canvas.getAllByRole("button"),
-       highOption = options.find((btn: HTMLElement) =>
-        btn.textContent?.toLowerCase().includes("high")
-      );
+        highOption = options.find((btn: HTMLElement) =>
+          btn.textContent?.toLowerCase().includes("high"),
+        );
 
       if (highOption) {
         await userEvent.click(highOption);

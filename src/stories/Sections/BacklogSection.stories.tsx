@@ -25,65 +25,67 @@ const meta: Meta<BacklogSectionStoryArgs> = {
   decorators: [
     (Story, context) => {
       const args = context.args as Record<string, unknown>;
-      const [tasks, setTasks] = useState<Task[]>(args.tasks as Task[] || []),
-       [isFocusMode, setIsFocusMode] = useState(false),
-       [isAiMode, setIsAiMode] = useState(false),
-       [filters, setFilters] = useState<FilterState>({
-        tags: [],
-        categories: [],
-        priorities: [],
-        statuses: [],
-        enableScript: false,
-        script: "",
-      }),
-       [sort, setSort] = useState<SortState>({
-        field: "dueAt",
-        direction: "asc",
-        script: "",
-      }),
-
-       tasksContextValue = {
-        tasks,
-        availableCategories: ["Work", "Personal", "Shopping"],
-        availableTags: ["work", "personal", "urgent"],
-        onUpdateTask: (task: Task) => {
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          console.log("Update task:", task);
+      const [tasks, setTasks] = useState<Task[]>((args.tasks as Task[]) || []),
+        [isFocusMode, setIsFocusMode] = useState(false),
+        [isAiMode, setIsAiMode] = useState(false),
+        [filters, setFilters] = useState<FilterState>({
+          tags: [],
+          categories: [],
+          priorities: [],
+          statuses: [],
+          enableScript: false,
+          script: "",
+        }),
+        [sort, setSort] = useState<SortState>({
+          field: "dueAt",
+          direction: "asc",
+          script: "",
+        }),
+        tasksContextValue = {
+          tasks,
+          availableCategories: ["Work", "Personal", "Shopping"],
+          availableTags: ["work", "personal", "urgent"],
+          onUpdateTask: (task: Task) => {
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            console.log("Update task:", task);
+          },
+          onDeleteTask: (id: string) => {
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+            console.log("Delete task:", id);
+          },
+          onAddTask: (task: Partial<Task>) => {
+            const newTask: Task = {
+              id: `task-${Date.now()}`,
+              title: task.title || "New Task",
+              status: "todo",
+              priority: "medium",
+              createdAt: DateTime.now().toISO()!,
+              ...task,
+            } as Task;
+            setTasks((prev) => [...prev, newTask]);
+            console.log("Add task:", newTask);
+          },
+          onEditTask: (task: Task) => console.log("Edit task:", task),
+          onAICommand: async (input: string) =>
+            console.log("AI command:", input),
         },
-        onDeleteTask: (id: string) => {
-          setTasks((prev) => prev.filter((t) => t.id !== id));
-          console.log("Delete task:", id);
-        },
-        onAddTask: (task: Partial<Task>) => {
-          const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: task.title || "New Task",
-            status: "todo",
-            priority: "medium",
-            createdAt: DateTime.now().toISO()!,
-            ...task,
-          } as Task;
-          setTasks((prev) => [...prev, newTask]);
-          console.log("Add task:", newTask);
-        },
-        onEditTask: (task: Task) => console.log("Edit task:", task),
-        onAICommand: async (input: string) => console.log("AI command:", input),
-      },
-
-       settingsContextValue = {
-        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
-        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
-        isFocusMode,
-        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
-        isAiMode,
-        toggleAiMode: () => setIsAiMode(!isAiMode),
-        filters,
-        onFilterChange: setFilters,
-        sort,
-        onSortChange: setSort,
-        onVoiceError: (msg: string) => console.error("Voice error:", msg),
-        onOpenSettings: () => console.log("Open settings"),
-      };
+        settingsContextValue = {
+          settings:
+            ((context.args as Record<string, unknown>)
+              .settings as AppSettings) || settingsBuilder.default(),
+          updateSettings: (_s: Partial<AppSettings>) =>
+            console.log("Update settings:", _s),
+          isFocusMode,
+          toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+          isAiMode,
+          toggleAiMode: () => setIsAiMode(!isAiMode),
+          filters,
+          onFilterChange: setFilters,
+          sort,
+          onSortChange: setSort,
+          onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          onOpenSettings: () => console.log("Open settings"),
+        };
 
       return (
         <TasksProvider value={tasksContextValue}>
@@ -151,7 +153,7 @@ export const SingleTask: Story = {
 export const ManyTasks: Story = {
   args: {
     tasks: Array.from({ length: 20 }, (_, i) =>
-      createUndatedTask({ title: `Backlog task ${i + 1}` })
+      createUndatedTask({ title: `Backlog task ${i + 1}` }),
     ),
     settings: settingsBuilder.default(),
   },
@@ -365,7 +367,7 @@ export const TaskInteractions: Story = {
 
     await step("Verify tasks are rendered", async () => {
       const task1 = canvas.getByText("Task to complete"),
-       task2 = canvas.getByText("Task to edit");
+        task2 = canvas.getByText("Task to edit");
       expect(task1).toBeInTheDocument();
       expect(task2).toBeInTheDocument();
     });

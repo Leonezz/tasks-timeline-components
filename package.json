@@ -48,7 +48,8 @@
     "test-storybook": "vitest --project=storybook",
     "build-storybook": "storybook build",
     "dev:example": "cd examples/app && pnpm dev",
-    "build:example": "cd examples/app && pnpm build"
+    "build:example": "cd examples/app && pnpm build",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\""
   },
   "workspaces": [
     "examples/app"
@@ -102,6 +103,7 @@
     "eslint-plugin-storybook": "^10.1.11",
     "globals": "^16.5.0",
     "playwright": "^1.57.0",
+    "prettier": "^3.7.4",
     "storybook": "^10.1.11",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",

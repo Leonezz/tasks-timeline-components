@@ -13,10 +13,10 @@ class Logger {
     level: LogLevel,
     context: string,
     message: string,
-    data?: unknown
+    data?: unknown,
   ) {
     const timestamp = new Date().toLocaleTimeString(),
-     prefix = `%c[TasksTimeline][${timestamp}][${context}]`;
+      prefix = `%c[TasksTimeline][${timestamp}][${context}]`;
 
     switch (level) {
       case "info":

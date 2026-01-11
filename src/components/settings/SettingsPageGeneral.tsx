@@ -17,49 +17,50 @@ export const SettingsPageGeneral = ({
   availableCategories,
 }: SettingsPageGeneralProps) => {
   const setFontSize = (size: FontSize) =>
-    onUpdateSettings({ ...settings, fontSize: size }),
-   setTheme = (theme: ThemeOption) =>
-    onUpdateSettings({ ...settings, theme }),
-   setDateFormat = (fmt: string) =>
-    onUpdateSettings({ ...settings, dateFormat: fmt }),
-   setDefaultCategory = (cat: string) =>
-    onUpdateSettings({ ...settings, defaultCategory: cat }),
+      onUpdateSettings({ ...settings, fontSize: size }),
+    setTheme = (theme: ThemeOption) => onUpdateSettings({ ...settings, theme }),
+    setDateFormat = (fmt: string) =>
+      onUpdateSettings({ ...settings, dateFormat: fmt }),
+    setDefaultCategory = (cat: string) =>
+      onUpdateSettings({ ...settings, defaultCategory: cat }),
+    // -- App Settings Handlers --
+    toggleShowCompleted = () =>
+      onUpdateSettings({ ...settings, showCompleted: !settings.showCompleted }),
+    toggleRelativeDates = () =>
+      onUpdateSettings({
+        ...settings,
+        useRelativeDates: !settings.useRelativeDates,
+      }),
+    toggleProgressBar = () =>
+      onUpdateSettings({
+        ...settings,
+        showProgressBar: !settings.showProgressBar,
+      }),
+    toggleDefaultFocus = () =>
+      onUpdateSettings({
+        ...settings,
+        defaultFocusMode: !settings.defaultFocusMode,
+      }),
+    toggleGroupingStrategy = (s: DateGroupBy) => {
+      const current = settings.groupingStrategy,
+        exists = current.includes(s);
 
-  // -- App Settings Handlers --
-   toggleShowCompleted = () =>
-    onUpdateSettings({ ...settings, showCompleted: !settings.showCompleted }),
-   toggleRelativeDates = () =>
-    onUpdateSettings({
-      ...settings,
-      useRelativeDates: !settings.useRelativeDates,
-    }),
-   toggleProgressBar = () =>
-    onUpdateSettings({
-      ...settings,
-      showProgressBar: !settings.showProgressBar,
-    }),
-   toggleDefaultFocus = () =>
-    onUpdateSettings({
-      ...settings,
-      defaultFocusMode: !settings.defaultFocusMode,
-    }),
-   toggleGroupingStrategy = (s: DateGroupBy) => {
-    const current = settings.groupingStrategy,
-     exists = current.includes(s);
-
-    let newList: DateGroupBy[];
-    if (exists) {
-      if (current.length === 1) {return;}
-      newList = current.filter((item) => item !== s);
-    } else {
-      newList = [...current, s];
-    }
-    onUpdateSettings({ ...settings, groupingStrategy: newList });
-  },
-
-   [isCustomFormat, setIsCustomFormat] = useState(
-    !DATE_FORMATS.some((f: { value: string }) => f.value === settings.dateFormat)
-  );
+      let newList: DateGroupBy[];
+      if (exists) {
+        if (current.length === 1) {
+          return;
+        }
+        newList = current.filter((item) => item !== s);
+      } else {
+        newList = [...current, s];
+      }
+      onUpdateSettings({ ...settings, groupingStrategy: newList });
+    },
+    [isCustomFormat, setIsCustomFormat] = useState(
+      !DATE_FORMATS.some(
+        (f: { value: string }) => f.value === settings.dateFormat,
+      ),
+    );
 
   return (
     <>

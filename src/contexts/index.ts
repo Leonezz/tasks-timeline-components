@@ -1,4 +1,8 @@
-export { TasksProvider, useTasksContext, type TasksContextType } from "./TasksContext";
+export {
+  TasksProvider,
+  useTasksContext,
+  type TasksContextType,
+} from "./TasksContext";
 export {
   SettingsProvider,
   useSettingsContext,

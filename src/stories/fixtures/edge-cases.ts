@@ -17,7 +17,7 @@ export const edgeCaseTasks = {
    * Task with very long title (200+ characters)
    */
   veryLongTitle: taskBuilder.base({
-    title: `${"A".repeat(200)  } This is an extremely long task title that should test how the UI handles overflow and text wrapping in various contexts`,
+    title: `${"A".repeat(200)} This is an extremely long task title that should test how the UI handles overflow and text wrapping in various contexts`,
   }),
 
   /**
@@ -45,10 +45,13 @@ export const edgeCaseTasks = {
    * Task with many tags (20+)
    */
   manyTags: taskBuilder.base({
-    tags: Array.from({ length: 20 }, (_, i): Tag => ({
-      id: `tag-${i}`,
-      name: `tag${i}`,
-    })),
+    tags: Array.from(
+      { length: 20 },
+      (_, i): Tag => ({
+        id: `tag-${i}`,
+        name: `tag${i}`,
+      }),
+    ),
   }),
 
   /**
@@ -94,7 +97,8 @@ export const edgeCaseTasks = {
    */
   allFieldsFilled: taskBuilder.base({
     title: "Complete task with all fields",
-    description: "This task has every field filled out for comprehensive testing",
+    description:
+      "This task has every field filled out for comprehensive testing",
     createdAt: DateTime.now().minus({ days: 7 }).toISO(),
     startAt: DateTime.now().minus({ days: 3 }).toISO(),
     dueAt: DateTime.now().plus({ days: 3 }).toISO(),
@@ -184,8 +188,7 @@ export const edgeCaseTasks = {
    */
   complexRecurrence: taskBuilder.base({
     isRecurring: true,
-    recurringInterval:
-      "FREQ=MONTHLY;INTERVAL=2;BYDAY=1MO,3FR;BYMONTH=1,4,7,10",
+    recurringInterval: "FREQ=MONTHLY;INTERVAL=2;BYDAY=1MO,3FR;BYMONTH=1,4,7,10",
   }),
 
   /**

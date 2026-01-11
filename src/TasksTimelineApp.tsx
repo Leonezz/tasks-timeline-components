@@ -113,18 +113,18 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Use state for the container ref to ensure re-render when it's attached,
     // Allowing the Provider to pass the correct element to children.
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
-      null
+      null,
     ),
     // Notification State
     [toasts, setToasts] = useState<ToastMessage[]>([]),
     // Initialize repositories (use props or fallback to browser storage)
     taskRepo = useMemo(
       () => taskRepository || new BrowserTaskRepository(),
-      [taskRepository]
+      [taskRepository],
     ),
     settingsRepo = useMemo(
       () => settingsRepository || new BrowserSettingsRepository(),
-      [settingsRepository]
+      [settingsRepository],
     ),
     // App Settings
     [settings, setSettings] = useState<AppSettings>(() => {
@@ -188,13 +188,13 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           setIsFocusMode(mergedSettings.defaultFocusMode);
           setIsAiMode(
             mergedSettings.aiConfig.enabled &&
-              mergedSettings.aiConfig.defaultMode
+              mergedSettings.aiConfig.defaultMode,
           );
         } else {
           // Use defaults
           setIsAiMode(
             DEFAULT_SETTINGS.aiConfig.enabled &&
-              DEFAULT_SETTINGS.aiConfig.defaultMode
+              DEFAULT_SETTINGS.aiConfig.defaultMode,
           );
         }
         setIsSettingsLoaded(true);
@@ -256,7 +256,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   const addNotification = (
       type: ToastType,
       title: string,
-      description?: string
+      description?: string,
     ) => {
       const id = Math.random().toString(36).substr(2, 9);
       setToasts((prev) => [...prev, { id, type, title, description }]);
@@ -293,7 +293,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
       tasks,
       filters,
-      sort
+      sort,
     ),
     stats = useTaskStats(tasks),
     handleUpdateTask = async (updatedTask: Task) => {
@@ -320,7 +320,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
       // Update local state
       setTasks((prev) =>
-        prev.map((t) => (t.id === processed.id ? processed : t))
+        prev.map((t) => (t.id === processed.id ? processed : t)),
       );
 
       logger.info("Task", "Updated task", {
@@ -386,7 +386,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     },
     handleAddTask = async (
       dateOrTask: string | Partial<Task>,
-      title?: string
+      title?: string,
     ) => {
       let newTask: Task;
       const baseTask = {
@@ -446,7 +446,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       settings,
       handleAddTask,
       addNotification,
-      updateTokenUsage
+      updateTokenUsage,
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
@@ -467,7 +467,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       ref={setContainerElement}
       className={cn(
         "tasks-timeline-app bg-paper text-slate-900 font-sans selection:bg-rose-100 selection:text-rose-900 transition-colors duration-300 antialiased",
-        className
+        className,
       )}
     >
       <AppProvider container={containerElement}>
@@ -533,7 +533,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                         "rounded-lg p-2 flex flex-col items-center justify-center border w-20 shrink-0 transition-all",
                         isFocusMode
                           ? "bg-purple-100 border-purple-400 text-purple-700 shadow-inner"
-                          : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200"
+                          : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200",
                       )}
                       title={
                         isFocusMode
@@ -559,7 +559,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
                           isFilterActive(["todo"])
                             ? "bg-slate-100 border-slate-400"
-                            : "bg-slate-50 border-slate-100"
+                            : "bg-slate-50 border-slate-100",
                         )}
                       >
                         <span className="text-lg font-black text-slate-800 leading-none">
@@ -577,7 +577,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
                           isFilterActive(["unplanned"])
                             ? "bg-purple-100 border-purple-400"
-                            : "bg-purple-50 border-purple-100"
+                            : "bg-purple-50 border-purple-100",
                         )}
                       >
                         <span className="text-lg font-black text-purple-600 leading-none">
@@ -597,7 +597,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
                           isFilterActive(["due", "overdue"])
                             ? "bg-rose-100 border-rose-400"
-                            : "bg-rose-50 border-rose-100"
+                            : "bg-rose-50 border-rose-100",
                         )}
                       >
                         <span className="text-lg font-black text-rose-600 leading-none">
@@ -617,7 +617,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
                           isFilterActive(["scheduled", "doing"])
                             ? "bg-blue-100 border-blue-400"
-                            : "bg-blue-50 border-blue-100"
+                            : "bg-blue-50 border-blue-100",
                         )}
                       >
                         <span className="text-lg font-black text-blue-600 leading-none">

@@ -23,65 +23,62 @@ export const SettingsPageAdvanced = ({
 }: SettingsPageAdvancedProps) => {
   // Voice Input Handlers
   const toggleVoiceInput = () =>
-    onUpdateSettings({
-      ...settings,
-      enableVoiceInput: !settings.enableVoiceInput,
-    }),
-   setVoiceProvider = (p: VoiceProvider) =>
-    onUpdateSettings({ ...settings, voiceProvider: p }),
-
-  // -- AI Settings Handlers --
-   toggleAIEnabled = () =>
-    onUpdateSettings({
-      ...settings,
-      aiConfig: { ...settings.aiConfig, enabled: !settings.aiConfig.enabled },
-    }),
-   toggleAIDefault = () =>
-    onUpdateSettings({
-      ...settings,
-      aiConfig: {
-        ...settings.aiConfig,
-        defaultMode: !settings.aiConfig.defaultMode,
-      },
-    }),
-   setAIProvider = (p: AIProvider) =>
-    onUpdateSettings({
-      ...settings,
-      aiConfig: { ...settings.aiConfig, activeProvider: p },
-    }),
-   setFilters = (f: FilterState) =>
-    onUpdateSettings({
-      ...settings,
-      filters: f,
-    }),
-   setSort = (s: SortState) =>
-    onUpdateSettings({
-      ...settings,
-      sort: s,
-    }),
-
-   updateProviderConfig = (
-    provider: AIProvider,
-    field: "apiKey" | "baseUrl" | "model",
-    value: string
-  ) => {
-    onUpdateSettings({
-      ...settings,
-      aiConfig: {
-        ...settings.aiConfig,
-        providers: {
-          ...settings.aiConfig.providers,
-          [provider]: {
-            ...settings.aiConfig.providers[provider],
-            [field]: value,
+      onUpdateSettings({
+        ...settings,
+        enableVoiceInput: !settings.enableVoiceInput,
+      }),
+    setVoiceProvider = (p: VoiceProvider) =>
+      onUpdateSettings({ ...settings, voiceProvider: p }),
+    // -- AI Settings Handlers --
+    toggleAIEnabled = () =>
+      onUpdateSettings({
+        ...settings,
+        aiConfig: { ...settings.aiConfig, enabled: !settings.aiConfig.enabled },
+      }),
+    toggleAIDefault = () =>
+      onUpdateSettings({
+        ...settings,
+        aiConfig: {
+          ...settings.aiConfig,
+          defaultMode: !settings.aiConfig.defaultMode,
+        },
+      }),
+    setAIProvider = (p: AIProvider) =>
+      onUpdateSettings({
+        ...settings,
+        aiConfig: { ...settings.aiConfig, activeProvider: p },
+      }),
+    setFilters = (f: FilterState) =>
+      onUpdateSettings({
+        ...settings,
+        filters: f,
+      }),
+    setSort = (s: SortState) =>
+      onUpdateSettings({
+        ...settings,
+        sort: s,
+      }),
+    updateProviderConfig = (
+      provider: AIProvider,
+      field: "apiKey" | "baseUrl" | "model",
+      value: string,
+    ) => {
+      onUpdateSettings({
+        ...settings,
+        aiConfig: {
+          ...settings.aiConfig,
+          providers: {
+            ...settings.aiConfig.providers,
+            [provider]: {
+              ...settings.aiConfig.providers[provider],
+              [field]: value,
+            },
           },
         },
-      },
-    });
-  },
-
-   activeProviderConfig =
-    settings.aiConfig.providers[settings.aiConfig.activeProvider];
+      });
+    },
+    activeProviderConfig =
+      settings.aiConfig.providers[settings.aiConfig.activeProvider];
 
   return (
     <div className="p-6 space-y-8 bg-slate-50/30 dark:bg-slate-900/20">
@@ -117,7 +114,7 @@ export const SettingsPageAdvanced = ({
                 "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                 settings.aiConfig.enabled
                   ? "bg-blue-500"
-                  : "bg-slate-200 dark:bg-slate-700"
+                  : "bg-slate-200 dark:bg-slate-700",
               )}
             >
               <MotionSpan
@@ -152,7 +149,7 @@ export const SettingsPageAdvanced = ({
                       "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                       settings.aiConfig.defaultMode
                         ? "bg-blue-500"
-                        : "bg-slate-200 dark:bg-slate-700"
+                        : "bg-slate-200 dark:bg-slate-700",
                     )}
                   >
                     <MotionSpan
@@ -175,12 +172,12 @@ export const SettingsPageAdvanced = ({
                             "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
                             settings.aiConfig.activeProvider === p
                               ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
                           )}
                         >
                           {p}
                         </button>
-                      )
+                      ),
                     )}
                   </div>
 
@@ -198,7 +195,7 @@ export const SettingsPageAdvanced = ({
                           updateProviderConfig(
                             settings.aiConfig.activeProvider,
                             "apiKey",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500 font-mono tracking-wide"
@@ -222,7 +219,7 @@ export const SettingsPageAdvanced = ({
                             updateProviderConfig(
                               settings.aiConfig.activeProvider,
                               "model",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500"
@@ -239,7 +236,7 @@ export const SettingsPageAdvanced = ({
                             updateProviderConfig(
                               settings.aiConfig.activeProvider,
                               "baseUrl",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           placeholder="Default"
@@ -280,7 +277,7 @@ export const SettingsPageAdvanced = ({
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                   settings.enableVoiceInput
                     ? "bg-emerald-500"
-                    : "bg-slate-200 dark:bg-slate-700"
+                    : "bg-slate-200 dark:bg-slate-700",
                 )}
               >
                 <MotionSpan
@@ -307,12 +304,12 @@ export const SettingsPageAdvanced = ({
                           "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
                           settings.voiceProvider === p
                             ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
                         )}
                       >
                         {p === "gemini-whisper" ? "Gemini" : "Browser"}
                       </button>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -345,7 +342,7 @@ export const SettingsPageAdvanced = ({
                       "px-2 py-1 text-xs rounded-md border transition-all",
                       isActive
                         ? "bg-blue-100 border-blue-200 text-blue-700"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50",
                     )}
                   >
                     {tag}
@@ -372,7 +369,7 @@ export const SettingsPageAdvanced = ({
                   "relative w-7 h-4 rounded-full transition-colors focus:outline-none",
                   settings.filters.enableScript
                     ? "bg-purple-500"
-                    : "bg-slate-200 dark:bg-slate-700"
+                    : "bg-slate-200 dark:bg-slate-700",
                 )}
               >
                 <MotionSpan

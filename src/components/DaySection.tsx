@@ -20,41 +20,42 @@ interface DaySectionProps {
 
 export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
   const { onAddTask, onAICommand } = useTasksContext(),
-   { settings, isAiMode, onVoiceError } = useSettingsContext(),
-   [isOpen, setIsOpen] = useState(true),
-   [isAdding, setIsAdding] = useState(false),
-   [newTaskTitle, setNewTaskTitle] = useState(""),
-   [selectedCategory, setSelectedCategory] = useState(
-    settings.defaultCategory
-  ),
-   [isLoading, setIsLoading] = useState(false),
-   inputRef = useRef<HTMLInputElement>(null);
+    { settings, isAiMode, onVoiceError } = useSettingsContext(),
+    [isOpen, setIsOpen] = useState(true),
+    [isAdding, setIsAdding] = useState(false),
+    [newTaskTitle, setNewTaskTitle] = useState(""),
+    [selectedCategory, setSelectedCategory] = useState(
+      settings.defaultCategory,
+    ),
+    [isLoading, setIsLoading] = useState(false),
+    inputRef = useRef<HTMLInputElement>(null);
 
   // Reset category to default when adding starts
   useEffect(() => {
-    if (isAdding) {setSelectedCategory(settings.defaultCategory);}
+    if (isAdding) {
+      setSelectedCategory(settings.defaultCategory);
+    }
   }, [isAdding, settings.defaultCategory]);
 
   // Voice Input for this section
   const { isListening, start: startVoice } = useVoiceInput(
-    settings.enableVoiceInput,
-    (text) => setNewTaskTitle((prev) => (prev ? `${prev  } ${  text}` : text)),
-    onVoiceError
-  ),
-
-  // Parse the ISO date string from the group key
-   dt = DateTime.fromISO(group.date),
-   dayOfWeek = dt.toFormat("ccc"), // Mon, Tue
-
-   isWeekend = dt.weekday > 5,
-   calendarColor = isWeekend
-    ? "text-rose-500 bg-rose-50 border-rose-100"
-    : "text-slate-600 bg-slate-50 border-slate-200",
-
-   relative = formatRelativeDate(group.date),
-   isRelative =
-    relative === "Today" || relative === "Tomorrow" || relative === "Yesterday",
-   displayDate = dt.toFormat(settings.dateFormat);
+      settings.enableVoiceInput,
+      (text) => setNewTaskTitle((prev) => (prev ? `${prev} ${text}` : text)),
+      onVoiceError,
+    ),
+    // Parse the ISO date string from the group key
+    dt = DateTime.fromISO(group.date),
+    dayOfWeek = dt.toFormat("ccc"), // Mon, Tue
+    isWeekend = dt.weekday > 5,
+    calendarColor = isWeekend
+      ? "text-rose-500 bg-rose-50 border-rose-100"
+      : "text-slate-600 bg-slate-50 border-slate-200",
+    relative = formatRelativeDate(group.date),
+    isRelative =
+      relative === "Today" ||
+      relative === "Tomorrow" ||
+      relative === "Yesterday",
+    displayDate = dt.toFormat(settings.dateFormat);
 
   useEffect(() => {
     if (isAdding && inputRef.current) {
@@ -62,64 +63,69 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
     }
   }, [isAdding]);
 
-  const stats = useMemo(() => group.tasks.reduce(
-      (acc, task) => {
-        if (task.status === "done") {
-          acc.done++;
-        } else if (task.status === "overdue" || task.status === "due") {
-          acc.urgent++;
-        } else if (["todo", "scheduled", "unplanned"].includes(task.status)) {
-          acc.open++;
-        }
-        return acc;
-      },
-      { done: 0, urgent: 0, open: 0 }
-    ), [group.tasks]),
-
-   handleCreate = async () => {
-    if (!newTaskTitle.trim()) {
-      setIsAdding(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      if (settings.aiConfig.enabled && isAiMode) {
-        // Inject context for AI to know which date we are adding to
-        const prompt = `Add task to ${group.date}: ${newTaskTitle} (Category: ${selectedCategory})`;
-        await onAICommand(prompt);
-      } else {
-        onAddTask({
-          title: newTaskTitle,
-          dueAt: group.date,
-          category: selectedCategory,
-        });
+  const stats = useMemo(
+      () =>
+        group.tasks.reduce(
+          (acc, task) => {
+            if (task.status === "done") {
+              acc.done++;
+            } else if (task.status === "overdue" || task.status === "due") {
+              acc.urgent++;
+            } else if (
+              ["todo", "scheduled", "unplanned"].includes(task.status)
+            ) {
+              acc.open++;
+            }
+            return acc;
+          },
+          { done: 0, urgent: 0, open: 0 },
+        ),
+      [group.tasks],
+    ),
+    handleCreate = async () => {
+      if (!newTaskTitle.trim()) {
+        setIsAdding(false);
+        return;
       }
-      setNewTaskTitle("");
-      // Don't close immediately if using AI to allow seeing result/errors, or maybe keep adding?
-      // For now, assume single add flow similar to manual.
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  },
 
-   handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {handleCreate();}
-    if (e.key === "Escape") {
-      setIsAdding(false);
-      setNewTaskTitle("");
-    }
-  },
-
-   iconTopSpacing =
-    {
-      sm: "mt-0.5",
-      base: "mt-0.5",
-      lg: "mt-1",
-      xl: "mt-1.5",
-    }[settings.fontSize] || "mt-0.5";
+      setIsLoading(true);
+      try {
+        if (settings.aiConfig.enabled && isAiMode) {
+          // Inject context for AI to know which date we are adding to
+          const prompt = `Add task to ${group.date}: ${newTaskTitle} (Category: ${selectedCategory})`;
+          await onAICommand(prompt);
+        } else {
+          onAddTask({
+            title: newTaskTitle,
+            dueAt: group.date,
+            category: selectedCategory,
+          });
+        }
+        setNewTaskTitle("");
+        // Don't close immediately if using AI to allow seeing result/errors, or maybe keep adding?
+        // For now, assume single add flow similar to manual.
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleCreate();
+      }
+      if (e.key === "Escape") {
+        setIsAdding(false);
+        setNewTaskTitle("");
+      }
+    },
+    iconTopSpacing =
+      {
+        sm: "mt-0.5",
+        base: "mt-0.5",
+        lg: "mt-1",
+        xl: "mt-1.5",
+      }[settings.fontSize] || "mt-0.5";
 
   return (
     <div className="mb-2 relative">
@@ -207,10 +213,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
               >
                 <div className="space-y-0.5 relative pb-2">
                   {group.tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                    />
+                    <TaskItem key={task.id} task={task} />
                   ))}
 
                   {/* Add Item Row - Aligned with TaskItem grid */}
@@ -219,7 +222,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                     <div
                       className={cn(
                         "relative flex flex-col items-center shrink-0 w-6",
-                        iconTopSpacing
+                        iconTopSpacing,
                       )}
                     >
                       {/* Line coming from top (connects to previous tasks) */}
@@ -236,7 +239,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                             ? isAiMode
                               ? "bg-purple-100 text-purple-600"
                               : "bg-blue-100 text-blue-600"
-                            : "bg-white hover:bg-slate-100 text-slate-300 hover:text-blue-500"
+                            : "bg-white hover:bg-slate-100 text-slate-300 hover:text-blue-500",
                         )}
                       >
                         {isLoading ? (
@@ -244,7 +247,10 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                             <Icon name="Loader2" size={12} />
                           </div>
                         ) : (
-                          <Icon name={isAiMode ? "Sparkles" : "Plus"} size={14} />
+                          <Icon
+                            name={isAiMode ? "Sparkles" : "Plus"}
+                            size={14}
+                          />
                         )}
                       </button>
                     </div>
@@ -269,21 +275,23 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                                 !e.relatedTarget ||
                                 !e.relatedTarget.closest(".add-row-actions")
                               ) {
-                                if (!newTaskTitle) {setIsAdding(false);}
+                                if (!newTaskTitle) {
+                                  setIsAdding(false);
+                                }
                               }
                             }}
                             placeholder={
                               isListening
                                 ? "Listening..."
                                 : isAiMode
-                                ? "Describe task for this day..."
-                                : "Type a new task..."
+                                  ? "Describe task for this day..."
+                                  : "Type a new task..."
                             }
                             className={cn(
                               "flex-1 bg-transparent border-b focus:outline-none text-sm py-0.5 transition-colors",
                               isAiMode
                                 ? "border-purple-300 focus:border-purple-500 placeholder:text-purple-300 text-purple-900"
-                                : "border-blue-300 focus:border-blue-500"
+                                : "border-blue-300 focus:border-blue-500",
                             )}
                             disabled={isLoading || isListening}
                           />
@@ -319,7 +327,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                                 onClick={startVoice}
                                 className={cn(
                                   "p-1 rounded hover:bg-slate-100 transition-colors",
-                                  isListening && "text-rose-500 animate-pulse"
+                                  isListening && "text-rose-500 animate-pulse",
                                 )}
                                 tabIndex={-1}
                               >

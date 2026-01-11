@@ -16,7 +16,7 @@ interface BacklogSectionProps {
 
 export const BacklogSection: React.FC<BacklogSectionProps> = ({ tasks }) => {
   const { settings } = useSettingsContext(),
-   [isOpen, setIsOpen] = useState(true);
+    [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="mt-8 pt-4 border-t border-slate-100">

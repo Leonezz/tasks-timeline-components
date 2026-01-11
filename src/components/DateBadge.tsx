@@ -34,40 +34,40 @@ export const DateBadge = ({
   task,
 }: DateBadgeProps) => {
   const [val, setVal] = useState(() => {
-    if (!date) {return "";}
-    const dt = DateTime.fromISO(date);
-    return dt.isValid
-      ? type === "startAt" || type === "createdAt" || type === "completedAt"
-        ? dt.toFormat("yyyy-MM-dd'T'HH:mm")
-        : dt.toISODate()
-      : "";
-  }),
-   dateLabel = type.endsWith("At")
-    ? type.slice(0, type.length - 2).toUpperCase()
-    : "",
-
-   handleDateSave = () => {
-    let newDate = "";
-    if (val) {
-      newDate =
-        type === "startAt" || type === "createdAt" || type === "completedAt"
-          ? DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm").toISO() || ""
-          : DateTime.fromISO(val).toISODate() || "";
-    }
-    onUpdate({ ...task, [type]: newDate });
-  },
-
-   inputType =
-    type === "startAt" || type === "createdAt" || type === "completedAt"
-      ? "datetime-local"
-      : "date",
-   titleMap = {
-    dueDate: "Change Due Date",
-    startAt: "Change Start Date",
-    createdAt: "Change Created Date",
-    completedAt: "Change Completed Date",
-  },
-   { portalContainer } = useAppContext();
+      if (!date) {
+        return "";
+      }
+      const dt = DateTime.fromISO(date);
+      return dt.isValid
+        ? type === "startAt" || type === "createdAt" || type === "completedAt"
+          ? dt.toFormat("yyyy-MM-dd'T'HH:mm")
+          : dt.toISODate()
+        : "";
+    }),
+    dateLabel = type.endsWith("At")
+      ? type.slice(0, type.length - 2).toUpperCase()
+      : "",
+    handleDateSave = () => {
+      let newDate = "";
+      if (val) {
+        newDate =
+          type === "startAt" || type === "createdAt" || type === "completedAt"
+            ? DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm").toISO() || ""
+            : DateTime.fromISO(val).toISODate() || "";
+      }
+      onUpdate({ ...task, [type]: newDate });
+    },
+    inputType =
+      type === "startAt" || type === "createdAt" || type === "completedAt"
+        ? "datetime-local"
+        : "date",
+    titleMap = {
+      dueDate: "Change Due Date",
+      startAt: "Change Start Date",
+      createdAt: "Change Created Date",
+      completedAt: "Change Completed Date",
+    },
+    { portalContainer } = useAppContext();
 
   return (
     <Popover>

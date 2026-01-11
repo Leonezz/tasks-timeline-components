@@ -30,7 +30,7 @@ export const TagBadge = ({
         <button
           className={cn(
             badgeClass,
-            "text-blue-600 bg-blue-50/80 border-blue-100/50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-colors"
+            "text-blue-600 bg-blue-50/80 border-blue-100/50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-colors",
           )}
           title="Click to remove"
         >

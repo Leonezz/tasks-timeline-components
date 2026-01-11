@@ -32,16 +32,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const today = DateTime.now(),
- tomorrow = today.plus({ days: 1 }),
- yesterday = today.minus({ days: 1 }),
-
- defaultTask = taskBuilder.base({
-  id: "1",
-  title: "Sample Task",
-  dueAt: today.toISODate()!,
-}),
-
- handleUpdate = (task: Task) => console.log("Updated task:", task);
+  tomorrow = today.plus({ days: 1 }),
+  yesterday = today.minus({ days: 1 }),
+  defaultTask = taskBuilder.base({
+    id: "1",
+    title: "Sample Task",
+    dueAt: today.toISODate()!,
+  }),
+  handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Due Date Stories
@@ -233,7 +231,7 @@ export const DateTimeInput: Story = {
 
     await step("Verify datetime input is visible", async () => {
       const input = canvas.getByDisplayValue(
-        today.toFormat("yyyy-MM-dd'T'HH:mm")
+        today.toFormat("yyyy-MM-dd'T'HH:mm"),
       );
       expect(input).toBeInTheDocument();
       expect(input).toHaveAttribute("type", "datetime-local");
@@ -291,9 +289,9 @@ export const ChangeStartDate: Story = {
 
     await step("Change datetime value", async () => {
       const input = canvas.getByDisplayValue(
-        today.toFormat("yyyy-MM-dd'T'HH:mm")
-      ),
-       newDateTime = tomorrow.set({ hour: 10, minute: 0 });
+          today.toFormat("yyyy-MM-dd'T'HH:mm"),
+        ),
+        newDateTime = tomorrow.set({ hour: 10, minute: 0 });
       await userEvent.clear(input);
       await userEvent.type(input, newDateTime.toFormat("yyyy-MM-dd'T'HH:mm"));
       await delay(100);

@@ -14,142 +14,135 @@ import { MotionButton, MotionDiv } from "./Motion";
 import { useAppContext } from "./AppContextProvider";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface InputBarProps {}
 
 export const InputBar: React.FC<InputBarProps> = () => {
   const { onAddTask, onAICommand, availableTags, availableCategories } =
-    useTasksContext(),
-   {
-    settings,
-    filters,
-    onFilterChange,
-    sort,
-    onSortChange,
-    isAiMode,
-    toggleAiMode,
-    onVoiceError,
-    onOpenSettings,
-  } = useSettingsContext(),
-
-   [value, setValue] = useState(""),
-   [isLoading, setIsLoading] = useState(false),
-
-  // Use shared voice hook
-   { isListening, start } = useVoiceInput(
-    settings.enableVoiceInput,
-    (text) => setValue((prev) => (prev ? `${prev  } ${  text}` : text)),
-    onVoiceError
-  ),
-
-   effectiveAiActive = settings.aiConfig.enabled && isAiMode,
-
-   handleSubmit = async () => {
-    if (!value.trim() || isLoading) {return;}
-    setIsLoading(true);
-    try {
-      if (effectiveAiActive) {
-        await onAICommand(value);
-      } else {
-        const taskPart = parseTaskString(value);
-        onAddTask(taskPart);
+      useTasksContext(),
+    {
+      settings,
+      filters,
+      onFilterChange,
+      sort,
+      onSortChange,
+      isAiMode,
+      toggleAiMode,
+      onVoiceError,
+      onOpenSettings,
+    } = useSettingsContext(),
+    [value, setValue] = useState(""),
+    [isLoading, setIsLoading] = useState(false),
+    // Use shared voice hook
+    { isListening, start } = useVoiceInput(
+      settings.enableVoiceInput,
+      (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
+      onVoiceError,
+    ),
+    effectiveAiActive = settings.aiConfig.enabled && isAiMode,
+    handleSubmit = async () => {
+      if (!value.trim() || isLoading) {
+        return;
       }
-      setValue("");
-    } catch (e) {
-      console.error("Failed to parse task", e);
-    } finally {
-      setIsLoading(false);
-    }
-  },
-
-   handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {handleSubmit();}
-  },
-
-   toggleFilter = (key: keyof FilterState, value: string) => {
-    const currentList = filters[key];
-    if (Array.isArray(currentList)) {
-      // Safe cast because we only call this with values appropriate for the key (Tags, Cats, etc.)
-      const list = currentList as string[],
-       newList = list.includes(value)
-        ? list.filter((item) => item !== value)
-        : [...list, value];
-      // Dynamic key assignment requires partial cast or specific handling, partial cast is cleanest here for brevity
-      onFilterChange({ ...filters, [key]: newList });
-    }
-  },
-
-   clearFilterKey = (key: keyof FilterState) => {
-    onFilterChange({ ...filters, [key]: [] });
-  },
-
-   isActive = (key: keyof FilterState) => {
-    const val = filters[key];
-    if (Array.isArray(val)) {return val.length > 0;}
-    if (typeof val === "string") {return val.length > 0;}
-    return false;
-  },
-
-   getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
-    switch (status) {
-      case "todo":
-        return "Circle";
-      case "doing":
-        return "PlayCircle";
-      case "done":
-        return "CheckCircle2";
-      case "scheduled":
-        return "Clock";
-      case "due":
-        return "AlertCircle";
-      case "overdue":
-        return "AlertTriangle";
-      case "cancelled":
-        return "XCircle";
-      case "unplanned":
-        return "Zap";
-      default:
-        return "Circle";
-    }
-  },
-
-   getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case "done":
-        return "text-emerald-500";
-      case "doing":
-        return "text-sky-500";
-      case "scheduled":
-        return "text-blue-500";
-      case "due":
-        return "text-amber-500";
-      case "overdue":
-        return "text-rose-500";
-      case "cancelled":
-        return "text-slate-400";
-      case "unplanned":
-        return "text-purple-500";
-      default:
-        return "text-slate-400";
-    }
-  },
-
-   getPriorityColor = (p: Priority) => {
-    switch (p) {
-      case "high":
-        return "text-rose-500";
-      case "medium":
-        return "text-amber-500";
-      case "low":
-        return "text-blue-400";
-    }
-  };
+      setIsLoading(true);
+      try {
+        if (effectiveAiActive) {
+          await onAICommand(value);
+        } else {
+          const taskPart = parseTaskString(value);
+          onAddTask(taskPart);
+        }
+        setValue("");
+      } catch (e) {
+        console.error("Failed to parse task", e);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSubmit();
+      }
+    },
+    toggleFilter = (key: keyof FilterState, value: string) => {
+      const currentList = filters[key];
+      if (Array.isArray(currentList)) {
+        // Safe cast because we only call this with values appropriate for the key (Tags, Cats, etc.)
+        const list = currentList as string[],
+          newList = list.includes(value)
+            ? list.filter((item) => item !== value)
+            : [...list, value];
+        // Dynamic key assignment requires partial cast or specific handling, partial cast is cleanest here for brevity
+        onFilterChange({ ...filters, [key]: newList });
+      }
+    },
+    clearFilterKey = (key: keyof FilterState) => {
+      onFilterChange({ ...filters, [key]: [] });
+    },
+    isActive = (key: keyof FilterState) => {
+      const val = filters[key];
+      if (Array.isArray(val)) {
+        return val.length > 0;
+      }
+      if (typeof val === "string") {
+        return val.length > 0;
+      }
+      return false;
+    },
+    getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
+      switch (status) {
+        case "todo":
+          return "Circle";
+        case "doing":
+          return "PlayCircle";
+        case "done":
+          return "CheckCircle2";
+        case "scheduled":
+          return "Clock";
+        case "due":
+          return "AlertCircle";
+        case "overdue":
+          return "AlertTriangle";
+        case "cancelled":
+          return "XCircle";
+        case "unplanned":
+          return "Zap";
+        default:
+          return "Circle";
+      }
+    },
+    getStatusColor = (status: TaskStatus) => {
+      switch (status) {
+        case "done":
+          return "text-emerald-500";
+        case "doing":
+          return "text-sky-500";
+        case "scheduled":
+          return "text-blue-500";
+        case "due":
+          return "text-amber-500";
+        case "overdue":
+          return "text-rose-500";
+        case "cancelled":
+          return "text-slate-400";
+        case "unplanned":
+          return "text-purple-500";
+        default:
+          return "text-slate-400";
+      }
+    },
+    getPriorityColor = (p: Priority) => {
+      switch (p) {
+        case "high":
+          return "text-rose-500";
+        case "medium":
+          return "text-amber-500";
+        case "low":
+          return "text-blue-400";
+      }
+    };
 
   return (
     <div className="pt-3 pb-1">
@@ -185,14 +178,14 @@ export const InputBar: React.FC<InputBarProps> = () => {
               "w-full bg-white pl-10 pr-24 py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
-                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
             )}
             placeholder={
               isListening
                 ? "Listening..."
                 : effectiveAiActive
-                ? "Describe tasks using natural language..."
-                : "Quick add (e.g., 'Meeting due:tomorrow p:high')"
+                  ? "Describe tasks using natural language..."
+                  : "Quick add (e.g., 'Meeting due:tomorrow p:high')"
             }
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -209,7 +202,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200 relative",
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
                 disabled={isListening}
                 title="Voice Input"
@@ -225,7 +218,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200",
                   effectiveAiActive
                     ? "text-purple-600 bg-purple-50 hover:bg-purple-100 ring-1 ring-purple-200"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
                 title={
                   effectiveAiActive
@@ -450,7 +443,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
-              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800",
           )}
         >
           {label}
@@ -464,46 +457,46 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             size={12}
             className={cn(
               "transition-transform duration-200",
-              isActive ? "text-slate-300" : "opacity-40"
+              isActive ? "text-slate-300" : "opacity-40",
             )}
           />
         </MotionButton>
       </PopoverTrigger>
 
       <PopoverContent
-          side="bottom"
-          align="start"
-          sideOffset={8}
-          collisionPadding={16}
-          className="outline-none w-auto p-0"
-          style={{ zIndex: 99999 }}
-          container={portalContainer}
+        side="bottom"
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+        className="outline-none w-auto p-0"
+        style={{ zIndex: 99999 }}
+        container={portalContainer}
+      >
+        <MotionDiv
+          initial={{ opacity: 0, scale: 0.95, y: -5 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -5 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="w-56 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
         >
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-56 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
-          >
-            <div className="flex justify-between items-center px-3 py-2 border-b border-slate-100/50 mb-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {label}
-              </span>
-              {isActive && (
-                <button
-                  onClick={onClear}
-                  className="text-[10px] font-medium text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-50 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
-              {children}
-            </div>
-          </MotionDiv>
-        </PopoverContent>
+          <div className="flex justify-between items-center px-3 py-2 border-b border-slate-100/50 mb-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {label}
+            </span>
+            {isActive && (
+              <button
+                onClick={onClear}
+                className="text-[10px] font-medium text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-50 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
+            {children}
+          </div>
+        </MotionDiv>
+      </PopoverContent>
     </Popover>
   );
 };
@@ -515,27 +508,26 @@ interface SortPopoverProps {
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   const { portalContainer } = useAppContext(),
-   fields: {
-    label: string;
-    value: SortField;
-    icon: keyof typeof Lucide;
-  }[] = [
-    { label: "Due Date", value: "dueAt", icon: "Calendar" },
-    { label: "Created Date", value: "createdAt", icon: "Clock" },
-    { label: "Priority", value: "priority", icon: "Flag" },
-    { label: "Title", value: "title", icon: "Type" },
-  ],
-
-   handleFieldSelect = (field: SortField) => {
-    if (sort.field === field) {
-      onSortChange({
-        ...sort,
-        direction: sort.direction === "asc" ? "desc" : "asc",
-      });
-    } else {
-      onSortChange({ ...sort, field, direction: "asc" });
-    }
-  };
+    fields: {
+      label: string;
+      value: SortField;
+      icon: keyof typeof Lucide;
+    }[] = [
+      { label: "Due Date", value: "dueAt", icon: "Calendar" },
+      { label: "Created Date", value: "createdAt", icon: "Clock" },
+      { label: "Priority", value: "priority", icon: "Flag" },
+      { label: "Title", value: "title", icon: "Type" },
+    ],
+    handleFieldSelect = (field: SortField) => {
+      if (sort.field === field) {
+        onSortChange({
+          ...sort,
+          direction: sort.direction === "asc" ? "desc" : "asc",
+        });
+      } else {
+        onSortChange({ ...sort, field, direction: "asc" });
+      }
+    };
 
   return (
     <Popover>
@@ -546,62 +538,62 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
         </button>
       </PopoverTrigger>
       <PopoverContent
-          side="bottom"
-          align="end"
-          sideOffset={8}
-          collisionPadding={16}
-          className="outline-none w-auto p-0"
-          style={{ zIndex: 99999 }}
-          container={portalContainer}
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        collisionPadding={16}
+        className="outline-none w-auto p-0"
+        style={{ zIndex: 99999 }}
+        container={portalContainer}
+      >
+        <MotionDiv
+          initial={{ opacity: 0, scale: 0.95, y: -5 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -5 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="w-48 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
         >
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-48 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
-          >
-            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100/50 mb-1">
-              Sort By
-            </div>
-            <div className="flex flex-col gap-0.5 px-3">
-              {fields.map((f) => {
-                const isSelected = sort.field === f.value;
-                return (
-                  <button
-                    key={f.value}
-                    onClick={() => handleFieldSelect(f.value)}
-                    className={cn(
-                      "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-all outline-none",
-                      isSelected
-                        ? "bg-slate-100 text-slate-900 font-medium"
-                        : "text-slate-600 hover:text-slate-900 hover:opacity-80"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
+          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100/50 mb-1">
+            Sort By
+          </div>
+          <div className="flex flex-col gap-0.5 px-3">
+            {fields.map((f) => {
+              const isSelected = sort.field === f.value;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => handleFieldSelect(f.value)}
+                  className={cn(
+                    "flex items-center justify-start! px-3 py-2 text-sm rounded-lg transition-all outline-none",
+                    isSelected
+                      ? "bg-slate-100 text-slate-900 font-medium"
+                      : "text-slate-600 hover:text-slate-900 hover:opacity-80",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      name={f.icon}
+                      size={14}
+                      className={isSelected ? "text-blue-500" : "opacity-70"}
+                    />
+                    <span>{f.label}</span>
+                  </div>
+                  {isSelected && (
+                    <div className="flex items-center gap-1 text-blue-500">
                       <Icon
-                        name={f.icon}
+                        name={
+                          sort.direction === "asc" ? "ArrowUp" : "ArrowDown"
+                        }
                         size={14}
-                        className={isSelected ? "text-blue-500" : "opacity-70"}
                       />
-                      <span>{f.label}</span>
                     </div>
-                    {isSelected && (
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <Icon
-                          name={
-                            sort.direction === "asc" ? "ArrowUp" : "ArrowDown"
-                          }
-                          size={14}
-                        />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </MotionDiv>
-        </PopoverContent>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </MotionDiv>
+      </PopoverContent>
     </Popover>
   );
 };

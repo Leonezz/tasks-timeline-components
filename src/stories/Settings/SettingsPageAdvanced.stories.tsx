@@ -283,7 +283,7 @@ export const FilterScriptDisabled: Story = {
 export const FilterScriptEnabled: Story = {
   args: {
     settings: settingsBuilder.withFilterScript(
-      "return task.priority === 'high';"
+      "return task.priority === 'high';",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
@@ -293,7 +293,7 @@ export const FilterScriptEnabled: Story = {
 export const ComplexFilterScript: Story = {
   args: {
     settings: settingsBuilder.withFilterScript(
-      "return task.priority === 'high' && task.tags.some(t => t.name === 'urgent');"
+      "return task.priority === 'high' && task.tags.some(t => t.name === 'urgent');",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal", "urgent"],
@@ -303,7 +303,7 @@ export const ComplexFilterScript: Story = {
 export const FilterScriptWithError: Story = {
   args: {
     settings: settingsBuilder.withFilterScript(
-      "return task.invalid syntax here"
+      "return task.invalid syntax here",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
@@ -392,7 +392,7 @@ export const SortDescending: Story = {
 export const CustomSortScript: Story = {
   args: {
     settings: settingsBuilder.withSortScript(
-      "return a.title.localeCompare(b.title);"
+      "return a.title.localeCompare(b.title);",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
@@ -402,7 +402,7 @@ export const CustomSortScript: Story = {
 export const ComplexSortScript: Story = {
   args: {
     settings: settingsBuilder.withSortScript(
-      "const priorityOrder = { high: 3, medium: 2, low: 1 }; return priorityOrder[b.priority] - priorityOrder[a.priority];"
+      "const priorityOrder = { high: 3, medium: 2, low: 1 }; return priorityOrder[b.priority] - priorityOrder[a.priority];",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
@@ -636,7 +636,7 @@ export const VeryLongScript: Story = {
         "const isHighPriority = task.priority === 'high';\n" +
         "const isUrgent = task.tags.some(t => t.name === 'urgent');\n" +
         "const isDueSoon = task.dueAt && new Date(task.dueAt) < new Date(Date.now() + 86400000);\n" +
-        "return isHighPriority || (isUrgent && isDueSoon);"
+        "return isHighPriority || (isUrgent && isDueSoon);",
     ),
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal", "urgent"],

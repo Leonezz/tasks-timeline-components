@@ -59,7 +59,7 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
 
 export const groupTasksByYearAndDate = (
   tasks: Task[],
-  strategies: DateGroupBy[] = ["dueAt"]
+  strategies: DateGroupBy[] = ["dueAt"],
 ): YearGroup[] => {
   const groups: Record<number, Record<string, Task[]>> = {},
     allPossibleDateFields: DateGroupBy[] = [
@@ -125,7 +125,7 @@ export const groupTasksByYearAndDate = (
       })),
       allTasksInYear = Object.values(yearTasks).flat(),
       completed = allTasksInYear.filter(
-        (t) => t.status === "done" || t.status === "cancelled"
+        (t) => t.status === "done" || t.status === "cancelled",
       ).length;
 
     return {

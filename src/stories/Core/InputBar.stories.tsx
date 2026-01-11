@@ -20,66 +20,69 @@ const meta: Meta<typeof InputBar> = {
   decorators: [
     (Story, context) => {
       const [tasks, setTasks] = useState<Task[]>([]),
-       [isFocusMode, setIsFocusMode] = useState(false),
-       [isAiMode, setIsAiMode] = useState(
-        (context.args as Record<string, unknown>).isAiMode as boolean || false
-      ),
-       [filters, setFilters] = useState<FilterState>({
-        tags: [],
-        categories: [],
-        priorities: [],
-        statuses: [],
-        enableScript: false,
-        script: "",
-      }),
-       [sort, setSort] = useState<SortState>({
-        field: "dueAt",
-        direction: "asc",
-        script: "",
-      }),
-
-       tasksContextValue = {
-        tasks,
-        availableCategories: ["Work", "Personal", "Shopping"],
-        availableTags: ["work", "personal", "urgent"],
-        onUpdateTask: (task: Task) => {
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          console.log("Update task:", task);
+        [isFocusMode, setIsFocusMode] = useState(false),
+        [isAiMode, setIsAiMode] = useState(
+          ((context.args as Record<string, unknown>).isAiMode as boolean) ||
+            false,
+        ),
+        [filters, setFilters] = useState<FilterState>({
+          tags: [],
+          categories: [],
+          priorities: [],
+          statuses: [],
+          enableScript: false,
+          script: "",
+        }),
+        [sort, setSort] = useState<SortState>({
+          field: "dueAt",
+          direction: "asc",
+          script: "",
+        }),
+        tasksContextValue = {
+          tasks,
+          availableCategories: ["Work", "Personal", "Shopping"],
+          availableTags: ["work", "personal", "urgent"],
+          onUpdateTask: (task: Task) => {
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            console.log("Update task:", task);
+          },
+          onDeleteTask: (id: string) => {
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+            console.log("Delete task:", id);
+          },
+          onAddTask: (task: Partial<Task>) => {
+            const newTask: Task = {
+              id: `task-${Date.now()}`,
+              title: task.title || "New Task",
+              status: "todo",
+              priority: "medium",
+              createdAt: DateTime.now().toISO()!,
+              ...task,
+            } as Task;
+            setTasks((prev) => [...prev, newTask]);
+            console.log("Add task:", newTask);
+          },
+          onEditTask: (task: Task) => console.log("Edit task:", task),
+          onAICommand: async (input: string) =>
+            console.log("AI command:", input),
         },
-        onDeleteTask: (id: string) => {
-          setTasks((prev) => prev.filter((t) => t.id !== id));
-          console.log("Delete task:", id);
-        },
-        onAddTask: (task: Partial<Task>) => {
-          const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: task.title || "New Task",
-            status: "todo",
-            priority: "medium",
-            createdAt: DateTime.now().toISO()!,
-            ...task,
-          } as Task;
-          setTasks((prev) => [...prev, newTask]);
-          console.log("Add task:", newTask);
-        },
-        onEditTask: (task: Task) => console.log("Edit task:", task),
-        onAICommand: async (input: string) => console.log("AI command:", input),
-      },
-
-       settingsContextValue = {
-        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
-        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
-        isFocusMode,
-        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
-        isAiMode,
-        toggleAiMode: () => setIsAiMode(!isAiMode),
-        filters,
-        onFilterChange: setFilters,
-        sort,
-        onSortChange: setSort,
-        onVoiceError: (msg: string) => console.error("Voice error:", msg),
-        onOpenSettings: () => console.log("Open settings"),
-      };
+        settingsContextValue = {
+          settings:
+            ((context.args as Record<string, unknown>)
+              .settings as AppSettings) || settingsBuilder.default(),
+          updateSettings: (_s: Partial<AppSettings>) =>
+            console.log("Update settings:", _s),
+          isFocusMode,
+          toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+          isAiMode,
+          toggleAiMode: () => setIsAiMode(!isAiMode),
+          filters,
+          onFilterChange: setFilters,
+          sort,
+          onSortChange: setSort,
+          onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          onOpenSettings: () => console.log("Open settings"),
+        };
 
       return (
         <AppProvider container={document.body}>

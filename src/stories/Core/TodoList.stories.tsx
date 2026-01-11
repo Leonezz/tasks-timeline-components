@@ -29,76 +29,74 @@ const meta: Meta<TodoListStoryArgs> = {
   decorators: [
     (Story, context) => {
       const args = context.args as Record<string, unknown>;
-      const [tasks, setTasks] = useState<Task[]>(args.tasks as Task[] || []),
-       [isFocusMode, setIsFocusMode] = useState(
-        args.isFocusMode || false
-      ),
-       [isAiMode, setIsAiMode] = useState(false),
-       [filters, setFilters] = useState<FilterState>({
-        tags: [],
-        categories: [],
-        priorities: [],
-        statuses: [],
-        enableScript: false,
-        script: "",
-      }),
-       [sort, setSort] = useState<SortState>({
-        field: "dueAt",
-        direction: "asc",
-        script: "",
-      }),
-
-       tasksContextValue = {
-        tasks,
-        availableCategories: (args.availableCategories as string[]) || [
-          "Work",
-          "Personal",
-          "Shopping",
-        ],
-        availableTags: (args.availableTags as string[]) || [
-          "work",
-          "personal",
-          "urgent",
-        ],
-        onUpdateTask: (task: Task) => {
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          console.log("Update task:", task);
+      const [tasks, setTasks] = useState<Task[]>((args.tasks as Task[]) || []),
+        [isFocusMode, setIsFocusMode] = useState(args.isFocusMode || false),
+        [isAiMode, setIsAiMode] = useState(false),
+        [filters, setFilters] = useState<FilterState>({
+          tags: [],
+          categories: [],
+          priorities: [],
+          statuses: [],
+          enableScript: false,
+          script: "",
+        }),
+        [sort, setSort] = useState<SortState>({
+          field: "dueAt",
+          direction: "asc",
+          script: "",
+        }),
+        tasksContextValue = {
+          tasks,
+          availableCategories: (args.availableCategories as string[]) || [
+            "Work",
+            "Personal",
+            "Shopping",
+          ],
+          availableTags: (args.availableTags as string[]) || [
+            "work",
+            "personal",
+            "urgent",
+          ],
+          onUpdateTask: (task: Task) => {
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            console.log("Update task:", task);
+          },
+          onDeleteTask: (id: string) => {
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+            console.log("Delete task:", id);
+          },
+          onAddTask: (task: Partial<Task>) => {
+            const newTask: Task = {
+              id: `task-${Date.now()}`,
+              title: task.title || "New Task",
+              status: "todo",
+              priority: "medium",
+              createdAt: DateTime.now().toISO()!,
+              ...task,
+            } as Task;
+            setTasks((prev) => [...prev, newTask]);
+            console.log("Add task:", newTask);
+          },
+          onEditTask: (task: Task) => console.log("Edit task:", task),
+          onAICommand: async (input: string) =>
+            console.log("AI command:", input),
+          onItemClick: args.onItemClick as (task: Task) => void,
         },
-        onDeleteTask: (id: string) => {
-          setTasks((prev) => prev.filter((t) => t.id !== id));
-          console.log("Delete task:", id);
-        },
-        onAddTask: (task: Partial<Task>) => {
-          const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: task.title || "New Task",
-            status: "todo",
-            priority: "medium",
-            createdAt: DateTime.now().toISO()!,
-            ...task,
-          } as Task;
-          setTasks((prev) => [...prev, newTask]);
-          console.log("Add task:", newTask);
-        },
-        onEditTask: (task: Task) => console.log("Edit task:", task),
-        onAICommand: async (input: string) => console.log("AI command:", input),
-        onItemClick: args.onItemClick as (task: Task) => void,
-      },
-
-       settingsContextValue = {
-        settings: (args.settings as AppSettings) || settingsBuilder.default(),
-        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
-        isFocusMode: args.isFocusMode as boolean || false,
-        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
-        isAiMode,
-        toggleAiMode: () => setIsAiMode(!isAiMode),
-        filters,
-        onFilterChange: setFilters,
-        sort,
-        onSortChange: setSort,
-        onVoiceError: (msg: string) => console.error("Voice error:", msg),
-        onOpenSettings: () => console.log("Open settings"),
-      };
+        settingsContextValue = {
+          settings: (args.settings as AppSettings) || settingsBuilder.default(),
+          updateSettings: (_s: Partial<AppSettings>) =>
+            console.log("Update settings:", _s),
+          isFocusMode: (args.isFocusMode as boolean) || false,
+          toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+          isAiMode,
+          toggleAiMode: () => setIsAiMode(!isAiMode),
+          filters,
+          onFilterChange: setFilters,
+          sort,
+          onSortChange: setSort,
+          onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          onOpenSettings: () => console.log("Open settings"),
+        };
 
       return (
         <TasksProvider value={tasksContextValue}>
@@ -117,9 +115,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const today = DateTime.now(),
- yesterday = today.minus({ days: 1 }),
- tomorrow = today.plus({ days: 1 }),
- nextWeek = today.plus({ weeks: 1 });
+  yesterday = today.minus({ days: 1 }),
+  tomorrow = today.plus({ days: 1 }),
+  nextWeek = today.plus({ weeks: 1 });
 
 // ========================================
 // Core Stories
@@ -214,7 +212,7 @@ export const WithManyTasks: Story = {
       ...taskBuilder.manyAcrossDays(
         8,
         today.minus({ days: 3 }),
-        today.plus({ days: 10 })
+        today.plus({ days: 10 }),
       ),
       ...taskBuilder.many(5, {
         dueAt: undefined,
@@ -346,12 +344,11 @@ export const ScrollBehavior: Story = {
     tasks: taskBuilder.manyAcrossDays(
       50,
       today.minus({ days: 10 }),
-      today.plus({ days: 30 })
+      today.plus({ days: 30 }),
     ),
     settings: settingsBuilder.default(),
   },
   play: async ({ canvasElement, step }) => {
-
     await step("Verify many year sections rendered", async () => {
       // TodoList should have year sections
       // At minimum, should have content rendered

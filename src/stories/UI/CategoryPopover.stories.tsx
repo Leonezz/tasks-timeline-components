@@ -31,11 +31,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
-
- defaultCategories = ["Work", "Personal", "Shopping", "Health", "Finance"],
-
- handleUpdate = (task: Task) => console.log("Updated task:", task);
+    "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
+  defaultCategories = ["Work", "Personal", "Shopping", "Health", "Finance"],
+  handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Variants
@@ -260,10 +258,10 @@ export const SelectSuggestion: Story = {
 
     await step("Click a suggested category", async () => {
       const buttons = canvas.getAllByRole("button"),
-      // Find Personal category button
-       personalButton = buttons.find((btn: HTMLElement) =>
-        btn.textContent?.includes("Personal")
-      );
+        // Find Personal category button
+        personalButton = buttons.find((btn: HTMLElement) =>
+          btn.textContent?.includes("Personal"),
+        );
       if (personalButton) {
         await userEvent.click(personalButton);
         await delay(100);
@@ -296,9 +294,9 @@ export const FilterSuggestions: Story = {
     await step("Verify only matching categories shown", async () => {
       // Should show "Health" in suggestions
       const buttons = canvas.getAllByRole("button"),
-       healthButton = buttons.find((btn: HTMLElement) =>
-        btn.textContent?.includes("Health")
-      );
+        healthButton = buttons.find((btn: HTMLElement) =>
+          btn.textContent?.includes("Health"),
+        );
       expect(healthButton).toBeDefined();
     });
   },
@@ -446,10 +444,10 @@ export const MaxSuggestionsLimit: Story = {
 
     await step("Verify max 5 suggestions shown", async () => {
       const buttons = canvas.getAllByRole("button"),
-      // Count buttons that are category suggestions (excluding "Set to..." button)
-       suggestionButtons = buttons.filter((btn: HTMLElement) =>
-        btn.textContent?.match(/^[A-Z]/)
-      );
+        // Count buttons that are category suggestions (excluding "Set to..." button)
+        suggestionButtons = buttons.filter((btn: HTMLElement) =>
+          btn.textContent?.match(/^[A-Z]/),
+        );
       expect(suggestionButtons.length).toBeLessThanOrEqual(5);
     });
   },

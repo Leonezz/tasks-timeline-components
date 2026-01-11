@@ -18,7 +18,7 @@ export interface SettingsContextType {
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function useSettingsContext() {

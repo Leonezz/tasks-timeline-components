@@ -40,7 +40,7 @@ export const taskBuilder = {
         .minus({ days: faker.number.int({ min: 1, max: 7 }) })
         .toISO(),
       priority: "high",
-      title: `Overdue: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `Overdue: ${faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -53,7 +53,7 @@ export const taskBuilder = {
       completedAt: DateTime.now()
         .minus({ hours: faker.number.int({ min: 1, max: 48 }) })
         .toISO(),
-      title: `✓ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `✓ ${faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -109,7 +109,7 @@ export const taskBuilder = {
   cancelled: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       status: "cancelled",
-      title: `✗ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `✗ ${faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -120,7 +120,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
-      title: `🔁 ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `🔁 ${faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -131,7 +131,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=DAILY;INTERVAL=1",
-      title: `🔁 Daily: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
+      title: `🔁 Daily: ${faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -142,7 +142,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: `FREQ=WEEKLY;INTERVAL=1;BYDAY=${weekday}`,
-      title: `🔁 Weekly: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
+      title: `🔁 Weekly: ${faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -153,7 +153,7 @@ export const taskBuilder = {
     taskBuilder.base({
       isRecurring: true,
       recurringInterval: "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=1",
-      title: `🔁 Monthly: ${  faker.lorem.sentence({ min: 2, max: 4 })}`,
+      title: `🔁 Monthly: ${faker.lorem.sentence({ min: 2, max: 4 })}`,
       ...overrides,
     }),
 
@@ -177,7 +177,7 @@ export const taskBuilder = {
   highPriority: (overrides?: Partial<Task>): Task =>
     taskBuilder.base({
       priority: "high",
-      title: `❗ ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `❗ ${faker.lorem.sentence({ min: 3, max: 6 })}`,
       ...overrides,
     }),
 
@@ -228,7 +228,7 @@ export const taskBuilder = {
       taskBuilder.base({
         id: `task-${i}-${faker.string.uuid()}`,
         ...template,
-      })
+      }),
     ),
 
   /**
@@ -237,23 +237,23 @@ export const taskBuilder = {
   manyAcrossDays: (
     count: number,
     startDate: DateTime = DateTime.now().minus({ days: 30 }),
-    endDate: DateTime = DateTime.now().plus({ days: 30 })
-  ): Task[] => Array.from({ length: count }, (_, i) => {
+    endDate: DateTime = DateTime.now().plus({ days: 30 }),
+  ): Task[] =>
+    Array.from({ length: count }, (_, i) => {
       const randomDate = DateTime.fromMillis(
-        faker.date
-          .between({ from: startDate.toJSDate(), to: endDate.toJSDate() })
-          .getTime()
-      ),
-
-       statuses: TaskStatus[] = [
-        "todo",
-        "doing",
-        "done",
-        "scheduled",
-        "overdue",
-        "due",
-      ],
-       priorities: Priority[] = ["low", "medium", "high"];
+          faker.date
+            .between({ from: startDate.toJSDate(), to: endDate.toJSDate() })
+            .getTime(),
+        ),
+        statuses: TaskStatus[] = [
+          "todo",
+          "doing",
+          "done",
+          "scheduled",
+          "overdue",
+          "due",
+        ],
+        priorities: Priority[] = ["low", "medium", "high"];
 
       return taskBuilder.base({
         id: `task-${i}`,
@@ -262,7 +262,7 @@ export const taskBuilder = {
         priority: faker.helpers.arrayElement(priorities),
         completedAt:
           faker.datatype.boolean() && faker.datatype.boolean()
-            ? randomDate.toISO() ?? undefined
+            ? (randomDate.toISO() ?? undefined)
             : undefined,
       });
     }),
@@ -279,7 +279,7 @@ export const taskBuilder = {
   work: (count: number = 5): Task[] =>
     taskBuilder.many(count, {
       category: "Work",
-      title: `Work: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `Work: ${faker.lorem.sentence({ min: 3, max: 6 })}`,
     }),
 
   /**
@@ -288,7 +288,7 @@ export const taskBuilder = {
   personal: (count: number = 5): Task[] =>
     taskBuilder.many(count, {
       category: "Personal",
-      title: `Personal: ${  faker.lorem.sentence({ min: 3, max: 6 })}`,
+      title: `Personal: ${faker.lorem.sentence({ min: 3, max: 6 })}`,
     }),
 
   /**

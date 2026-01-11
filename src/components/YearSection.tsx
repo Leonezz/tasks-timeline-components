@@ -17,9 +17,9 @@ interface YearSectionProps {
 
 export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
   const { settings } = useSettingsContext(),
-   [isOpen, setIsOpen] = useState(true),
-   progressPercent =
-    Math.round((group.completedTasks / group.totalTasks) * 100) || 0;
+    [isOpen, setIsOpen] = useState(true),
+    progressPercent =
+      Math.round((group.completedTasks / group.totalTasks) * 100) || 0;
 
   return (
     <div className="mb-4">
@@ -67,7 +67,7 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
                 <motion.div
                   className={cn(
                     "absolute top-0 left-0 h-full rounded-full",
-                    progressPercent === 100 ? "bg-emerald-400" : "bg-slate-800"
+                    progressPercent === 100 ? "bg-emerald-400" : "bg-slate-800",
                   )}
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
@@ -90,10 +90,7 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
                 className="overflow-hidden"
               >
                 {group.dayGroups.map((dayGroup) => (
-                  <DaySection
-                    key={dayGroup.date}
-                    group={dayGroup}
-                  />
+                  <DaySection key={dayGroup.date} group={dayGroup} />
                 ))}
               </motion.div>
             </CollapsibleContent>

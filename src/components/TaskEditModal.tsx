@@ -15,36 +15,34 @@ interface TaskEditModalProps {
 }
 
 const FREQUENCY_OPTIONS = [
-  { value: RRule.DAILY, label: "Daily" },
-  { value: RRule.WEEKLY, label: "Weekly" },
-  { value: RRule.MONTHLY, label: "Monthly" },
-  { value: RRule.YEARLY, label: "Yearly" },
-],
-
- WEEKDAYS = [
-  { label: "M", val: RRule.MO },
-  { label: "T", val: RRule.TU },
-  { label: "W", val: RRule.WE },
-  { label: "T", val: RRule.TH },
-  { label: "F", val: RRule.FR },
-  { label: "S", val: RRule.SA },
-  { label: "S", val: RRule.SU },
-],
-
- MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+    { value: RRule.DAILY, label: "Daily" },
+    { value: RRule.WEEKLY, label: "Weekly" },
+    { value: RRule.MONTHLY, label: "Monthly" },
+    { value: RRule.YEARLY, label: "Yearly" },
+  ],
+  WEEKDAYS = [
+    { label: "M", val: RRule.MO },
+    { label: "T", val: RRule.TU },
+    { label: "W", val: RRule.WE },
+    { label: "T", val: RRule.TH },
+    { label: "F", val: RRule.FR },
+    { label: "S", val: RRule.SA },
+    { label: "S", val: RRule.SU },
+  ],
+  MONTHS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
 interface EditFormProps {
   task: Task;
@@ -60,124 +58,125 @@ const EditForm: React.FC<EditFormProps> = ({
   availableCategories,
 }) => {
   const [editedTask, setEditedTask] = useState<Task>(task),
-   [isCategoryOpen, setIsCategoryOpen] = useState(false),
+    [isCategoryOpen, setIsCategoryOpen] = useState(false),
+    // Initialize Recurrence State lazily
+    [recurrenceState, setRecurrenceState] = useState(() => {
+      let freq: Frequency = RRule.WEEKLY,
+        interval = 1,
+        byWeekDay: Weekday[] = [],
+        byMonth: number[] = [],
+        byMonthDay: number[] = [],
+        start = "",
+        end = "";
 
-  // Initialize Recurrence State lazily
-   [recurrenceState, setRecurrenceState] = useState(() => {
-    let freq: Frequency = RRule.WEEKLY,
-     interval = 1,
-     byWeekDay: Weekday[] = [],
-     byMonth: number[] = [],
-     byMonthDay: number[] = [],
-     start = "",
-     end = "";
+      if (task.isRecurring && task.recurringInterval) {
+        try {
+          const rule = RRule.fromString(task.recurringInterval);
+          freq = rule.options.freq;
+          interval = rule.options.interval;
 
-    if (task.isRecurring && task.recurringInterval) {
-      try {
-        const rule = RRule.fromString(task.recurringInterval);
-        freq = rule.options.freq;
-        interval = rule.options.interval;
+          const rawByWeekday = rule.options.byweekday;
+          if (rawByWeekday) {
+            const asArray = Array.isArray(rawByWeekday)
+              ? rawByWeekday
+              : [rawByWeekday];
+            byWeekDay = asArray.map((d) =>
+              typeof d === "number" ? new Weekday(d) : d,
+            );
+          }
 
-        const rawByWeekday = rule.options.byweekday;
-        if (rawByWeekday) {
-          const asArray = Array.isArray(rawByWeekday)
-            ? rawByWeekday
-            : [rawByWeekday];
-          byWeekDay = asArray.map((d) =>
-            typeof d === "number" ? new Weekday(d) : d
-          );
+          byMonth = rule.options.bymonth
+            ? Array.isArray(rule.options.bymonth)
+              ? rule.options.bymonth
+              : [rule.options.bymonth]
+            : [];
+          byMonthDay = rule.options.bymonthday
+            ? Array.isArray(rule.options.bymonthday)
+              ? rule.options.bymonthday
+              : [rule.options.bymonthday]
+            : [];
+
+          if (rule.options.dtstart) {
+            start = DateTime.fromJSDate(rule.options.dtstart).toISODate() || "";
+          }
+          if (rule.options.until) {
+            end = DateTime.fromJSDate(rule.options.until).toISODate() || "";
+          }
+        } catch (e) {
+          console.error(`parse recurrence rule failed with err: ${e}`);
+          // Defaults
         }
-
-        byMonth = rule.options.bymonth
-          ? Array.isArray(rule.options.bymonth)
-            ? rule.options.bymonth
-            : [rule.options.bymonth]
-          : [];
-        byMonthDay = rule.options.bymonthday
-          ? Array.isArray(rule.options.bymonthday)
-            ? rule.options.bymonthday
-            : [rule.options.bymonthday]
-          : [];
-
-        if (rule.options.dtstart) {
-          start = DateTime.fromJSDate(rule.options.dtstart).toISODate() || "";
-        }
-        if (rule.options.until) {
-          end = DateTime.fromJSDate(rule.options.until).toISODate() || "";
-        }
-      } catch (e) {
-        console.error(`parse recurrence rule failed with err: ${e}`);
-        // Defaults
       }
-    }
-    return { freq, interval, byWeekDay, byMonth, byMonthDay, start, end };
-  }),
+      return { freq, interval, byWeekDay, byMonth, byMonthDay, start, end };
+    }),
+    updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
+      setRecurrenceState((prev) => ({ ...prev, ...updates }));
+    },
+    handleSave = () => {
+      const finalTask = { ...editedTask };
 
-   updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
-    setRecurrenceState((prev) => ({ ...prev, ...updates }));
-  },
-
-   handleSave = () => {
-    const finalTask = { ...editedTask };
-
-    // Construct RRule string if recurring
-    if (finalTask.isRecurring) {
-      try {
-        const { start, end, freq, interval, byWeekDay, byMonth, byMonthDay } =
-          recurrenceState,
-        // Helper to convert ISO string to JS Date for RRule
-         dtStart = start ? DateTime.fromISO(start).toJSDate() : undefined,
-         until = end
-          ? DateTime.fromISO(end).endOf("day").toJSDate()
-          : undefined,
-
-         rule = new RRule({
-          freq,
-          interval,
-          byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
-          bymonth: freq === RRule.YEARLY && byMonth.length > 0 ? byMonth : null,
-          bymonthday:
-            (freq === RRule.MONTHLY || freq === RRule.YEARLY) &&
-            byMonthDay.length > 0
-              ? byMonthDay
-              : null,
-          dtstart: dtStart,
-          until,
-        });
-        finalTask.recurringInterval = rule.toString();
-      } catch (e) {
-        console.error("Failed to generate RRule", e);
+      // Construct RRule string if recurring
+      if (finalTask.isRecurring) {
+        try {
+          const { start, end, freq, interval, byWeekDay, byMonth, byMonthDay } =
+              recurrenceState,
+            // Helper to convert ISO string to JS Date for RRule
+            dtStart = start ? DateTime.fromISO(start).toJSDate() : undefined,
+            until = end
+              ? DateTime.fromISO(end).endOf("day").toJSDate()
+              : undefined,
+            rule = new RRule({
+              freq,
+              interval,
+              byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
+              bymonth:
+                freq === RRule.YEARLY && byMonth.length > 0 ? byMonth : null,
+              bymonthday:
+                (freq === RRule.MONTHLY || freq === RRule.YEARLY) &&
+                byMonthDay.length > 0
+                  ? byMonthDay
+                  : null,
+              dtstart: dtStart,
+              until,
+            });
+          finalTask.recurringInterval = rule.toString();
+        } catch (e) {
+          console.error("Failed to generate RRule", e);
+        }
+      } else {
+        finalTask.recurringInterval = undefined;
       }
-    } else {
-      finalTask.recurringInterval = undefined;
-    }
 
-    onSave(finalTask);
-  },
-
-   toggleRecurrence = () => {
-    setEditedTask((prev) => ({ ...prev, isRecurring: !prev.isRecurring }));
-  },
-
-   filteredCategories = availableCategories.filter(
-    (c) =>
-      c.toLowerCase().includes((editedTask.category || "").toLowerCase()) &&
-      c.toLowerCase() !== (editedTask.category || "").toLowerCase()
-  ),
-
-   toDateTimeInput = (isoStr?: string) => {
-    if (!isoStr) {return "";}
-    const dt = DateTime.fromISO(isoStr);
-    if (!dt.isValid) {return "";}
-    return dt.toFormat("yyyy-MM-dd'T'HH:mm");
-  },
-
-   fromDateTimeInput = (val: string) => {
-    if (!val) {return "";}
-    const dt = DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm");
-    if (dt.isValid) {return dt.toISO() || "";}
-    return "";
-  };
+      onSave(finalTask);
+    },
+    toggleRecurrence = () => {
+      setEditedTask((prev) => ({ ...prev, isRecurring: !prev.isRecurring }));
+    },
+    filteredCategories = availableCategories.filter(
+      (c) =>
+        c.toLowerCase().includes((editedTask.category || "").toLowerCase()) &&
+        c.toLowerCase() !== (editedTask.category || "").toLowerCase(),
+    ),
+    toDateTimeInput = (isoStr?: string) => {
+      if (!isoStr) {
+        return "";
+      }
+      const dt = DateTime.fromISO(isoStr);
+      if (!dt.isValid) {
+        return "";
+      }
+      return dt.toFormat("yyyy-MM-dd'T'HH:mm");
+    },
+    fromDateTimeInput = (val: string) => {
+      if (!val) {
+        return "";
+      }
+      const dt = DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm");
+      if (dt.isValid) {
+        return dt.toISO() || "";
+      }
+      return "";
+    };
 
   return (
     <div className="flex flex-col max-h-[85vh]">
@@ -306,7 +305,7 @@ const EditForm: React.FC<EditFormProps> = ({
                     "flex-1 text-xs font-medium rounded-md capitalize transition-all flex items-center justify-center",
                     editedTask.priority === p
                       ? "bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-500"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
                   )}
                 >
                   {p}
@@ -404,7 +403,7 @@ const EditForm: React.FC<EditFormProps> = ({
                     "p-1.5 rounded-md",
                     editedTask.isRecurring
                       ? "bg-blue-100 text-blue-600"
-                      : "bg-slate-200 text-slate-500"
+                      : "bg-slate-200 text-slate-500",
                   )}
                 >
                   <Icon name="Repeat" size={16} />
@@ -424,7 +423,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                   editedTask.isRecurring
                     ? "bg-blue-500"
-                    : "bg-slate-200 dark:bg-slate-700"
+                    : "bg-slate-200 dark:bg-slate-700",
                 )}
               >
                 <motion.div
@@ -486,20 +485,20 @@ const EditForm: React.FC<EditFormProps> = ({
                         <div className="flex justify-between">
                           {WEEKDAYS.map((day) => {
                             const isSelected = recurrenceState.byWeekDay.some(
-                              (d) => d.weekday === day.val.weekday
+                              (d) => d.weekday === day.val.weekday,
                             );
                             return (
                               <button
                                 key={day.label + day.val.weekday}
                                 onClick={() => {
                                   const prev = recurrenceState.byWeekDay,
-                                   exists = prev.some(
-                                    (d) => d.weekday === day.val.weekday
-                                  );
+                                    exists = prev.some(
+                                      (d) => d.weekday === day.val.weekday,
+                                    );
                                   updateRecurrence({
                                     byWeekDay: exists
                                       ? prev.filter(
-                                          (d) => d.weekday !== day.val.weekday
+                                          (d) => d.weekday !== day.val.weekday,
                                         )
                                       : [...prev, day.val],
                                   });
@@ -508,7 +507,7 @@ const EditForm: React.FC<EditFormProps> = ({
                                   "w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-all border",
                                   isSelected
                                     ? "bg-blue-500 text-white border-blue-600 shadow-sm"
-                                    : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-blue-300 hover:text-blue-500"
+                                    : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-blue-300 hover:text-blue-500",
                                 )}
                               >
                                 {day.label}
@@ -530,8 +529,8 @@ const EditForm: React.FC<EditFormProps> = ({
                             <div className="grid grid-cols-6 gap-1">
                               {MONTHS.map((m, idx) => {
                                 const mVal = idx + 1,
-                                 isSelected =
-                                  recurrenceState.byMonth.includes(mVal);
+                                  isSelected =
+                                    recurrenceState.byMonth.includes(mVal);
                                 return (
                                   <button
                                     key={m}
@@ -547,7 +546,7 @@ const EditForm: React.FC<EditFormProps> = ({
                                       "py-1 text-[15px] rounded border transition-colors",
                                       isSelected
                                         ? "bg-blue-500 text-white border-blue-600"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300"
+                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
                                     )}
                                   >
                                     {m}
@@ -582,13 +581,13 @@ const EditForm: React.FC<EditFormProps> = ({
                                       "w-full aspect-square flex items-center justify-center text-[15px] rounded border transition-colors",
                                       isSelected
                                         ? "bg-blue-500 text-white border-blue-600"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300"
+                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
                                     )}
                                   >
                                     {d}
                                   </button>
                                 );
-                              }
+                              },
                             )}
                           </div>
                         </div>
@@ -628,35 +627,36 @@ const EditForm: React.FC<EditFormProps> = ({
                       {(() => {
                         try {
                           const {
-                            freq,
-                            interval,
-                            byWeekDay,
-                            byMonth,
-                            byMonthDay,
-                            start,
-                            end,
-                          } = recurrenceState,
-                           rule = new RRule({
-                            freq,
-                            interval,
-                            byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
-                            bymonth:
-                              freq === RRule.YEARLY && byMonth.length > 0
-                                ? byMonth
-                                : null,
-                            bymonthday:
-                              (freq === RRule.MONTHLY ||
-                                freq === RRule.YEARLY) &&
-                              byMonthDay.length > 0
-                                ? byMonthDay
-                                : null,
-                            dtstart: start
-                              ? DateTime.fromISO(start).toJSDate()
-                              : undefined,
-                            until: end
-                              ? DateTime.fromISO(end).endOf("day").toJSDate()
-                              : undefined,
-                          });
+                              freq,
+                              interval,
+                              byWeekDay,
+                              byMonth,
+                              byMonthDay,
+                              start,
+                              end,
+                            } = recurrenceState,
+                            rule = new RRule({
+                              freq,
+                              interval,
+                              byweekday:
+                                freq === RRule.WEEKLY ? byWeekDay : null,
+                              bymonth:
+                                freq === RRule.YEARLY && byMonth.length > 0
+                                  ? byMonth
+                                  : null,
+                              bymonthday:
+                                (freq === RRule.MONTHLY ||
+                                  freq === RRule.YEARLY) &&
+                                byMonthDay.length > 0
+                                  ? byMonthDay
+                                  : null,
+                              dtstart: start
+                                ? DateTime.fromISO(start).toJSDate()
+                                : undefined,
+                              until: end
+                                ? DateTime.fromISO(end).endOf("day").toJSDate()
+                                : undefined,
+                            });
                           return rule.toText();
                         } catch (e) {
                           console.error(`invalid recurrence rule: ${e}`);
@@ -697,31 +697,31 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   onSave,
   availableCategories,
 }) => (
-    <AnimatePresence>
-      {isOpen && task && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+  <AnimatePresence>
+    {isOpen && task && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+          exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
+        >
+          <EditForm
+            key={task.id}
+            task={task}
+            onSave={onSave}
+            onClose={onClose}
+            availableCategories={availableCategories}
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-            animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-            exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-            className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
-          >
-            <EditForm
-              key={task.id}
-              task={task}
-              onSave={onSave}
-              onClose={onClose}
-              availableCategories={availableCategories}
-            />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);

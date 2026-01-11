@@ -30,19 +30,18 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const defaultTask = taskBuilder.base({
-  id: "1",
-  title: "Complete project setup",
-  description: "Set up the component library configuration and build system",
-  priority: "high",
-  category: "Work",
-  tags: [
-    { id: "1", name: "work" },
-    { id: "2", name: "setup" },
-  ],
-}),
-
- handleSave = (task: Task) => console.log("Save task:", task),
- handleClose = () => console.log("Close modal");
+    id: "1",
+    title: "Complete project setup",
+    description: "Set up the component library configuration and build system",
+    priority: "high",
+    category: "Work",
+    tags: [
+      { id: "1", name: "work" },
+      { id: "2", name: "setup" },
+    ],
+  }),
+  handleSave = (task: Task) => console.log("Save task:", task),
+  handleClose = () => console.log("Close modal");
 
 // ========================================
 // Core Stories
@@ -278,7 +277,7 @@ export const VeryLongTitle: Story = {
   args: {
     ...Default.args,
     task: taskBuilder.base({
-      title: `${"A".repeat(200)  } very long title that should wrap properly`,
+      title: `${"A".repeat(200)} very long title that should wrap properly`,
     }),
   },
 };

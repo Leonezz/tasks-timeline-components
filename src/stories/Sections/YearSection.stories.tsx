@@ -2,7 +2,13 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { YearSection } from "../../components/YearSection";
-import type { FilterState, SortState, Task, YearGroup, AppSettings } from "../../types";
+import type {
+  FilterState,
+  SortState,
+  Task,
+  YearGroup,
+  AppSettings,
+} from "../../types";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { TasksProvider } from "../../contexts/TasksContext";
 import { settingsBuilder, taskBuilder } from "../fixtures";
@@ -23,64 +29,66 @@ const meta: Meta<YearSectionStoryArgs> = {
   decorators: [
     (Story, context) => {
       const [tasks, setTasks] = useState<Task[]>([]),
-       [isFocusMode, setIsFocusMode] = useState(false),
-       [isAiMode, setIsAiMode] = useState(false),
-       [filters, setFilters] = useState<FilterState>({
-        tags: [],
-        categories: [],
-        priorities: [],
-        statuses: [],
-        enableScript: false,
-        script: "",
-      }),
-       [sort, setSort] = useState<SortState>({
-        field: "dueAt",
-        direction: "asc",
-        script: "",
-      }),
-
-       tasksContextValue = {
-        tasks,
-        availableCategories: ["Work", "Personal", "Shopping"],
-        availableTags: ["work", "personal", "urgent"],
-        onUpdateTask: (task: Task) => {
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          console.log("Update task:", task);
+        [isFocusMode, setIsFocusMode] = useState(false),
+        [isAiMode, setIsAiMode] = useState(false),
+        [filters, setFilters] = useState<FilterState>({
+          tags: [],
+          categories: [],
+          priorities: [],
+          statuses: [],
+          enableScript: false,
+          script: "",
+        }),
+        [sort, setSort] = useState<SortState>({
+          field: "dueAt",
+          direction: "asc",
+          script: "",
+        }),
+        tasksContextValue = {
+          tasks,
+          availableCategories: ["Work", "Personal", "Shopping"],
+          availableTags: ["work", "personal", "urgent"],
+          onUpdateTask: (task: Task) => {
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            console.log("Update task:", task);
+          },
+          onDeleteTask: (id: string) => {
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+            console.log("Delete task:", id);
+          },
+          onAddTask: (task: Partial<Task>) => {
+            const newTask: Task = {
+              id: `task-${Date.now()}`,
+              title: task.title || "New Task",
+              status: "todo",
+              priority: "medium",
+              createdAt: DateTime.now().toISO()!,
+              ...task,
+            } as Task;
+            setTasks((prev) => [...prev, newTask]);
+            console.log("Add task:", newTask);
+          },
+          onEditTask: (task: Task) => console.log("Edit task:", task),
+          onAICommand: async (input: string) =>
+            console.log("AI command:", input),
         },
-        onDeleteTask: (id: string) => {
-          setTasks((prev) => prev.filter((t) => t.id !== id));
-          console.log("Delete task:", id);
-        },
-        onAddTask: (task: Partial<Task>) => {
-          const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: task.title || "New Task",
-            status: "todo",
-            priority: "medium",
-            createdAt: DateTime.now().toISO()!,
-            ...task,
-          } as Task;
-          setTasks((prev) => [...prev, newTask]);
-          console.log("Add task:", newTask);
-        },
-        onEditTask: (task: Task) => console.log("Edit task:", task),
-        onAICommand: async (input: string) => console.log("AI command:", input),
-      },
-
-       settingsContextValue = {
-        settings: (context.args as Record<string, unknown>).settings as AppSettings || settingsBuilder.default(),
-        updateSettings: (_s: Partial<AppSettings>) => console.log("Update settings:", _s),
-        isFocusMode,
-        toggleFocusMode: () => setIsFocusMode(!isFocusMode),
-        isAiMode,
-        toggleAiMode: () => setIsAiMode(!isAiMode),
-        filters,
-        onFilterChange: setFilters,
-        sort,
-        onSortChange: setSort,
-        onVoiceError: (msg: string) => console.error("Voice error:", msg),
-        onOpenSettings: () => console.log("Open settings"),
-      };
+        settingsContextValue = {
+          settings:
+            ((context.args as Record<string, unknown>)
+              .settings as AppSettings) || settingsBuilder.default(),
+          updateSettings: (_s: Partial<AppSettings>) =>
+            console.log("Update settings:", _s),
+          isFocusMode,
+          toggleFocusMode: () => setIsFocusMode(!isFocusMode),
+          isAiMode,
+          toggleAiMode: () => setIsAiMode(!isAiMode),
+          filters,
+          onFilterChange: setFilters,
+          sort,
+          onSortChange: setSort,
+          onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          onOpenSettings: () => console.log("Open settings"),
+        };
 
       return (
         <TasksProvider value={tasksContextValue}>
@@ -99,43 +107,40 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const currentYear = DateTime.now().year,
+  // Helper to create YearGroup
+  createYearGroup = (
+    year: number,
+    dayCount: number,
+    tasksPerDay: number = 3,
+    completedRatio: number = 0.5,
+  ): YearGroup => {
+    const dayGroups = Array.from({ length: dayCount }, (_, i) => {
+        const date = DateTime.local(year, 1, 1).plus({ days: i * 7 }),
+          dayTasks = taskBuilder.many(tasksPerDay, {
+            dueAt: date.toISO()!,
+          }),
+          // Mark some as completed based on ratio
+          completedCount = Math.floor(tasksPerDay * completedRatio);
+        dayTasks.slice(0, completedCount).forEach((t) => {
+          t.status = "done";
+          t.completedAt = date.toISO()!;
+        });
 
-// Helper to create YearGroup
- createYearGroup = (
-  year: number,
-  dayCount: number,
-  tasksPerDay: number = 3,
-  completedRatio: number = 0.5
-): YearGroup => {
-  const dayGroups = Array.from({ length: dayCount }, (_, i) => {
-    const date = DateTime.local(year, 1, 1).plus({ days: i * 7 }),
-     dayTasks = taskBuilder.many(tasksPerDay, {
-      dueAt: date.toISO()!,
-    }),
-
-    // Mark some as completed based on ratio
-     completedCount = Math.floor(tasksPerDay * completedRatio);
-    dayTasks.slice(0, completedCount).forEach((t) => {
-      t.status = "done";
-      t.completedAt = date.toISO()!;
-    });
+        return {
+          date: date.toISODate()!,
+          tasks: dayTasks,
+        };
+      }),
+      allTasks = dayGroups.flatMap((d) => d.tasks),
+      completedCount = allTasks.filter((t) => t.status === "done").length;
 
     return {
-      date: date.toISODate()!,
-      tasks: dayTasks,
+      year,
+      dayGroups,
+      totalTasks: allTasks.length,
+      completedTasks: completedCount,
     };
-  }),
-
-   allTasks = dayGroups.flatMap((d) => d.tasks),
-   completedCount = allTasks.filter((t) => t.status === "done").length;
-
-  return {
-    year,
-    dayGroups,
-    totalTasks: allTasks.length,
-    completedTasks: completedCount,
   };
-};
 
 // ========================================
 // Core Stories

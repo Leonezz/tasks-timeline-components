@@ -31,9 +31,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const badgeClass =
-  "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
-
- handleUpdate = (task: Task) => console.log("Updated task:", task);
+    "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",
+  handleUpdate = (task: Task) => console.log("Updated task:", task);
 
 // ========================================
 // Core Variants

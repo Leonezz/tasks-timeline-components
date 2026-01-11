@@ -3,13 +3,13 @@ import type { Task } from "./types";
 
 export const generateMockData = (): Task[] => {
   const now = DateTime.now(),
-   today = now.toISODate(), // YYYY-MM-DD
-   tomorrow = now.plus({ days: 1 }).toISODate(),
-   nextWeek = now.plus({ weeks: 1 }).toISODate(),
-   yesterday = now.minus({ days: 1 }).toISODate(),
-   lastMonth = now.minus({ months: 1 }).set({ day: 15 }).toISODate(),
-   lastYear = now.minus({ years: 1 }).set({ day: 10 }).toISODate(),
-   twoYearsAgo = now.minus({ years: 2 }).toISODate();
+    today = now.toISODate(), // YYYY-MM-DD
+    tomorrow = now.plus({ days: 1 }).toISODate(),
+    nextWeek = now.plus({ weeks: 1 }).toISODate(),
+    yesterday = now.minus({ days: 1 }).toISODate(),
+    lastMonth = now.minus({ months: 1 }).set({ day: 15 }).toISODate(),
+    lastYear = now.minus({ years: 1 }).set({ day: 10 }).toISODate(),
+    twoYearsAgo = now.minus({ years: 2 }).toISODate();
 
   return [
     // --- TODAY ---

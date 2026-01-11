@@ -13,84 +13,79 @@ interface TodoListProps {
 }
 
 export const TodoList: React.FC<TodoListProps> = ({ className }) => {
-  const {
-    tasks,
-  } = useTasksContext(),
+  const { tasks } = useTasksContext(),
+    { settings, isFocusMode } = useSettingsContext(),
+    { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
+      const today = DateTime.now(),
+        todayStr = today.toISODate(),
+        // 1. Filter based on "Show Completed" setting
+        visibleTasks = settings.showCompleted
+          ? tasks
+          : tasks.filter(
+              (t) => t.status !== "done" && t.status !== "cancelled",
+            ),
+        // 2. Identify "Dated" vs "Truly Undated" tasks
+        datedTasks: Task[] = [],
+        trulyUndatedTasks: Task[] = [],
+        dateFields: DateGroupBy[] = [
+          "dueAt",
+          "startAt",
+          "createdAt",
+          "completedAt",
+        ];
 
-   { settings, isFocusMode } =
-    useSettingsContext(),
-   { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
-    const today = DateTime.now(),
-     todayStr = today.toISODate(),
+      visibleTasks.forEach((task) => {
+        // A task is only backlog if it has NO valid dates in ANY field
+        const hasAnyValidDate = dateFields.some((field) => {
+          const val = task[field];
+          return val && DateTime.fromISO(val).isValid;
+        });
 
-    // 1. Filter based on "Show Completed" setting
-     visibleTasks = settings.showCompleted
-      ? tasks
-      : tasks.filter((t) => t.status !== "done" && t.status !== "cancelled"),
-
-    // 2. Identify "Dated" vs "Truly Undated" tasks
-     datedTasks: Task[] = [],
-     trulyUndatedTasks: Task[] = [],
-
-     dateFields: DateGroupBy[] = [
-      "dueAt",
-      "startAt",
-      "createdAt",
-      "completedAt",
-    ];
-
-    visibleTasks.forEach((task) => {
-      // A task is only backlog if it has NO valid dates in ANY field
-      const hasAnyValidDate = dateFields.some((field) => {
-        const val = task[field];
-        return val && DateTime.fromISO(val).isValid;
+        if (hasAnyValidDate) {
+          datedTasks.push(task);
+        } else {
+          trulyUndatedTasks.push(task);
+        }
       });
 
-      if (hasAnyValidDate) {
-        datedTasks.push(task);
-      } else {
-        trulyUndatedTasks.push(task);
-      }
-    });
-
-    // 3. Group the "Dated" tasks.
-    const allGroups = groupTasksByYearAndDate(
-      datedTasks,
-      settings.groupingStrategy
-    );
-
-    // 4. Extract "Today" group from the hierarchy for featured display
-    let foundTodayGroup: DayGroup | null = null;
-    const finalYearGroups = [];
-
-    for (const yearGrp of allGroups) {
-      // Check if today exists in this year
-      const todayGroupInYear = yearGrp.dayGroups.find(
-        (dg) => dg.date === todayStr
+      // 3. Group the "Dated" tasks.
+      const allGroups = groupTasksByYearAndDate(
+        datedTasks,
+        settings.groupingStrategy,
       );
 
-      if (todayGroupInYear) {
-        foundTodayGroup = todayGroupInYear;
-        const remainingDays = yearGrp.dayGroups.filter(
-          (dg) => dg.date !== todayStr
+      // 4. Extract "Today" group from the hierarchy for featured display
+      let foundTodayGroup: DayGroup | null = null;
+      const finalYearGroups = [];
+
+      for (const yearGrp of allGroups) {
+        // Check if today exists in this year
+        const todayGroupInYear = yearGrp.dayGroups.find(
+          (dg) => dg.date === todayStr,
         );
-        // Only keep year if it has days left
-        if (remainingDays.length > 0) {
-          finalYearGroups.push({ ...yearGrp, dayGroups: remainingDays });
+
+        if (todayGroupInYear) {
+          foundTodayGroup = todayGroupInYear;
+          const remainingDays = yearGrp.dayGroups.filter(
+            (dg) => dg.date !== todayStr,
+          );
+          // Only keep year if it has days left
+          if (remainingDays.length > 0) {
+            finalYearGroups.push({ ...yearGrp, dayGroups: remainingDays });
+          }
+        } else {
+          finalYearGroups.push(yearGrp);
         }
-      } else {
-        finalYearGroups.push(yearGrp);
       }
-    }
 
-    const finalToday = foundTodayGroup || { date: todayStr!, tasks: [] };
+      const finalToday = foundTodayGroup || { date: todayStr!, tasks: [] };
 
-    return {
-      todayGroup: finalToday,
-      otherYearGroups: finalYearGroups,
-      backlogTasks: trulyUndatedTasks,
-    };
-  }, [tasks, settings.showCompleted, settings.groupingStrategy]);
+      return {
+        todayGroup: finalToday,
+        otherYearGroups: finalYearGroups,
+        backlogTasks: trulyUndatedTasks,
+      };
+    }, [tasks, settings.showCompleted, settings.groupingStrategy]);
 
   return (
     <div className={className}>
@@ -107,25 +102,18 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
               : ""}
           </span>
         </div>
-        <DaySection
-          group={todayGroup}
-        />
+        <DaySection group={todayGroup} />
       </div>
 
       {/* Timeline - Hidden in Focus Mode */}
       {!isFocusMode &&
         otherYearGroups.map((group) => (
-          <YearSection
-            key={group.year}
-            group={group}
-          />
+          <YearSection key={group.year} group={group} />
         ))}
 
       {/* Backlog Section - Hidden in Focus Mode */}
       {!isFocusMode && backlogTasks.length > 0 && (
-        <BacklogSection
-          tasks={backlogTasks}
-        />
+        <BacklogSection tasks={backlogTasks} />
       )}
 
       {/* Empty State */}

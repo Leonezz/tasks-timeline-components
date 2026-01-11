@@ -23,9 +23,12 @@ export const PriorityPopover = ({
 }: PriorityPopoverProps) => {
   const p = task.priority;
   let colorClass = "text-slate-600 bg-slate-100 border-slate-200";
-  if (p === "high") {colorClass = "text-rose-700 bg-rose-100 border-rose-200";}
-  if (p === "medium")
-    {colorClass = "text-amber-700 bg-amber-100 border-amber-200";}
+  if (p === "high") {
+    colorClass = "text-rose-700 bg-rose-100 border-rose-200";
+  }
+  if (p === "medium") {
+    colorClass = "text-amber-700 bg-amber-100 border-amber-200";
+  }
 
   const { portalContainer } = useAppContext();
 
@@ -57,7 +60,7 @@ export const PriorityPopover = ({
                   "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start!",
                   task.priority === opt
                     ? "bg-slate-100 font-bold"
-                    : "hover:opacity-80 text-slate-600"
+                    : "hover:opacity-80 text-slate-600",
                 )}
               >
                 <Icon
@@ -67,8 +70,8 @@ export const PriorityPopover = ({
                     opt === "high"
                       ? "text-rose-500"
                       : opt === "medium"
-                      ? "text-amber-500"
-                      : "text-slate-400"
+                        ? "text-amber-500"
+                        : "text-slate-400"
                   }
                 />
                 <span className="capitalize">{opt}</span>

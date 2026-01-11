@@ -26,7 +26,7 @@ export class BrowserTaskRepository implements TaskRepository {
       const parsed = JSON.parse(data);
       logger.debug(
         "Storage",
-        `Loaded ${parsed.length} tasks from local storage.`
+        `Loaded ${parsed.length} tasks from local storage.`,
       );
       return parsed;
     } catch (e) {
@@ -37,7 +37,9 @@ export class BrowserTaskRepository implements TaskRepository {
   }
 
   async saveTasks(tasks: Task[]): Promise<void> {
-    if (this.tasksSaveTimeout) {window.clearTimeout(this.tasksSaveTimeout);}
+    if (this.tasksSaveTimeout) {
+      window.clearTimeout(this.tasksSaveTimeout);
+    }
 
     return new Promise((resolve) => {
       this.tasksSaveTimeout = window.setTimeout(() => {
@@ -56,7 +58,7 @@ export class BrowserTaskRepository implements TaskRepository {
 
   async updateTask(task: Task): Promise<void> {
     const tasks = await this.loadTasks(),
-     index = tasks.findIndex((t) => t.id === task.id);
+      index = tasks.findIndex((t) => t.id === task.id);
     if (index !== -1) {
       tasks[index] = task;
       await this.saveTasks(tasks);
@@ -65,7 +67,7 @@ export class BrowserTaskRepository implements TaskRepository {
 
   async deleteTask(id: string): Promise<void> {
     const tasks = await this.loadTasks(),
-     filtered = tasks.filter((t) => t.id !== id);
+      filtered = tasks.filter((t) => t.id !== id);
     await this.saveTasks(filtered);
   }
 }
@@ -80,7 +82,9 @@ export class BrowserSettingsRepository implements SettingsRepository {
 
   async loadSettings(): Promise<AppSettings | null> {
     const data = localStorage.getItem(this.settingsKey);
-    if (!data) {return null;}
+    if (!data) {
+      return null;
+    }
     try {
       const parsed = JSON.parse(data);
       logger.debug("Storage", "Loaded settings from local storage.");
@@ -92,7 +96,9 @@ export class BrowserSettingsRepository implements SettingsRepository {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
-    if (this.settingsSaveTimeout) {window.clearTimeout(this.settingsSaveTimeout);}
+    if (this.settingsSaveTimeout) {
+      window.clearTimeout(this.settingsSaveTimeout);
+    }
 
     return new Promise((resolve) => {
       this.settingsSaveTimeout = window.setTimeout(() => {
@@ -131,7 +137,7 @@ export class RemoteTaskRepository implements TaskRepository {
       "Cloud Sync: Saving all tasks to ",
       this.baseUrl,
       ", tasks: ",
-      tasks
+      tasks,
     );
   }
 
