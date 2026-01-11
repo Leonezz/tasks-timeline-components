@@ -18,7 +18,7 @@ const meta: Meta<typeof CategoryPopover> = {
   },
   decorators: [
     (Story) => (
-      <AppProvider container={document.body}>
+      <AppProvider>
         <div className="p-4 bg-slate-50 min-w-[250px]">
           <Story />
         </div>

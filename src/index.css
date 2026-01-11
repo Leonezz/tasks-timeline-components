@@ -221,7 +221,7 @@
   --font-mono: "JetBrains Mono", monospace;
 
   --color-white: var(--tt-c-white);
-  --color-paper: var(--tt-c-white);
+  --color-paper: var(--tt-c-paper);
 
   --color-slate-50: var(--tt-s-50);
   --color-slate-100: var(--tt-s-100);

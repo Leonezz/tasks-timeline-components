@@ -11,7 +11,6 @@ import type {
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { MotionButton, MotionDiv } from "./Motion";
-import { useAppContext } from "./AppContextProvider";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -432,7 +431,6 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
   children,
   onClear,
 }) => {
-  const { portalContainer } = useAppContext();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -470,16 +468,15 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
         collisionPadding={16}
         className="outline-none w-auto p-0"
         style={{ zIndex: 99999 }}
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95, y: -5 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -5 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="w-56 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
+          className="w-56 bg-slate-50 border border-slate-200 shadow-lg rounded-lg overflow-hidden p-1"
         >
-          <div className="flex justify-between items-center px-3 py-2 border-b border-slate-100/50 mb-1">
+          <div className="flex justify-between items-center px-3 py-2 border-b border-slate-200 mb-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               {label}
             </span>
@@ -507,8 +504,7 @@ interface SortPopoverProps {
 }
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
-  const { portalContainer } = useAppContext(),
-    fields: {
+  const fields: {
       label: string;
       value: SortField;
       icon: keyof typeof Lucide;
@@ -517,8 +513,9 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
       { label: "Created Date", value: "createdAt", icon: "Clock" },
       { label: "Priority", value: "priority", icon: "Flag" },
       { label: "Title", value: "title", icon: "Type" },
-    ],
-    handleFieldSelect = (field: SortField) => {
+    ];
+
+  const handleFieldSelect = (field: SortField) => {
       if (sort.field === field) {
         onSortChange({
           ...sort,
@@ -544,16 +541,15 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
         collisionPadding={16}
         className="outline-none w-auto p-0"
         style={{ zIndex: 99999 }}
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95, y: -5 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -5 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="w-48 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-xl overflow-hidden p-1 ring-1 ring-slate-900/5"
+          className="w-48 bg-slate-50 border border-slate-200 shadow-lg rounded-lg overflow-hidden p-1"
         >
-          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100/50 mb-1">
+          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 mb-1">
             Sort By
           </div>
           <div className="flex flex-col gap-0.5">

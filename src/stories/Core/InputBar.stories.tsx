@@ -85,7 +85,7 @@ const meta: Meta<typeof InputBar> = {
         };
 
       return (
-        <AppProvider container={document.body}>
+        <AppProvider>
           <TasksProvider value={tasksContextValue}>
             <SettingsProvider value={settingsContextValue}>
               <div className="w-full max-w-2xl mx-auto p-4">

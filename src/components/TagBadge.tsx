@@ -1,6 +1,5 @@
 import type { Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import {
@@ -23,7 +22,6 @@ export const TagBadge = ({
   task,
   onUpdate,
 }: TagBadgeProps) => {
-  const { portalContainer } = useAppContext();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -43,7 +41,6 @@ export const TagBadge = ({
         align="center"
         sideOffset={4}
         className="z-9999 outline-none w-auto p-0"
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95 }}

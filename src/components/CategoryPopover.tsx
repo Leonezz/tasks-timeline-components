@@ -1,6 +1,5 @@
 import type { Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import { useState } from "react";
@@ -24,13 +23,12 @@ export const CategoryPopover = ({
   availableCategories,
   badgeClass,
 }: CategoryPopoverProps) => {
-  const [val, setVal] = useState(task.category || ""),
-    // Filter available categories for suggestions
-    suggestions =
-      availableCategories
-        .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
-        .slice(0, 5) || [],
-    { portalContainer } = useAppContext();
+  const [val, setVal] = useState(task.category || "");
+  // Filter available categories for suggestions
+  const suggestions =
+    availableCategories
+      .filter((c) => c.toLowerCase().includes(val.toLowerCase()) && c !== val)
+      .slice(0, 5) || [];
 
   return (
     <Popover>
@@ -51,7 +49,6 @@ export const CategoryPopover = ({
         align="start"
         sideOffset={4}
         className="z-9999 outline-none w-48 p-2"
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95 }}

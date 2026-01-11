@@ -4,7 +4,6 @@ import type { Task, TaskStatus } from "../types";
 import { cn, formatRecurrence, formatSmartDate, formatTime } from "../utils";
 import { Icon } from "./Icon";
 import { MotionButton, MotionDiv } from "./Motion";
-import { useAppContext } from "./AppContextProvider";
 import { DateBadge } from "./DateBadge";
 import { TagBadge } from "./TagBadge";
 import { PriorityPopover } from "./PriorityPopover";
@@ -40,7 +39,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     [deleteConfirm, setDeleteConfirm] = useState(false),
     deleteTimeoutRef = useRef<number | null>(null),
     inputRef = useRef<HTMLInputElement>(null),
-    { portalContainer } = useAppContext(),
     isDone = task.status === "done",
     isCancelled = task.status === "cancelled",
     today = new Date().toISOString().split("T")[0],
@@ -290,7 +288,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             sideOffset={5}
             collisionPadding={10}
             className="z-9999 outline-none w-44 p-1.5"
-            container={portalContainer}
           >
             <MotionDiv
               initial={{ opacity: 0, scale: 0.9, y: -5 }}

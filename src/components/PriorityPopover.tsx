@@ -1,6 +1,5 @@
 import type { Priority, Task } from "@/types";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import { cn } from "@/utils";
 import {
@@ -30,7 +29,6 @@ export const PriorityPopover = ({
     colorClass = "text-amber-700 bg-amber-100 border-amber-200";
   }
 
-  const { portalContainer } = useAppContext();
 
   return (
     <Popover>
@@ -45,7 +43,6 @@ export const PriorityPopover = ({
         align="start"
         sideOffset={4}
         className="z-9999 outline-none w-auto p-1"
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95 }}

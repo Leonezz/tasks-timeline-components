@@ -3,7 +3,6 @@ import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
 import { useState } from "react";
 import { Icon } from "./Icon";
-import { useAppContext } from "./AppContextProvider";
 import { MotionDiv } from "./Motion";
 import {
   Popover,
@@ -60,14 +59,13 @@ export const DateBadge = ({
     inputType =
       type === "startAt" || type === "createdAt" || type === "completedAt"
         ? "datetime-local"
-        : "date",
-    titleMap = {
-      dueDate: "Change Due Date",
-      startAt: "Change Start Date",
-      createdAt: "Change Created Date",
-      completedAt: "Change Completed Date",
-    },
-    { portalContainer } = useAppContext();
+        : "date";
+  const titleMap = {
+    dueDate: "Change Due Date",
+    startAt: "Change Start Date",
+    createdAt: "Change Created Date",
+    completedAt: "Change Completed Date",
+  };
 
   return (
     <Popover>
@@ -85,7 +83,6 @@ export const DateBadge = ({
         align="start"
         sideOffset={4}
         className="z-9999 outline-none w-auto p-2.5"
-        container={portalContainer}
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95 }}

@@ -274,21 +274,23 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     [filters, setFilters] = useState<FilterState>(settings.filters),
     [sort, setSort] = useState<SortState>(settings.sort);
 
+  // Compute effective theme
+  const effectiveTheme =
+    settings.theme === "system"
+      ? systemInDarkMode
+        ? "midnight"
+        : "light"
+      : settings.theme;
+
   // Apply Theme (Reactive to settings change)
   useEffect(() => {
     logger.info("App", "system in dark mode: ", systemInDarkMode);
     if (!containerElement) {
       return;
     }
-    if (settings.theme === "system") {
-      const theme = systemInDarkMode ? "midnight" : "light";
-      logger.info("App", "adjust system theme to: ", theme);
-      containerElement.setAttribute("data-theme", theme);
-    } else {
-      logger.info("App", "set theme: ", settings.theme);
-      containerElement.setAttribute("data-theme", settings.theme);
-    }
-  }, [settings.theme, containerElement, systemInDarkMode]);
+    logger.info("App", "set theme on outer container: ", effectiveTheme);
+    containerElement.setAttribute("data-theme", effectiveTheme);
+  }, [effectiveTheme, containerElement, systemInDarkMode]);
 
   const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
       tasks,
@@ -470,7 +472,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         className,
       )}
     >
-      <AppProvider container={containerElement}>
+      <AppProvider theme={effectiveTheme}>
         <TasksProvider
           value={{
             tasks: processedTasks,

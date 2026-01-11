@@ -102,7 +102,7 @@ const meta: Meta<TaskItemStoryArgs> = {
         };
 
       return (
-        <AppProvider container={document.body}>
+        <AppProvider>
           <TasksProvider value={tasksContextValue}>
             <SettingsProvider value={settingsContextValue}>
               <div className="p-4 bg-white min-w-80">
