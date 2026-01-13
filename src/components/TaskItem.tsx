@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as Lucide from "lucide-react";
+import { DateTime } from "luxon";
 import type { Task, TaskStatus } from "../types";
-import { cn, formatRecurrence, formatSmartDate, formatTime } from "../utils";
+import {
+  cn,
+  formatRecurrence,
+  formatSmartDate,
+  formatTime,
+  type DateValidationState,
+} from "../utils";
 import { Icon } from "./Icon";
 import { MotionButton, MotionDiv } from "./Motion";
 import { DateBadge } from "./DateBadge";
@@ -19,13 +26,16 @@ import {
 
 interface TaskItemProps {
   task: Task;
-  missingStrategies?: string[];
+  dateValidation?: DateValidationState;
 }
 
-export const TaskItem: React.FC<TaskItemProps> = ({
-  task,
-  missingStrategies,
-}) => {
+/** Check if a date string is valid ISO format */
+const isValidDate = (dateStr?: string): boolean => {
+  if (!dateStr) return false;
+  return DateTime.fromISO(dateStr).isValid;
+};
+
+export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
   const {
       onUpdateTask,
       onDeleteTask,
@@ -80,7 +90,29 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   }, [isEditing]);
 
   const handleStatusChange = (newStatus: TaskStatus) => {
-      onUpdateTask({ ...task, status: newStatus });
+      const now = DateTime.now().toISO();
+      const updates: Partial<Task> = { status: newStatus };
+
+      // Auto-populate startAt when transitioning to doing/scheduled from todo
+      if (
+        (newStatus === "doing" || newStatus === "scheduled") &&
+        !task.startAt &&
+        task.status === "todo"
+      ) {
+        updates.startAt = now || undefined;
+      }
+
+      // Auto-populate completedAt when transitioning to done
+      if (newStatus === "done" && !task.completedAt) {
+        updates.completedAt = now || undefined;
+      }
+
+      // Auto-populate cancelledAt when transitioning to cancelled
+      if (newStatus === "cancelled" && !task.cancelledAt) {
+        updates.cancelledAt = now || undefined;
+      }
+
+      onUpdateTask({ ...task, ...updates });
     },
     handleSaveEdit = () => {
       if (editTitle.trim()) {
@@ -192,20 +224,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           return "text-slate-300 group-hover:text-slate-400";
       }
     },
-    getStrategyLabel = (s: string) => {
-      switch (s) {
-        case "dueAt":
-          return "Due Date";
-        case "createdAt":
-          return "Created Date";
-        case "startAt":
-          return "Start Date";
-        case "completedAt":
-          return "Completed Date";
-        default:
-          return s;
-      }
-    },
     renderStatusIcon = (status: TaskStatus, size = 16) => (
       <Icon
         name={getStatusIconName(status)}
@@ -240,21 +258,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         (isDone || isCancelled) && "opacity-60",
         isUrgent
           ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
-          : "hover:bg-slate-50 border border-transparent"
+          : "hover:bg-slate-50 border border-transparent",
       )}
     >
       {/* Timeline Column */}
       <div
         className={cn(
           "relative flex flex-col items-center shrink-0 w-6",
-          iconTopSpacing
+          iconTopSpacing,
         )}
       >
         {/* Head Line */}
         <div
           className={cn(
             "absolute -top-1 h-6.5 w-px left-1/2 -translate-x-1/2 group-first:hidden",
-            "bg-slate-200"
+            "bg-slate-200",
           )}
         />
 
@@ -262,7 +280,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2 group-last:hidden",
-            getLineColor(task.status)
+            getLineColor(task.status),
           )}
         />
 
@@ -274,7 +292,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 "relative z-10 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus:ring-2 focus:ring-slate-200 rounded-full",
                 isUrgent
                   ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
-                  : "bg-white hover:bg-slate-50"
+                  : "bg-white hover:bg-slate-50",
               )}
               title={`Change Status (Current: ${task.status})`}
             >
@@ -307,7 +325,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                           // Active (Selected) State: A solid, subtle background
                           task.status === option
                             ? "bg-slate-200/60 text-slate-900 font-semibold"
-                            : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]"
+                            : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]",
                         )}
                       >
                         <div
@@ -315,7 +333,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                             "shrink-0",
                             task.status === option
                               ? "opacity-100"
-                              : "opacity-70"
+                              : "opacity-70",
                           )}
                         >
                           {renderStatusIcon(option, 14)}
@@ -354,7 +372,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               onKeyDown={handleKeyDown}
               className={cn(
                 "flex-1 min-w-0 bg-transparent border-b border-blue-400 focus:outline-none font-medium text-slate-800 pb-0.5",
-                fontSizeClass
+                fontSizeClass,
               )}
             />
           ) : (
@@ -367,7 +385,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   isDone && "line-through text-slate-500 decoration-slate-300",
                   isCancelled &&
                     "line-through text-slate-400 decoration-slate-300",
-                  isUrgent && "text-rose-700 font-semibold"
+                  isUrgent && "text-rose-700 font-semibold",
                 )}
               >
                 {task.title}
@@ -389,7 +407,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div
           className={cn(
             "flex flex-wrap items-center gap-2 font-medium text-slate-500",
-            metadataSizeClass
+            metadataSizeClass,
           )}
           onClick={(e) => {
             if (!onItemClick) {
@@ -407,21 +425,25 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             badgeClass={badgeClass}
           />
 
-          {/* Missing Warnings */}
-          {missingStrategies &&
-            missingStrategies.length > 0 &&
-            missingStrategies.map((s) => (
+          {/* Date Validation Warning */}
+          {dateValidation &&
+            (dateValidation.hasInvalidDates ? (
               <div
-                key={s}
                 className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-rose-600 bg-rose-50 border-rose-200"
-                title={`This task has no ${getStrategyLabel(s)}`}
+                title="One or more dates have an invalid format"
+              >
+                <Icon name="AlertTriangle" size={10} />
+                <span className="text-[10px]">Invalid Date</span>
+              </div>
+            ) : dateValidation.hasMissingDates ? (
+              <div
+                className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-amber-600 bg-amber-50 border-amber-200"
+                title="This task has no dates set"
               >
                 <Icon name="AlertCircle" size={10} />
-                <span className="text-[10px]">
-                  Missing {getStrategyLabel(s)}
-                </span>
+                <span className="text-[10px]">No Dates</span>
               </div>
-            ))}
+            ) : null)}
 
           {task.category && (
             <CategoryPopover
@@ -433,75 +455,75 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           )}
 
           {!settings.groupingStrategy.includes("createdAt") &&
-            task.createdAt && (
+            isValidDate(task.createdAt) && (
               <DateBadge
                 type="createdAt"
-                date={task.createdAt}
+                date={task.createdAt!}
                 label={formatSmartDate(
-                  task.createdAt,
+                  task.createdAt!,
                   settings.useRelativeDates,
-                  settings.dateFormat
+                  settings.dateFormat,
                 )}
                 task={task}
                 onUpdate={onUpdateTask}
                 icon="Plus"
                 className={cn(
                   badgeClass,
-                  "text-slate-500 bg-slate-50 border-slate-200"
+                  "text-slate-500 bg-slate-50 border-slate-200",
                 )}
               />
             )}
-          {task.startAt && (
+          {isValidDate(task.startAt) && (
             <DateBadge
               type="startAt"
-              date={task.startAt}
+              date={task.startAt!}
               label={formatSmartDate(
-                task.startAt,
+                task.startAt!,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}
               icon="PlayCircle"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-50 border-slate-200"
+                "text-slate-500 bg-slate-50 border-slate-200",
               )}
             />
           )}
-          {task.dueAt && (
+          {isValidDate(task.dueAt) && (
             <DateBadge
               type="dueDate"
-              date={task.dueAt}
+              date={task.dueAt!}
               label={`Due: ${formatSmartDate(
-                task.dueAt,
+                task.dueAt!,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}`}
               icon="Calendar"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                getDueDateColor(task.dueAt, task.status)
+                getDueDateColor(task.dueAt!, task.status),
               )}
             />
           )}
-          {task.completedAt && (
+          {isValidDate(task.completedAt) && (
             <DateBadge
               type="completedAt"
-              date={task.completedAt}
+              date={task.completedAt!}
               label={`Done: ${formatSmartDate(
-                task.completedAt,
+                task.completedAt!,
                 settings.useRelativeDates,
-                settings.dateFormat
+                settings.dateFormat,
               )}`}
               icon="CheckCircle2"
               task={task}
               onUpdate={onUpdateTask}
               className={cn(
                 badgeClass,
-                "text-emerald-600 bg-emerald-50 border-emerald-200"
+                "text-emerald-600 bg-emerald-50 border-emerald-200",
               )}
             />
           )}
@@ -509,7 +531,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <div
               className={cn(
                 badgeClass,
-                "text-slate-500 bg-slate-100 border-slate-200 cursor-default"
+                "text-slate-500 bg-slate-100 border-slate-200 cursor-default",
               )}
               title={formatRecurrence(task.recurringInterval)}
             >
@@ -554,7 +576,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           "absolute top-2 right-1 p-1.5 rounded-md transition-all",
           deleteConfirm
             ? "bg-rose-100 text-rose-600 opacity-100"
-            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100"
+            : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100",
         )}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}

@@ -4,6 +4,7 @@ import type { Task } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
+import { computeDateValidation } from "../utils";
 import {
   Collapsible,
   CollapsibleContent,
@@ -56,7 +57,10 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({ tasks }) => {
                     <TaskItem
                       key={task.id}
                       task={task}
-                      missingStrategies={settings.groupingStrategy}
+                      dateValidation={computeDateValidation(
+                        task,
+                        settings.groupingStrategy,
+                      )}
                     />
                   ))}
                 </div>
