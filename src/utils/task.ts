@@ -7,6 +7,56 @@ import type {
   YearGroup,
 } from "../types";
 
+export interface DateValidationState {
+  hasMissingDates: boolean;
+  hasInvalidDates: boolean;
+}
+
+export const computeDateValidation = (
+  task: Task,
+  strategies: DateGroupBy[],
+): DateValidationState | undefined => {
+  const dateFields: DateGroupBy[] = [
+    "dueAt",
+    "startAt",
+    "createdAt",
+    "completedAt",
+  ];
+
+  let hasMissingDates = false;
+  let hasInvalidDates = false;
+
+  // Check strategy-required dates
+  for (const strategy of strategies) {
+    const value = task[strategy];
+    if (!value) {
+      hasMissingDates = true;
+    } else {
+      const dt = DateTime.fromISO(value);
+      if (!dt.isValid) {
+        hasInvalidDates = true;
+      }
+    }
+  }
+
+  // Check all populated dates for validity
+  for (const field of dateFields) {
+    const value = task[field];
+    if (value) {
+      const dt = DateTime.fromISO(value);
+      if (!dt.isValid) {
+        hasInvalidDates = true;
+      }
+    }
+  }
+
+  if (!hasMissingDates && !hasInvalidDates) {
+    return undefined; // No badge needed
+  }
+
+  return { hasMissingDates, hasInvalidDates };
+};
+
 const safeDate = (dateStr: string): DateTime => {
   if (!dateStr) {
     return DateTime.invalid("No date");

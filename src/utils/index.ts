@@ -7,7 +7,12 @@ export {
   formatSmartDate,
   formatRecurrence,
 } from "./date";
-export { deriveTaskStatus, groupTasksByYearAndDate } from "./task";
+export {
+  deriveTaskStatus,
+  groupTasksByYearAndDate,
+  computeDateValidation,
+  type DateValidationState,
+} from "./task";
 export { parseTaskString } from "./parsing";
 export { getToolDefinitions } from "./ai-tools";
 
