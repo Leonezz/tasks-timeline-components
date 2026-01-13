@@ -10,6 +10,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { cn } from "../utils";
 
 interface DateBadgeProps {
   task: Task;
@@ -32,34 +34,50 @@ export const DateBadge = ({
   onUpdate,
   task,
 }: DateBadgeProps) => {
-  const [val, setVal] = useState(() => {
-      if (!date) {
-        return "";
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    if (!date) return undefined;
+    const dt = DateTime.fromISO(date);
+    return dt.isValid ? dt.toJSDate() : undefined;
+  });
+
+  const [timeValue, setTimeValue] = useState(() => {
+    if (!date) return "00:00";
+    const dt = DateTime.fromISO(date);
+    return dt.isValid ? dt.toFormat("HH:mm") : "00:00";
+  });
+
+  const showTime =
+    type === "startAt" || type === "createdAt" || type === "completedAt";
+
+  const dateLabel = type.endsWith("At")
+    ? type.slice(0, type.length - 2).toUpperCase()
+    : "";
+
+  const handleDateSelect = (newDate: Date | undefined) => {
+    setSelectedDate(newDate);
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTimeValue(e.target.value);
+  };
+
+  const handleDateSave = () => {
+    let newDate = "";
+    if (selectedDate) {
+      let dt = DateTime.fromJSDate(selectedDate);
+
+      if (showTime && timeValue) {
+        const [hours, minutes] = timeValue.split(":").map(Number);
+        dt = dt.set({ hour: hours, minute: minutes });
       }
-      const dt = DateTime.fromISO(date);
-      return dt.isValid
-        ? type === "startAt" || type === "createdAt" || type === "completedAt"
-          ? dt.toFormat("yyyy-MM-dd'T'HH:mm")
-          : dt.toISODate()
-        : "";
-    }),
-    dateLabel = type.endsWith("At")
-      ? type.slice(0, type.length - 2).toUpperCase()
-      : "",
-    handleDateSave = () => {
-      let newDate = "";
-      if (val) {
-        newDate =
-          type === "startAt" || type === "createdAt" || type === "completedAt"
-            ? DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm").toISO() || ""
-            : DateTime.fromISO(val).toISODate() || "";
-      }
-      onUpdate({ ...task, [type]: newDate });
-    },
-    inputType =
-      type === "startAt" || type === "createdAt" || type === "completedAt"
-        ? "datetime-local"
-        : "date";
+
+      newDate = showTime ? dt.toISO() || "" : dt.toISODate() || "";
+    }
+
+    const fieldKey = type === "dueDate" ? "dueAt" : type;
+    onUpdate({ ...task, [fieldKey]: newDate });
+  };
+
   const titleMap = {
     dueDate: "Change Due Date",
     startAt: "Change Start Date",
@@ -82,26 +100,48 @@ export const DateBadge = ({
         side="bottom"
         align="start"
         sideOffset={4}
-        className="z-9999 outline-none w-auto p-2.5"
+        className="z-9999 outline-none w-auto p-0"
       >
         <MotionDiv
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <input
-            type={inputType}
-            value={val || ""}
-            onChange={(e) => setVal(e.target.value)}
-            className="border border-slate-200 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 mb-3 block w-full"
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleDateSelect}
           />
-          <PopoverClose asChild>
-            <button
-              onClick={handleDateSave}
-              className="w-full text-blue-600! text-xs font-bold py-1.5 rounded shadow-sm transition-all"
-            >
-              Save {dateLabel} date
-            </button>
-          </PopoverClose>
+
+          {showTime && (
+            <div className="border-t border-border px-3 py-2">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                Time
+              </label>
+              <input
+                type="time"
+                value={timeValue}
+                onChange={handleTimeChange}
+                className={cn(
+                  "w-full px-3 py-2 bg-background border border-input rounded-md text-sm",
+                  "focus:ring-2 focus:ring-ring focus:border-ring outline-none",
+                )}
+              />
+            </div>
+          )}
+
+          <div className="border-t border-border p-2">
+            <PopoverClose asChild>
+              <button
+                onClick={handleDateSave}
+                className={cn(
+                  "w-full text-primary text-xs font-semibold py-2 rounded-md",
+                  "hover:bg-accent transition-colors",
+                )}
+              >
+                Save {dateLabel} date
+              </button>
+            </PopoverClose>
+          </div>
         </MotionDiv>
       </PopoverContent>
     </Popover>

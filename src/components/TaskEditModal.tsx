@@ -5,6 +5,7 @@ import { DateTime } from "luxon";
 import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
 import { cn } from "../utils";
+import { DatePicker } from "./ui/date-picker";
 
 interface TaskEditModalProps {
   isOpen: boolean;
@@ -156,27 +157,7 @@ const EditForm: React.FC<EditFormProps> = ({
       (c) =>
         c.toLowerCase().includes((editedTask.category || "").toLowerCase()) &&
         c.toLowerCase() !== (editedTask.category || "").toLowerCase(),
-    ),
-    toDateTimeInput = (isoStr?: string) => {
-      if (!isoStr) {
-        return "";
-      }
-      const dt = DateTime.fromISO(isoStr);
-      if (!dt.isValid) {
-        return "";
-      }
-      return dt.toFormat("yyyy-MM-dd'T'HH:mm");
-    },
-    fromDateTimeInput = (val: string) => {
-      if (!val) {
-        return "";
-      }
-      const dt = DateTime.fromFormat(val, "yyyy-MM-dd'T'HH:mm");
-      if (dt.isValid) {
-        return dt.toISO() || "";
-      }
-      return "";
-    };
+    );
 
   return (
     <div className="flex flex-col max-h-[85vh]">
@@ -324,17 +305,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label className="text-[10px] font-semibold text-slate-500 uppercase">
                 Created
               </label>
-              <input
-                type="datetime-local"
-                value={toDateTimeInput(editedTask.createdAt)}
-                onChange={(e) =>
+              <DatePicker
+                value={editedTask.createdAt}
+                onChange={(value) =>
                   setEditedTask({
                     ...editedTask,
-                    createdAt:
-                      fromDateTimeInput(e.target.value) || editedTask.createdAt,
+                    createdAt: value || editedTask.createdAt,
                   })
                 }
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-700"
+                showTime
+                placeholder="Select created date"
               />
             </div>
 
@@ -342,16 +322,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label className="text-[10px] font-semibold text-slate-500 uppercase">
                 Due
               </label>
-              <input
-                type="datetime-local"
-                value={toDateTimeInput(editedTask.dueAt)}
-                onChange={(e) =>
+              <DatePicker
+                value={editedTask.dueAt}
+                onChange={(value) =>
                   setEditedTask({
                     ...editedTask,
-                    dueAt: fromDateTimeInput(e.target.value),
+                    dueAt: value,
                   })
                 }
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-700"
+                showTime
+                placeholder="Select due date"
               />
             </div>
 
@@ -359,16 +339,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label className="text-[10px] font-semibold text-slate-500 uppercase">
                 Start At
               </label>
-              <input
-                type="datetime-local"
-                value={toDateTimeInput(editedTask.startAt)}
-                onChange={(e) =>
+              <DatePicker
+                value={editedTask.startAt}
+                onChange={(value) =>
                   setEditedTask({
                     ...editedTask,
-                    startAt: fromDateTimeInput(e.target.value),
+                    startAt: value,
                   })
                 }
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-700"
+                showTime
+                placeholder="Select start date"
               />
             </div>
 
@@ -376,16 +356,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label className="text-[10px] font-semibold text-slate-500 uppercase">
                 Completed
               </label>
-              <input
-                type="datetime-local"
-                value={toDateTimeInput(editedTask.completedAt)}
-                onChange={(e) =>
+              <DatePicker
+                value={editedTask.completedAt}
+                onChange={(value) =>
                   setEditedTask({
                     ...editedTask,
-                    completedAt: fromDateTimeInput(e.target.value),
+                    completedAt: value,
                   })
                 }
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-700"
+                showTime
+                placeholder="Select completed date"
                 disabled={
                   editedTask.status !== "done" &&
                   editedTask.status !== "cancelled"
@@ -599,26 +579,34 @@ const EditForm: React.FC<EditFormProps> = ({
                         <label className="text-[10px] font-semibold text-slate-400 uppercase">
                           Start Recurrence
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={recurrenceState.start}
-                          onChange={(e) =>
-                            updateRecurrence({ start: e.target.value })
+                          onChange={(value) =>
+                            updateRecurrence({
+                              start: value
+                                ? DateTime.fromISO(value).toISODate() || ""
+                                : "",
+                            })
                           }
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-xs text-slate-700 dark:text-slate-200 outline-none"
+                          placeholder="Select start"
+                          className="h-8 text-xs"
                         />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-semibold text-slate-400 uppercase">
                           End Recurrence
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={recurrenceState.end}
-                          onChange={(e) =>
-                            updateRecurrence({ end: e.target.value })
+                          onChange={(value) =>
+                            updateRecurrence({
+                              end: value
+                                ? DateTime.fromISO(value).toISODate() || ""
+                                : "",
+                            })
                           }
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-xs text-slate-700 dark:text-slate-200 outline-none"
+                          placeholder="Select end"
+                          className="h-8 text-xs"
                         />
                       </div>
                     </div>
