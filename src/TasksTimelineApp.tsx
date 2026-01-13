@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ErrorBoundary } from "react-error-boundary";
 import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/settings/SettingsModal";
@@ -22,6 +23,11 @@ import { BrowserSettingsRepository, BrowserTaskRepository } from "./storage";
 import { Icon } from "./components/Icon";
 import { AppProvider } from "./components/AppContext";
 import { SettingsProvider, TasksProvider } from "./contexts";
+import {
+  AIErrorFallback,
+  TaskListErrorFallback,
+  ModalErrorFallback,
+} from "./components/ErrorFallback";
 
 // Logic Hooks
 import { useTaskFiltering } from "./hooks/useTaskFiltering";
@@ -272,7 +278,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       }));
     },
     [filters, setFilters] = useState<FilterState>(settings.filters),
-    [sort, setSort] = useState<SortState>(settings.sort);
+    [sort, setSort] = useState<SortState>(settings.sort),
+    // Defer filter updates to keep UI responsive during rapid filter changes
+    deferredFilters = useDeferredValue(filters);
 
   // Compute effective theme
   const effectiveTheme =
@@ -294,7 +302,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
   const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
       tasks,
-      filters,
+      deferredFilters, // Use deferred filters for better performance
       sort,
     ),
     stats = useTaskStats(tasks),
@@ -524,7 +532,22 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   )}
                 </div>
 
-                <InputBar />
+                <ErrorBoundary
+                  FallbackComponent={AIErrorFallback}
+                  onError={(error, info) => {
+                    logger.error("InputBar", "Error caught by boundary", {
+                      error,
+                      info,
+                    });
+                    addNotification("error", "Input Error", error.message);
+                  }}
+                  onReset={() => {
+                    // Reset AI mode if there's an error
+                    setIsAiMode(false);
+                  }}
+                >
+                  <InputBar />
+                </ErrorBoundary>
 
                 <div className="px-4 sm:px-6 pb-3">
                   <div className="flex items-center gap-2">
@@ -635,7 +658,29 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               </div>
 
               <main className="px-4 sm:px-6 pt-6">
-                <TodoList />
+                <ErrorBoundary
+                  FallbackComponent={TaskListErrorFallback}
+                  onError={(error, info) => {
+                    logger.error("TodoList", "Error caught by boundary", {
+                      error,
+                      info,
+                    });
+                    addNotification("error", "Task List Error", error.message);
+                  }}
+                  onReset={() => {
+                    // Reset filters to safe defaults
+                    setFilters({
+                      tags: [],
+                      categories: [],
+                      priorities: [],
+                      statuses: [],
+                      script: "",
+                      enableScript: false,
+                    });
+                  }}
+                >
+                  <TodoList />
+                </ErrorBoundary>
               </main>
 
               <footer className="mt-10 py-6 text-center text-slate-400 text-xs border-t border-slate-50">
@@ -664,13 +709,31 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 availableCategories={uniqueCategories}
               />
 
-              <TaskEditModal
-                isOpen={Boolean(editingTask)}
-                onClose={() => setEditingTask(null)}
-                task={editingTask}
-                onSave={handleEditTaskSave}
-                availableCategories={uniqueCategories}
-              />
+              <ErrorBoundary
+                FallbackComponent={ModalErrorFallback}
+                onError={(error, info) => {
+                  logger.error("TaskEditModal", "Error in modal", {
+                    error,
+                    info,
+                  });
+                  addNotification(
+                    "error",
+                    "Failed to Edit Task",
+                    error.message,
+                  );
+                }}
+                onReset={() => {
+                  setEditingTask(null); // Close modal on error
+                }}
+              >
+                <TaskEditModal
+                  isOpen={Boolean(editingTask)}
+                  onClose={() => setEditingTask(null)}
+                  task={editingTask}
+                  onSave={handleEditTaskSave}
+                  availableCategories={uniqueCategories}
+                />
+              </ErrorBoundary>
             </div>
           </SettingsProvider>
         </TasksProvider>
