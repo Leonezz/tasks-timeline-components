@@ -29,7 +29,6 @@ export const PriorityPopover = ({
     colorClass = "text-amber-700 bg-amber-100 border-amber-200";
   }
 
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -57,7 +56,7 @@ export const PriorityPopover = ({
                     "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start! hover:bg-slate-300",
                     task.priority === opt
                       ? "bg-rose-300 font-bold"
-                      : "hover:opacity-80 text-slate-600"
+                      : "hover:opacity-80 text-slate-600",
                   )}
                 >
                   <Icon

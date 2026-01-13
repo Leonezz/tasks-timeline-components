@@ -38,7 +38,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
     { isListening, start } = useVoiceInput(
       settings.enableVoiceInput,
       (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
-      onVoiceError
+      onVoiceError,
     ),
     effectiveAiActive = settings.aiConfig.enabled && isAiMode,
     handleSubmit = async () => {
@@ -177,7 +177,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               "w-full bg-white pl-10 pr-24 py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
-                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
             )}
             placeholder={
               isListening
@@ -201,7 +201,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200 relative",
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
                 disabled={isListening}
                 title="Voice Input"
@@ -217,7 +217,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   "p-1.5 rounded-md transition-all duration-200",
                   effectiveAiActive
                     ? "text-purple-600 bg-purple-50 hover:bg-purple-100 ring-1 ring-purple-200"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
                 title={
                   effectiveAiActive
@@ -441,7 +441,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
-              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800",
           )}
         >
           {label}
@@ -455,7 +455,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             size={12}
             className={cn(
               "transition-transform duration-200",
-              isActive ? "text-slate-300" : "opacity-40"
+              isActive ? "text-slate-300" : "opacity-40",
             )}
           />
         </MotionButton>
@@ -505,26 +505,26 @@ interface SortPopoverProps {
 
 const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   const fields: {
-      label: string;
-      value: SortField;
-      icon: keyof typeof Lucide;
-    }[] = [
-      { label: "Due Date", value: "dueAt", icon: "Calendar" },
-      { label: "Created Date", value: "createdAt", icon: "Clock" },
-      { label: "Priority", value: "priority", icon: "Flag" },
-      { label: "Title", value: "title", icon: "Type" },
-    ];
+    label: string;
+    value: SortField;
+    icon: keyof typeof Lucide;
+  }[] = [
+    { label: "Due Date", value: "dueAt", icon: "Calendar" },
+    { label: "Created Date", value: "createdAt", icon: "Clock" },
+    { label: "Priority", value: "priority", icon: "Flag" },
+    { label: "Title", value: "title", icon: "Type" },
+  ];
 
   const handleFieldSelect = (field: SortField) => {
-      if (sort.field === field) {
-        onSortChange({
-          ...sort,
-          direction: sort.direction === "asc" ? "desc" : "asc",
-        });
-      } else {
-        onSortChange({ ...sort, field, direction: "asc" });
-      }
-    };
+    if (sort.field === field) {
+      onSortChange({
+        ...sort,
+        direction: sort.direction === "asc" ? "desc" : "asc",
+      });
+    } else {
+      onSortChange({ ...sort, field, direction: "asc" });
+    }
+  };
 
   return (
     <Popover>
@@ -565,7 +565,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
                       "flex items-center justify-start! text-sm rounded-lg outline-none hover:bg-slate-300 font-mono w-full p-2",
                       isSelected
                         ? "text-slate-900"
-                        : "text-slate-600 hover:text-slate-900"
+                        : "text-slate-600 hover:text-slate-900",
                     )}
                   >
                     <div className="flex items-center gap-2">
