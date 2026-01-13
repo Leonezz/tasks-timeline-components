@@ -4,6 +4,7 @@ import { userEvent } from "storybook/test";
 import { withinShadow } from "../test-utils";
 import { TaskItem } from "../../components/TaskItem";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
+import type { DateValidationState } from "../../utils";
 import { TasksProvider } from "../../contexts/TasksContext";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { AppProvider } from "../../components/AppContext";
@@ -13,7 +14,7 @@ import { edgeCaseTasks, settingsBuilder, taskBuilder } from "../fixtures";
 // Extend component props with story-specific args for decorator usage
 interface TaskItemStoryArgs {
   task: Task;
-  missingStrategies?: string[];
+  dateValidation?: DateValidationState;
   settings?: ReturnType<typeof settingsBuilder.default>;
 }
 
@@ -30,9 +31,9 @@ const meta: Meta<TaskItemStoryArgs> = {
       description: "The task data to display",
       control: { type: "object" },
     },
-    missingStrategies: {
-      name: "missingStrategies",
-      description: "How to handle missing data",
+    dateValidation: {
+      name: "dateValidation",
+      description: "Date validation state for showing warnings",
       control: { type: "object" },
     },
   },
@@ -290,6 +291,221 @@ export const ItemClickInteraction: Story = {
     await step("Click on task item", async () => {
       const taskElement = canvas.getByText(/Complete project setup/i);
       await userEvent.click(taskElement);
+    });
+  },
+};
+
+// ========================================
+// Date Validation Badge Stories
+// ========================================
+
+export const MissingDatesWarning: Story = {
+  args: {
+    task: edgeCaseTasks.missingStrategyDates,
+    dateValidation: { hasMissingDates: true, hasInvalidDates: false },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Shows the consolidated 'No Dates' warning badge when required dates are missing based on grouping strategy.",
+      },
+    },
+  },
+};
+
+export const InvalidDateWarning: Story = {
+  args: {
+    task: edgeCaseTasks.invalidDate,
+    dateValidation: { hasMissingDates: false, hasInvalidDates: true },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Shows the 'Invalid Date' warning badge when dates have invalid format.",
+      },
+    },
+  },
+};
+
+export const MultipleInvalidDates: Story = {
+  args: {
+    task: edgeCaseTasks.multipleInvalidDates,
+    dateValidation: { hasMissingDates: false, hasInvalidDates: true },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Shows a single 'Invalid Date' badge even when multiple dates are invalid (consolidated).",
+      },
+    },
+  },
+};
+
+export const MixedDateValidation: Story = {
+  args: {
+    task: edgeCaseTasks.mixedValidInvalidDates,
+    dateValidation: { hasMissingDates: false, hasInvalidDates: true },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Invalid dates take priority over missing dates - shows 'Invalid Date' badge.",
+      },
+    },
+  },
+};
+
+export const NoDatesNoWarning: Story = {
+  args: {
+    task: taskBuilder.base({
+      title: "Task with all valid dates",
+      dueAt: DateTime.now().plus({ days: 3 }).toISO()!,
+      startAt: DateTime.now().toISO()!,
+    }),
+    dateValidation: undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "When all dates are valid and present, no warning badge is shown.",
+      },
+    },
+  },
+};
+
+// ========================================
+// Status Transition Interaction Tests
+// ========================================
+
+export const StatusTransitionToDoing: Story = {
+  args: {
+    task: edgeCaseTasks.todoReadyForTransition,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Tests status transition from Todo to Doing - should auto-populate startAt date.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open status popover", async () => {
+      const statusButton = canvas.getByRole("button", {
+        name: /Change Status/i,
+      });
+      await userEvent.click(statusButton);
+    });
+
+    await step("Select Doing status", async () => {
+      // Wait for popover animation
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const doingOption = canvas.getByText(/^doing$/i);
+      await userEvent.click(doingOption);
+      // Console will log the update with auto-populated startAt
+    });
+  },
+};
+
+export const StatusTransitionToScheduled: Story = {
+  args: {
+    task: edgeCaseTasks.todoReadyForTransition,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Tests status transition from Todo to Scheduled - should auto-populate startAt date.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open status popover", async () => {
+      const statusButton = canvas.getByRole("button", {
+        name: /Change Status/i,
+      });
+      await userEvent.click(statusButton);
+    });
+
+    await step("Select Scheduled status", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const scheduledOption = canvas.getByText(/^scheduled$/i);
+      await userEvent.click(scheduledOption);
+    });
+  },
+};
+
+export const StatusTransitionToDone: Story = {
+  args: {
+    task: taskBuilder.doing({
+      id: "doing-for-done-test",
+      title: "In progress task for completion test",
+    }),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Tests status transition to Done - should auto-populate completedAt date.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open status popover", async () => {
+      const statusButton = canvas.getByRole("button", {
+        name: /Change Status/i,
+      });
+      await userEvent.click(statusButton);
+    });
+
+    await step("Select Done status", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const doneOption = canvas.getByText(/^done$/i);
+      await userEvent.click(doneOption);
+    });
+  },
+};
+
+export const StatusTransitionToCancelled: Story = {
+  args: {
+    task: taskBuilder.doing({
+      id: "doing-for-cancel-test",
+      title: "In progress task for cancellation test",
+    }),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Tests status transition to Cancelled - should auto-populate cancelledAt date.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open status popover", async () => {
+      const statusButton = canvas.getByRole("button", {
+        name: /Change Status/i,
+      });
+      await userEvent.click(statusButton);
+    });
+
+    await step("Select Cancelled status", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const cancelledOption = canvas.getByText(/^cancelled$/i);
+      await userEvent.click(cancelledOption);
     });
   },
 };

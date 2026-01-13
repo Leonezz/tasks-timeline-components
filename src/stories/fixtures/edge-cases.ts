@@ -239,4 +239,53 @@ export const edgeCaseTasks = {
   whitespaceDescription: taskBuilder.base({
     description: "   \t\n   ",
   }),
+
+  // ========================================
+  // Date Validation Edge Cases
+  // ========================================
+
+  /**
+   * Task with multiple invalid dates (for consolidated Invalid Date badge)
+   */
+  multipleInvalidDates: taskBuilder.base({
+    title: "Task with multiple invalid dates",
+    dueAt: "not-a-date",
+    startAt: "also-invalid",
+    createdAt: "invalid-too",
+  }),
+
+  /**
+   * Task missing required grouping strategy dates (for No Dates badge)
+   * This task has no dueAt or startAt, which are common grouping strategies
+   */
+  missingStrategyDates: taskBuilder.base({
+    title: "Task missing strategy dates",
+    dueAt: undefined,
+    startAt: undefined,
+    createdAt: DateTime.now().toISO()!, // Only createdAt is set
+    completedAt: undefined,
+  }),
+
+  /**
+   * Task with mix of valid and invalid dates
+   */
+  mixedValidInvalidDates: taskBuilder.base({
+    title: "Task with mixed date validity",
+    dueAt: "invalid-date",
+    startAt: DateTime.now().toISO()!, // Valid
+    createdAt: DateTime.now().toISO()!, // Valid
+  }),
+
+  /**
+   * Task in todo status ready for status transition testing
+   */
+  todoReadyForTransition: taskBuilder.base({
+    id: "todo-transition-test",
+    title: "Todo task ready for status transition",
+    status: "todo",
+    dueAt: undefined,
+    startAt: undefined,
+    completedAt: undefined,
+    cancelledAt: undefined,
+  }),
 };
