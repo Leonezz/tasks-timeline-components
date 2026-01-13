@@ -505,6 +505,8 @@ pnpm lint        # Check code style
 - Visit Storybook (run `pnpm storybook`) for interactive component documentation
 - Check individual component files for JSDoc comments
 - Read [.github/WORKFLOW_SETUP.md](.github/WORKFLOW_SETUP.md) for CI/CD configuration
+-   Write down every design you made in the ./.prd/ folder and keep them updated.
+
 
 ## Browser Support
 
