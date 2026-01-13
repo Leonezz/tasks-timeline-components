@@ -27,6 +27,7 @@ export interface Task {
   startAt?: ISO8601String;
   dueAt?: ISO8601String;
   completedAt?: ISO8601String;
+  cancelledAt?: ISO8601String;
 
   priority: Priority;
   category?: string;
