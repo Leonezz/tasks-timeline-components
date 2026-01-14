@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useDeferredValue } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { ErrorBoundary } from "react-error-boundary";
 import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
@@ -13,13 +13,11 @@ import type {
   SettingsRepository,
   SortState,
   Task,
-  TaskRepository,
   TaskStatus,
 } from "./types";
-import { generateMockData } from "./mockData";
-import { cn, deepEqual, deriveTaskStatus } from "./utils";
+import { cn, deriveTaskStatus } from "./utils";
 import { logger } from "./utils/logger";
-import { BrowserSettingsRepository, BrowserTaskRepository } from "./storage";
+import { BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
 import { AppProvider } from "./components/AppContext";
 import { SettingsProvider, TasksProvider } from "./contexts";
@@ -89,33 +87,33 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 export interface TasksTimelineAppProps {
   className?: string;
-  taskRepository?: TaskRepository;
+
+  // Controlled tasks data (required)
+  tasks: Task[];
+  onTaskAdded: (task: Task) => void | Promise<void>;
+  onTaskUpdated: (task: Task, previous: Task) => void | Promise<void>;
+  onTaskDeleted: (taskId: string, previous: Task) => void | Promise<void>;
+
+  // Optional configurations
   settingsRepository?: SettingsRepository;
   apiKey?: string;
   systemInDarkMode?: boolean;
   onItemClick?: (item: Task) => void;
-
-  // CRUD operation callbacks for external synchronization
-  onTaskAdded?: (task: Task) => void | Promise<void>;
-  onTaskUpdated?: (task: Task, previous: Task) => void | Promise<void>;
-  onTaskDeleted?: (taskId: string, previous: Task) => void | Promise<void>;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   className,
-  taskRepository,
+  tasks,
+  onTaskAdded,
+  onTaskUpdated,
+  onTaskDeleted,
   settingsRepository,
   apiKey,
   systemInDarkMode,
   onItemClick,
-  onTaskAdded,
-  onTaskUpdated,
-  onTaskDeleted,
 }) => {
-  const [tasks, setTasks] = useState<Task[]>([]),
-    [isSettingsOpen, setIsSettingsOpen] = useState(false),
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
-    [isSyncing, setIsSyncing] = useState(false),
     // Use state for the container ref to ensure re-render when it's attached,
     // Allowing the Provider to pass the correct element to children.
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
@@ -123,11 +121,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     ),
     // Notification State
     [toasts, setToasts] = useState<ToastMessage[]>([]),
-    // Initialize repositories (use props or fallback to browser storage)
-    taskRepo = useMemo(
-      () => taskRepository || new BrowserTaskRepository(),
-      [taskRepository],
-    ),
+    // Initialize settings repository (use prop or fallback to browser storage)
     settingsRepo = useMemo(
       () => settingsRepository || new BrowserSettingsRepository(),
       [settingsRepository],
@@ -155,17 +149,13 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Global AI Mode State (Synced across inputs)
     [isAiMode, setIsAiMode] = useState(false);
 
-  // Initial Load from Repository
+  // Load settings from repository
   useEffect(() => {
-    const loadData = async () => {
-      setIsSyncing(true);
-      logger.info("App", "Initializing application...");
+    const loadSettings = async () => {
+      logger.info("App", "Loading settings...");
 
       try {
-        const [loadedTasks, loadedSettings] = await Promise.all([
-          taskRepo.loadTasks(),
-          settingsRepo.loadSettings(),
-        ]);
+        const loadedSettings = await settingsRepo.loadSettings();
 
         // Process Settings
         if (loadedSettings) {
@@ -204,33 +194,13 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           );
         }
         setIsSettingsLoaded(true);
-
-        // Process Tasks
-        let finalTasks = loadedTasks;
-        if (loadedTasks.length > 0) {
-          // Apply auto-status logic on load
-          finalTasks = loadedTasks.map((t) => ({
-            ...t,
-            status: deriveTaskStatus(t),
-          }));
-          logger.info("App", "Loaded existing tasks", {
-            count: finalTasks.length,
-          });
-        } else {
-          // Fallback to mock data if empty
-          const mock = generateMockData();
-          finalTasks = mock.map((t) => ({ ...t, status: deriveTaskStatus(t) }));
-          logger.info("App", "Initialized with mock data");
-        }
-        setTasks(finalTasks);
       } catch (e) {
-        logger.error("App", "Failed to load data", e);
-      } finally {
-        setIsSyncing(false);
+        logger.error("App", "Failed to load settings", e);
+        setIsSettingsLoaded(true); // Still mark as loaded to allow app to function
       }
     };
-    loadData();
-  }, [taskRepo, settingsRepo, apiKey]); // Re-run if container mounts late
+    loadSettings();
+  }, [settingsRepo, apiKey]);
 
   // Persist Settings on change
   useEffect(() => {
@@ -239,32 +209,12 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }
   }, [settings, settingsRepo, isSettingsLoaded]);
 
-  // Periodic Status Update (Every 30 seconds)
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setTasks((currentTasks) => {
-        let hasChanges = false;
-        const updated = currentTasks.map((t) => {
-          const newStatus = deriveTaskStatus(t);
-          if (newStatus !== t.status) {
-            hasChanges = true;
-            return { ...t, status: newStatus };
-          }
-          return t;
-        });
-        return hasChanges ? updated : currentTasks;
-      });
-    }, 600000); // 10 minites
-
-    return () => clearInterval(intervalId);
-  }, []);
-
   const addNotification = (
       type: ToastType,
       title: string,
       description?: string,
     ) => {
-      const id = Math.random().toString(36).substr(2, 9);
+      const id = Math.random().toString(36).slice(2, 11);
       setToasts((prev) => [...prev, { id, type, title, description }]);
       logger.info("Notification", title, { type, description });
     },
@@ -320,41 +270,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         status: deriveTaskStatus(updatedTask),
       };
 
-      // ✅ Check if ACTUALLY changed (after processing)
-      if (deepEqual(original, processed)) {
-        logger.info("Task", "No changes detected, skipping update", {
-          id: processed.id,
-        });
-        return; // No-op, skip update entirely
-      }
-
-      // Update local state
-      setTasks((prev) =>
-        prev.map((t) => (t.id === processed.id ? processed : t)),
-      );
-
       logger.info("Task", "Updated task", {
         id: processed.id,
         title: processed.title,
       });
 
-      // ✅ Persist only this ONE task (granular update)
-      if (onTaskUpdated) {
-        // Hooks take priority
-        try {
-          await onTaskUpdated(processed, original);
-        } catch (error) {
-          logger.error("Task", "Failed to persist update via hook", { error });
-        }
-      } else {
-        // Fallback to repository for backwards compatibility
-        try {
-          await taskRepo.updateTask(processed);
-        } catch (error) {
-          logger.error("Task", "Failed to persist update via repository", {
-            error,
-          });
-        }
+      // Call parent callback to update task
+      try {
+        await onTaskUpdated(processed, original);
+      } catch (error) {
+        logger.error("Task", "Failed to update task", { error });
+        addNotification("error", "Update Failed", "Could not save changes");
       }
     },
     handleDeleteTask = async (id: string) => {
@@ -365,29 +291,15 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         return;
       }
 
-      // Update local state
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-
       addNotification("info", "Task Deleted", "Item removed from your list");
       logger.info("Task", "Deleted task", { id });
 
-      // ✅ Delete only this ONE task (granular delete)
-      if (onTaskDeleted) {
-        // Hooks take priority
-        try {
-          await onTaskDeleted(id, original);
-        } catch (error) {
-          logger.error("Task", "Failed to persist delete via hook", { error });
-        }
-      } else {
-        // Fallback to repository for backwards compatibility
-        try {
-          await taskRepo.deleteTask(id);
-        } catch (error) {
-          logger.error("Task", "Failed to persist delete via repository", {
-            error,
-          });
-        }
+      // Call parent callback to delete task
+      try {
+        await onTaskDeleted(id, original);
+      } catch (error) {
+        logger.error("Task", "Failed to delete task", { error });
+        addNotification("error", "Delete Failed", "Could not remove task");
       }
     },
     handleEditTaskSave = (updatedTask: Task) => {
@@ -400,7 +312,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     ) => {
       let newTask: Task;
       const baseTask = {
-        id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         status: "todo" as TaskStatus,
         createdAt: new Date().toISOString(),
         priority: "medium" as Priority,
@@ -422,37 +334,24 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       // Auto-evaluate new tasks too (e.g. if added with tomorrow's due date)
       newTask.status = deriveTaskStatus(newTask);
 
-      // Update local state
-      setTasks((prev) => [...prev, newTask]);
-
       logger.info("Task", "Created task", {
         id: newTask.id,
         title: newTask.title,
       });
 
-      // ✅ Notify parent about new task
-      if (onTaskAdded) {
-        // Hooks take priority
-        try {
-          await onTaskAdded(newTask);
-        } catch (error) {
-          logger.error("Task", "Failed to persist add via hook", { error });
-        }
-      } else {
-        // Fallback to repository for backwards compatibility
-        // For add, we save entire array since repositories typically expect full state
-        try {
-          await taskRepo.saveTasks([...tasks, newTask]);
-        } catch (error) {
-          logger.error("Task", "Failed to persist add via repository", {
-            error,
-          });
-        }
+      // Call parent callback to add task
+      try {
+        await onTaskAdded(newTask);
+      } catch (error) {
+        logger.error("Task", "Failed to add task", { error });
+        addNotification("error", "Add Failed", "Could not create task");
       }
     },
     { handleAICommand } = useAIAgent(
       tasks,
-      setTasks,
+      onTaskAdded,
+      onTaskUpdated,
+      onTaskDeleted,
       settings,
       handleAddTask,
       addNotification,
@@ -516,22 +415,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           >
             <div className="max-w-3xl mx-auto min-h-screen bg-white shadow-xl shadow-slate-200/50 border-x border-slate-100 pb-10 relative">
               <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
-                {/* Persistence Status Indicator */}
-                <div className="h-1 w-full bg-slate-50 relative overflow-hidden">
-                  {isSyncing && (
-                    <motion.div
-                      initial={{ left: "-100%" }}
-                      animate={{ left: "100%" }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 1.5,
-                        ease: "linear",
-                      }}
-                      className="absolute top-0 h-full w-1/3 bg-blue-500/30 blur-sm"
-                    />
-                  )}
-                </div>
-
                 <ErrorBoundary
                   FallbackComponent={AIErrorFallback}
                   onError={(error, info) => {
@@ -684,7 +567,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               </main>
 
               <footer className="mt-10 py-6 text-center text-slate-400 text-xs border-t border-slate-50">
-                <p>Timeline Tasks View • Storage: {taskRepo.name}</p>
+                <p>Timeline Tasks View</p>
               </footer>
 
               {/* Toast Container */}

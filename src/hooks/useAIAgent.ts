@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { type FunctionCall, GoogleGenAI, type Part } from "@google/genai";
 import type { AppSettings, Task } from "../types";
 import { getToolDefinitions } from "../utils";
@@ -15,7 +15,9 @@ interface ToolExecutionResult {
 
 export const useAIAgent = (
   tasks: Task[],
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
+  onTaskAdded: (task: Task) => void | Promise<void>,
+  onTaskUpdated: (task: Task, previous: Task) => void | Promise<void>,
+  onTaskDeleted: (taskId: string, previous: Task) => void | Promise<void>,
   settings: AppSettings,
   _onManualAdd: (t: Partial<Task>) => void,
   onNotify: (
@@ -43,7 +45,7 @@ export const useAIAgent = (
       switch (call.name) {
         case "create_task": {
           const newTask: Task = {
-            id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
             title: args.title,
             description: args.description,
             status: "todo",
@@ -56,12 +58,8 @@ export const useAIAgent = (
               : [],
           };
 
-          setTasks((prev) => {
-            if (prev.find((t) => t.id === newTask.id)) {
-              return prev;
-            }
-            return [...prev, newTask];
-          });
+          // Call parent callback to add task
+          await onTaskAdded(newTask);
 
           onNotify(
             "success",
@@ -117,72 +115,69 @@ export const useAIAgent = (
         }
 
         case "update_task": {
-          let taskTitle = "",
-            updated = false;
-          const changedFields: string[] = [];
-
-          setTasks((prev) =>
-            prev.map((t) => {
-              if (t.id === args.id) {
-                updated = true;
-                taskTitle = t.title;
-                // Determine what changed for the notification
-                Object.keys(args).forEach((key) => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  if (key !== "id" && args[key] !== (t as any)[key]) {
-                    changedFields.push(key);
-                  }
-                });
-                return { ...t, ...args };
-              }
-              return t;
-            }),
-          );
-
-          if (updated) {
-            const fieldText =
-              changedFields.length > 0
-                ? `Updated ${changedFields.join(", ")}`
-                : "Updated properties";
+          const taskToUpdate = currentTasks.find((t) => t.id === args.id);
+          if (!taskToUpdate) {
             onNotify(
-              "success",
-              "Task Updated",
-              `${fieldText} for "${taskTitle}"`,
+              "error",
+              "Update Failed",
+              `Could not find task with ID ${args.id}`,
             );
-            logger.info("AI", "Tool Result: Task Updated", {
+            logger.warn("AI", "Tool Result: Update Failed (Not Found)", {
               id: args.id,
-              fields: changedFields,
             });
-            return { success: true, message: "Updated" };
+            return { success: false, message: "Task not found" };
           }
-          onNotify(
-            "error",
-            "Update Failed",
-            `Could not find task with ID ${args.id}`,
-          );
-          logger.warn("AI", "Tool Result: Update Failed (Not Found)", {
-            id: args.id,
+
+          const changedFields: string[] = [];
+          // Determine what changed for the notification
+          Object.keys(args).forEach((key) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (key !== "id" && args[key] !== (taskToUpdate as any)[key]) {
+              changedFields.push(key);
+            }
           });
-          return { success: false, message: "Task not found" };
+
+          const updatedTask = { ...taskToUpdate, ...args };
+
+          // Call parent callback to update task
+          await onTaskUpdated(updatedTask, taskToUpdate);
+
+          const fieldText =
+            changedFields.length > 0
+              ? `Updated ${changedFields.join(", ")}`
+              : "Updated properties";
+          onNotify(
+            "success",
+            "Task Updated",
+            `${fieldText} for "${taskToUpdate.title}"`,
+          );
+          logger.info("AI", "Tool Result: Task Updated", {
+            id: args.id,
+            fields: changedFields,
+          });
+          return { success: true, message: "Updated" };
         }
 
         case "delete_task": {
           const taskToDelete = currentTasks.find((t) => t.id === args.id);
-          if (taskToDelete) {
-            setTasks((prev) => prev.filter((t) => t.id !== args.id));
-            onNotify("info", "Task Deleted", `Removed "${taskToDelete.title}"`);
-            logger.info("AI", "Tool Result: Task Deleted", { id: args.id });
-            return { success: true, message: "Deleted" };
+          if (!taskToDelete) {
+            onNotify(
+              "error",
+              "Delete Failed",
+              `Could not find task with ID ${args.id}`,
+            );
+            logger.warn("AI", "Tool Result: Delete Failed (Not Found)", {
+              id: args.id,
+            });
+            return { success: false, message: "Task not found" };
           }
-          onNotify(
-            "error",
-            "Delete Failed",
-            `Could not find task with ID ${args.id}`,
-          );
-          logger.warn("AI", "Tool Result: Delete Failed (Not Found)", {
-            id: args.id,
-          });
-          return { success: false, message: "Task not found" };
+
+          // Call parent callback to delete task
+          await onTaskDeleted(args.id, taskToDelete);
+
+          onNotify("info", "Task Deleted", `Removed "${taskToDelete.title}"`);
+          logger.info("AI", "Tool Result: Task Deleted", { id: args.id });
+          return { success: true, message: "Deleted" };
         }
 
         default:
