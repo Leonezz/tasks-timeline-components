@@ -124,6 +124,21 @@ export interface SortState {
 }
 
 /**
+ * Custom Settings Tab
+ * Allows host applications to inject custom tabs into the Settings page
+ */
+export interface CustomSettingsTab {
+  /** Unique identifier for the tab (used internally) */
+  id: string;
+  /** Display label shown in the tab bar */
+  label: string;
+  /** Optional icon name from lucide-react */
+  icon?: string;
+  /** The content to render when tab is active */
+  content: React.ReactNode;
+}
+
+/**
  * Persistence Abstraction
  */
 export interface TaskRepository {

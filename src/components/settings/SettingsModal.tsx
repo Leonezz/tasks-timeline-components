@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimatePresence } from "framer-motion";
-import type { AppSettings } from "../../types";
+import type { AppSettings, CustomSettingsTab } from "../../types";
 import { MotionDiv } from "../Motion";
 import { SettingsPage } from "./SettingsPage";
 
@@ -12,6 +12,8 @@ interface SettingsModalProps {
 
   availableTags: string[];
   availableCategories: string[];
+  /** Custom tabs injected by host applications */
+  customTabs?: CustomSettingsTab[];
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -22,6 +24,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   availableTags,
   availableCategories,
+  customTabs,
 }) => (
   <AnimatePresence>
     {isOpen && (
@@ -48,6 +51,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             availableTags={availableTags}
             onClose={onClose}
             inSeperatePage={false}
+            customTabs={customTabs}
           />
         </MotionDiv>
       </>

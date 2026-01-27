@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Icon } from "../Icon";
-import type { AppSettings } from "../../types";
+import { Icon, type IconProps } from "../Icon";
+import type { AppSettings, CustomSettingsTab } from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAdvanced } from "./SettingsPageAdvanced";
@@ -20,9 +20,11 @@ interface SettingsPageProps {
   onClose?: () => void;
   inSeperatePage: boolean;
   inDarkMode?: boolean;
+  /** Custom tabs injected by host applications */
+  customTabs?: CustomSettingsTab[];
 }
 
-type Tab = "general" | "advanced" | "docs" | "about";
+type BuiltInTab = "general" | "advanced" | "docs" | "about";
 
 export const SettingsPage = ({
   settings,
@@ -32,8 +34,9 @@ export const SettingsPage = ({
   onClose,
   inSeperatePage,
   inDarkMode,
+  customTabs = [],
 }: SettingsPageProps) => {
-  const [activeTab, setActiveTab] = useState<Tab>("general"),
+  const [activeTab, setActiveTab] = useState<BuiltInTab | string>("general"),
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
       null,
     );
@@ -107,6 +110,23 @@ export const SettingsPage = ({
             >
               About
             </button>
+            {customTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1",
+                  activeTab === tab.id
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-slate-500 hover:text-slate-700",
+                )}
+              >
+                {tab.icon && (
+                  <Icon name={tab.icon as IconProps["name"]} size={12} />
+                )}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
         {onClose && (
@@ -137,6 +157,10 @@ export const SettingsPage = ({
         )}
         {activeTab === "docs" && <Documentation />}
         {activeTab === "about" && <About />}
+        {customTabs.map(
+          (tab) =>
+            activeTab === tab.id && <div key={tab.id}>{tab.content}</div>,
+        )}
       </div>
 
       {/* Footer */}

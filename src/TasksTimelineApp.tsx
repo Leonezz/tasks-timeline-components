@@ -8,6 +8,7 @@ import { TaskEditModal } from "./components/TaskEditModal";
 import { Toast, type ToastMessage, type ToastType } from "./components/Toast";
 import type {
   AppSettings,
+  CustomSettingsTab,
   FilterState,
   Priority,
   SettingsRepository,
@@ -99,6 +100,8 @@ export interface TasksTimelineAppProps {
   apiKey?: string;
   systemInDarkMode?: boolean;
   onItemClick?: (item: Task) => void;
+  /** Custom tabs to inject into the Settings page */
+  customSettingsTabs?: CustomSettingsTab[];
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -111,6 +114,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   apiKey,
   systemInDarkMode,
   onItemClick,
+  customSettingsTabs,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
@@ -590,6 +594,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 onUpdateSettings={setSettings}
                 availableTags={uniqueTags}
                 availableCategories={uniqueCategories}
+                customTabs={customSettingsTabs}
               />
 
               <ErrorBoundary

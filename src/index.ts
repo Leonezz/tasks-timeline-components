@@ -32,6 +32,7 @@ export type {
   SortField,
   SortDirection,
   SortState,
+  CustomSettingsTab,
   TaskRepository,
   SettingsRepository,
 } from "./types";
