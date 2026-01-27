@@ -3,6 +3,7 @@ import { expect } from "storybook/test";
 import { TasksTimelineApp } from "../../TasksTimelineApp";
 import type { Task } from "../../types";
 import { delay, withinShadow } from "../test-utils";
+import { taskBuilder } from "../fixtures/tasks";
 
 const meta: Meta<typeof TasksTimelineApp> = {
   title: "Core/TasksTimelineApp",
@@ -13,13 +14,24 @@ const meta: Meta<typeof TasksTimelineApp> = {
   },
   argTypes: {
     onItemClick: { action: "item-clicked" },
+    onTaskAdded: { action: "task-added" },
+    onTaskUpdated: { action: "task-updated" },
+    onTaskDeleted: { action: "task-deleted" },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Generate mock tasks for stories
+const mockTasks = taskBuilder.mixed(10);
+
 const handleItemClick = (item: Task) => console.log("Clicked item:", item);
+const handleTaskAdded = (task: Task) => console.log("Task added:", task);
+const handleTaskUpdated = (task: Task, previous: Task) =>
+  console.log("Task updated:", task, "Previous:", previous);
+const handleTaskDeleted = (taskId: string, previous: Task) =>
+  console.log("Task deleted:", taskId, "Previous:", previous);
 
 // ========================================
 // Core Variants
@@ -27,12 +39,20 @@ const handleItemClick = (item: Task) => console.log("Clicked item:", item);
 
 export const App: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
 };
 
 export const WithItemClick: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -48,6 +68,10 @@ export const WithItemClick: Story = {
 
 export const WithCustomClassName: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     className: "custom-app-class",
     onItemClick: handleItemClick,
   },
@@ -55,6 +79,10 @@ export const WithCustomClassName: Story = {
 
 export const WithAPIKey: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     apiKey: "test-gemini-api-key",
     onItemClick: handleItemClick,
   },
@@ -62,6 +90,10 @@ export const WithAPIKey: Story = {
 
 export const SystemDarkMode: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     systemInDarkMode: true,
     onItemClick: handleItemClick,
   },
@@ -72,6 +104,10 @@ export const SystemDarkMode: Story = {
 
 export const SystemLightMode: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     systemInDarkMode: false,
     onItemClick: handleItemClick,
   },
@@ -86,6 +122,10 @@ export const SystemLightMode: Story = {
 
 export const OpenSettings: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -102,6 +142,10 @@ export const OpenSettings: Story = {
 
 export const ToggleFocusMode: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -118,6 +162,10 @@ export const ToggleFocusMode: Story = {
 
 export const FilterByStatus: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -134,6 +182,10 @@ export const FilterByStatus: Story = {
 
 export const AddNewTask: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -150,6 +202,10 @@ export const AddNewTask: Story = {
 
 export const ScrollTasks: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -166,6 +222,10 @@ export const ScrollTasks: Story = {
 
 export const ViewTaskStats: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
   },
   play: async ({ canvasElement, step }) => {
@@ -186,12 +246,20 @@ export const ViewTaskStats: Story = {
 
 export const NoOnItemClick: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     // OnItemClick is optional, should work without it
   },
 };
 
 export const EmptyAPIKey: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     apiKey: "",
     onItemClick: handleItemClick,
   },
@@ -199,6 +267,10 @@ export const EmptyAPIKey: Story = {
 
 export const VeryLongClassName: Story = {
   args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
     className:
       "very-long-custom-class-name-that-might-cause-issues-but-should-still-work",
     onItemClick: handleItemClick,
