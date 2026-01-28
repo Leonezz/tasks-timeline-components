@@ -33,6 +33,7 @@ export type {
   SortDirection,
   SortState,
   CustomSettingsTab,
+  LucideIconName,
   TaskRepository,
   SettingsRepository,
 } from "./types";

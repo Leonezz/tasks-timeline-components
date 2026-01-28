@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Icon, type IconProps } from "../Icon";
+import { Icon } from "../Icon";
 import type { AppSettings, CustomSettingsTab } from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
@@ -10,6 +10,8 @@ import styles from "../../index.css?inline";
 import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
 import { logger } from "@/utils/logger.ts";
+
+const RESERVED_TAB_IDS = ["general", "advanced", "docs", "about"] as const;
 
 interface SettingsPageProps {
   settings: AppSettings;
@@ -40,6 +42,19 @@ export const SettingsPage = ({
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
       null,
     );
+
+  // Warn about reserved tab ID collisions
+  useEffect(() => {
+    customTabs.forEach((tab) => {
+      if (RESERVED_TAB_IDS.includes(tab.id as BuiltInTab)) {
+        logger.warn(
+          "Settings",
+          `CustomSettingsTab id "${tab.id}" conflicts with built-in tab. Consider using a different id.`,
+        );
+      }
+    });
+  }, [customTabs]);
+
   useEffect(() => {
     logger.info(
       "Settings",
@@ -121,9 +136,7 @@ export const SettingsPage = ({
                     : "text-slate-500 hover:text-slate-700",
                 )}
               >
-                {tab.icon && (
-                  <Icon name={tab.icon as IconProps["name"]} size={12} />
-                )}
+                {tab.icon && <Icon name={tab.icon} size={12} />}
                 {tab.label}
               </button>
             ))}
@@ -157,10 +170,7 @@ export const SettingsPage = ({
         )}
         {activeTab === "docs" && <Documentation />}
         {activeTab === "about" && <About />}
-        {customTabs.map(
-          (tab) =>
-            activeTab === tab.id && <div key={tab.id}>{tab.content}</div>,
-        )}
+        {customTabs.find((tab) => tab.id === activeTab)?.content}
       </div>
 
       {/* Footer */}
