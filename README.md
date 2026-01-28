@@ -2,8 +2,8 @@
 
 A comprehensive, production-ready React component library for building task management and timeline visualization applications.
 
-[![npm version](https://img.shields.io/npm/v/@tasks-timeline/component-library)](https://www.npmjs.com/package/@tasks-timeline/component-library)
-[![license](https://img.shields.io/npm/l/@tasks-timeline/component-library)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@tasks-timeline/components)](https://www.npmjs.com/package/@tasks-timeline/components)
+[![license](https://img.shields.io/npm/l/@tasks-timeline/components)](./LICENSE)
 
 ## Features
 
@@ -40,9 +40,9 @@ A comprehensive, production-ready React component library for building task mana
 ## Installation
 
 ```bash
-npm install @tasks-timeline/component-library
+npm install @tasks-timeline/components
 # or
-pnpm add @tasks-timeline/component-library
+pnpm add @tasks-timeline/components
 ```
 
 ## Quick Start
@@ -55,8 +55,8 @@ import {
   TodoList,
   InputBar,
   type Task,
-} from "@tasks-timeline/component-library";
-import "@tasks-timeline/component-library/styles";
+} from "@tasks-timeline/components";
+import "@tasks-timeline/components/styles";
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -81,7 +81,7 @@ export default App;
 The library supports efficient external synchronization with databases, REST APIs, or cloud services through operation-based callbacks:
 
 ```typescript
-import { TasksTimelineApp } from "@tasks-timeline/component-library";
+import { TasksTimelineApp } from "@tasks-timeline/components";
 
 function App() {
   return (
@@ -156,7 +156,7 @@ import {
   TaskItem,
   TaskEditModal,
   SettingsModal,
-} from "@tasks-timeline/component-library";
+} from "@tasks-timeline/components";
 ```
 
 ### Using Hooks
@@ -166,7 +166,7 @@ import {
   useTaskFiltering,
   useTaskStats,
   useAIAgent,
-} from "@tasks-timeline/component-library/hooks";
+} from "@tasks-timeline/components/hooks";
 
 function MyComponent({ tasks }) {
   const { filteredTasks, filters } = useTaskFiltering(tasks, {
@@ -282,7 +282,7 @@ interface AppSettings {
 ### Import Styles
 
 ```typescript
-import "@tasks-timeline/component-library/styles";
+import "@tasks-timeline/components/styles";
 ```
 
 ### Tailwind CSS
