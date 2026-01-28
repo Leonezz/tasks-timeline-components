@@ -52,15 +52,11 @@ jobs:
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.package.outputs.VERSION }}
-          release_name: Release v${{ steps.package.outputs.VERSION }}
+          name: Release v${{ steps.package.outputs.VERSION }}
           body: |
-            ## @tasks-timeline/component-library v${{ steps.package.outputs.VERSION }}
+            ## @tasks-timeline/components v${{ steps.package.outputs.VERSION }}
 
             ### What's New
             - Built and published to npm
@@ -74,48 +70,22 @@ jobs:
 
             ### Installation
             ```bash
-            npm install @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            npm install @tasks-timeline/components@${{ steps.package.outputs.VERSION }}
             # or
-            pnpm add @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            pnpm add @tasks-timeline/components@${{ steps.package.outputs.VERSION }}
             # or
-            yarn add @tasks-timeline/component-library@${{ steps.package.outputs.VERSION }}
+            yarn add @tasks-timeline/components@${{ steps.package.outputs.VERSION }}
             ```
 
             ### Links
-            - [npm Package](https://www.npmjs.com/package/@tasks-timeline/component-library)
+            - [npm Package](https://www.npmjs.com/package/@tasks-timeline/components)
             - [GitHub Repository](https://github.com/${{ github.repository }})
+          files: |
+            dist/index.js
+            dist/index.js.map
+            dist/index.umd.cjs
           draft: false
           prerelease: false
-
-      - name: Upload dist to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/index.js
-          asset_name: index.js
-          asset_content_type: application/javascript
-
-      - name: Upload dist map to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/index.js.map
-          asset_name: index.js.map
-          asset_content_type: application/json
-
-      - name: Upload UMD bundle to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/index.umd.cjs
-          asset_name: index.umd.cjs
-          asset_content_type: application/javascript
 
       - name: Publish to npm
         if: ${{ github.event_name == 'push' || github.event.inputs.publish_npm == 'true' }}
@@ -125,7 +95,7 @@ jobs:
 
       - name: Deploy Storybook to GitHub Pages
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./storybook-static
@@ -135,4 +105,4 @@ jobs:
           echo "✅ Build and publish workflow completed"
           echo "📦 Package version: v${{ steps.package.outputs.VERSION }}"
           echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.package.outputs.VERSION }}"
-          echo "📚 npm: https://www.npmjs.com/package/@tasks-timeline/component-library"
+          echo "📚 npm: https://www.npmjs.com/package/@tasks-timeline/components"
