@@ -2,11 +2,27 @@
   "name": "@tasks-timeline/components",
   "description": "A comprehensive React component library for task management and timeline visualization",
   "private": false,
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "license": "MIT",
   "author": "Leonezz <zhwuenqa@outlook.com>",
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leonezz/tasks-timeline-components.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Leonezz/tasks-timeline-components/issues"
+  },
+  "homepage": "https://github.com/Leonezz/tasks-timeline-components#readme",
+  "keywords": [
+    "react",
+    "components",
+    "task-management",
+    "timeline",
+    "todo",
+    "ui",
+    "typescript"
+  ],
   "main": "./dist/index.umd.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
