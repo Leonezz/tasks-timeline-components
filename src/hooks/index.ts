@@ -11,3 +11,5 @@ export { useTaskStats } from "./useTaskStats";
 export { useAIAgent } from "./useAIAgent";
 
 export { useVoiceInput } from "./useVoiceInput";
+
+export { usePortalContainer } from "./usePortalContainer";

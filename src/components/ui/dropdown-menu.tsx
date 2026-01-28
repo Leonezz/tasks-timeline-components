@@ -3,7 +3,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { usePortalContainer } from "../AppContext";
+import { usePortalContainer } from "../../hooks/usePortalContainer";
 
 const DropdownMenu = DropdownMenuPrimitive.Root,
   DropdownMenuTrigger = DropdownMenuPrimitive.Trigger,
