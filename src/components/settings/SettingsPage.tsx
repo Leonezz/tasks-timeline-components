@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
-import type { AppSettings } from "../../types";
+import type { AppSettings, CustomSettingsTab } from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAdvanced } from "./SettingsPageAdvanced";
@@ -11,6 +11,8 @@ import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
 import { logger } from "@/utils/logger.ts";
 
+const RESERVED_TAB_IDS = ["general", "advanced", "docs", "about"] as const;
+
 interface SettingsPageProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: AppSettings) => void;
@@ -20,9 +22,11 @@ interface SettingsPageProps {
   onClose?: () => void;
   inSeperatePage: boolean;
   inDarkMode?: boolean;
+  /** Custom tabs injected by host applications */
+  customTabs?: CustomSettingsTab[];
 }
 
-type Tab = "general" | "advanced" | "docs" | "about";
+type BuiltInTab = "general" | "advanced" | "docs" | "about";
 
 export const SettingsPage = ({
   settings,
@@ -32,11 +36,25 @@ export const SettingsPage = ({
   onClose,
   inSeperatePage,
   inDarkMode,
+  customTabs = [],
 }: SettingsPageProps) => {
-  const [activeTab, setActiveTab] = useState<Tab>("general"),
+  const [activeTab, setActiveTab] = useState<BuiltInTab | string>("general"),
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
       null,
     );
+
+  // Warn about reserved tab ID collisions
+  useEffect(() => {
+    customTabs.forEach((tab) => {
+      if (RESERVED_TAB_IDS.includes(tab.id as BuiltInTab)) {
+        logger.warn(
+          "Settings",
+          `CustomSettingsTab id "${tab.id}" conflicts with built-in tab. Consider using a different id.`,
+        );
+      }
+    });
+  }, [customTabs]);
+
   useEffect(() => {
     logger.info(
       "Settings",
@@ -107,6 +125,21 @@ export const SettingsPage = ({
             >
               About
             </button>
+            {customTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1",
+                  activeTab === tab.id
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-slate-500 hover:text-slate-700",
+                )}
+              >
+                {tab.icon && <Icon name={tab.icon} size={12} />}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
         {onClose && (
@@ -137,6 +170,7 @@ export const SettingsPage = ({
         )}
         {activeTab === "docs" && <Documentation />}
         {activeTab === "about" && <About />}
+        {customTabs.find((tab) => tab.id === activeTab)?.content}
       </div>
 
       {/* Footer */}

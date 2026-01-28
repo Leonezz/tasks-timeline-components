@@ -123,6 +123,27 @@ export interface SortState {
   script: string;
 }
 
+/** Available icon names from lucide-react */
+export type LucideIconName = keyof typeof import("lucide-react");
+
+/**
+ * Custom Settings Tab
+ * Allows host applications to inject custom tabs into the Settings page
+ */
+export interface CustomSettingsTab {
+  /** Unique identifier for the tab. Avoid using reserved IDs: 'general', 'advanced', 'docs', 'about' */
+  id: string;
+  /** Display label shown in the tab bar */
+  label: string;
+  /**
+   * Optional icon name from lucide-react.
+   * @see https://lucide.dev/icons for available icon names
+   */
+  icon?: LucideIconName;
+  /** The content to render when tab is active */
+  content: React.ReactNode;
+}
+
 /**
  * Persistence Abstraction
  */
