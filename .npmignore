@@ -32,4 +32,24 @@ vitest.shims.d.ts
 
 # Documentation sources
 LIBRARY_SETUP.md
+
+# Stories and test files in dist
+dist/stories/
+dist/**/*.stories.*
+dist/**/*.test.*
+dist/**/*.spec.*
 *.stories.ts
+*.stories.tsx
+
+# Development files in dist
+dist/mockData.*
+dist/vite.svg
+
+# Source maps (optional - remove if you want debugging support)
+*.map
+
+# Other development directories
+examples/
+.claude/
+.playwright-mcp/
+storybook-static/

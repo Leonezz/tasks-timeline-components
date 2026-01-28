@@ -37,10 +37,10 @@
     "dist"
   ],
   "scripts": {
-    "prepare": "vite build && tsc --declaration --outDir dist",
-    "build": "tsc --emitDeclarationOnly --outDir dist --declaration && vite build",
-    "build:lib": "vite build && tsc --declaration --outDir dist",
-    "dev:lib": "tsc --emitDeclarationOnly --outDir dist --declaration --watch",
+    "prepare": "vite build && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "build:lib": "vite build && tsc -p tsconfig.build.json",
+    "dev:lib": "tsc -p tsconfig.build.json --watch",
     "preview": "vite preview",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
