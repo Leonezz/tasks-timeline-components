@@ -165,6 +165,7 @@ const EditForm: React.FC<EditFormProps> = ({
         <h2 className="font-bold text-slate-800">Edit Task</h2>
         <button
           onClick={onClose}
+          aria-label="Close edit task modal"
           className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <Icon name="X" size={20} />
@@ -174,10 +175,14 @@ const EditForm: React.FC<EditFormProps> = ({
       <div className="p-6 space-y-5 overflow-y-auto flex-1">
         {/* Title */}
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase">
+          <label
+            htmlFor="task-title"
+            className="text-xs font-semibold text-slate-500 uppercase"
+          >
             Title
           </label>
           <input
+            id="task-title"
             value={editedTask.title}
             onChange={(e) =>
               setEditedTask({ ...editedTask, title: e.target.value })
@@ -188,10 +193,14 @@ const EditForm: React.FC<EditFormProps> = ({
 
         {/* Description */}
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase">
+          <label
+            htmlFor="task-description"
+            className="text-xs font-semibold text-slate-500 uppercase"
+          >
             Description
           </label>
           <textarea
+            id="task-description"
             value={editedTask.description || ""}
             onChange={(e) =>
               setEditedTask({ ...editedTask, description: e.target.value })
@@ -204,11 +213,15 @@ const EditForm: React.FC<EditFormProps> = ({
         <div className="grid grid-cols-2 gap-4">
           {/* Category Selector */}
           <div className="space-y-1 relative group">
-            <label className="text-xs font-semibold text-slate-500 uppercase">
+            <label
+              htmlFor="task-category"
+              className="text-xs font-semibold text-slate-500 uppercase"
+            >
               Category
             </label>
             <div className="relative">
               <input
+                id="task-category"
                 type="text"
                 value={editedTask.category || ""}
                 onChange={(e) =>
@@ -274,13 +287,22 @@ const EditForm: React.FC<EditFormProps> = ({
 
           {/* Priority */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase">
+            <span
+              id="priority-label"
+              className="text-xs font-semibold text-slate-500 uppercase"
+            >
               Priority
-            </label>
-            <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700 h-9.5">
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="priority-label"
+              className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700 h-9.5"
+            >
               {(["low", "medium", "high"] as Priority[]).map((p) => (
                 <button
                   key={p}
+                  role="radio"
+                  aria-checked={editedTask.priority === p}
                   onClick={() => setEditedTask({ ...editedTask, priority: p })}
                   className={cn(
                     "flex-1 text-xs font-medium rounded-md capitalize transition-all flex items-center justify-center",
@@ -399,6 +421,9 @@ const EditForm: React.FC<EditFormProps> = ({
               </div>
               <button
                 onClick={toggleRecurrence}
+                role="switch"
+                aria-checked={editedTask.isRecurring}
+                aria-label="Toggle task recurrence"
                 className={cn(
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                   editedTask.isRecurring
@@ -425,13 +450,18 @@ const EditForm: React.FC<EditFormProps> = ({
                 >
                   <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700 space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-500">
+                      <label
+                        htmlFor="recurrence-interval"
+                        className="text-xs font-medium text-slate-500"
+                      >
                         Every
-                      </span>
+                      </label>
                       <input
+                        id="recurrence-interval"
                         type="number"
                         min="1"
                         max="99"
+                        aria-label="Recurrence interval"
                         value={recurrenceState.interval}
                         onChange={(e) =>
                           updateRecurrence({
@@ -441,6 +471,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         className="w-12 px-1.5 py-1 text-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-xs focus:border-blue-500 outline-none text-slate-700 dark:text-slate-200"
                       />
                       <select
+                        aria-label="Recurrence frequency"
                         value={recurrenceState.freq}
                         onChange={(e) =>
                           updateRecurrence({
@@ -459,17 +490,35 @@ const EditForm: React.FC<EditFormProps> = ({
 
                     {recurrenceState.freq === RRule.WEEKLY && (
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                        <span
+                          id="weekdays-label"
+                          className="text-[10px] font-semibold text-slate-400 uppercase"
+                        >
                           On days
-                        </label>
-                        <div className="flex justify-between">
-                          {WEEKDAYS.map((day) => {
+                        </span>
+                        <div
+                          role="group"
+                          aria-labelledby="weekdays-label"
+                          className="flex justify-between"
+                        >
+                          {WEEKDAYS.map((day, index) => {
                             const isSelected = recurrenceState.byWeekDay.some(
-                              (d) => d.weekday === day.val.weekday,
-                            );
+                                (d) => d.weekday === day.val.weekday,
+                              ),
+                              dayNames = [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                              ];
                             return (
                               <button
                                 key={day.label + day.val.weekday}
+                                aria-label={dayNames[index]}
+                                aria-pressed={isSelected}
                                 onClick={() => {
                                   const prev = recurrenceState.byWeekDay,
                                     exists = prev.some(
