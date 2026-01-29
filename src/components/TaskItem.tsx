@@ -539,9 +539,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
               <span className="capitalize">Recurring</span>
             </div>
           )}
-          {task.tags.map((tag) => (
+          {task.tags.map((tag, index) => (
             <TagBadge
-              key={tag.id}
+              key={`${task.id}-tag-${index}`}
               tag={tag}
               task={task}
               onUpdate={onUpdateTask}
