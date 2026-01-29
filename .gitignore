@@ -25,7 +25,3 @@ dist-ssr
 
 *storybook.log
 storybook-static
-
-*.md
-!README.md
-!CHANGELOG.md
