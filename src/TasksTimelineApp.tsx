@@ -426,7 +426,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                       error,
                       info,
                     });
-                    addNotification("error", "Input Error", error.message);
+                    addNotification(
+                      "error",
+                      "Input Error",
+                      error instanceof Error ? error.message : String(error),
+                    );
                   }}
                   onReset={() => {
                     // Reset AI mode if there's an error
@@ -552,7 +556,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                       error,
                       info,
                     });
-                    addNotification("error", "Task List Error", error.message);
+                    addNotification(
+                      "error",
+                      "Task List Error",
+                      error instanceof Error ? error.message : String(error),
+                    );
                   }}
                   onReset={() => {
                     // Reset filters to safe defaults
@@ -607,7 +615,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   addNotification(
                     "error",
                     "Failed to Edit Task",
-                    error.message,
+                    error instanceof Error ? error.message : String(error),
                   );
                 }}
                 onReset={() => {

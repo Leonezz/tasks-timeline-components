@@ -1,13 +1,15 @@
 import React from "react";
 import { Icon } from "./Icon";
 import { MotionDiv } from "./Motion";
+import type { FallbackProps } from "react-error-boundary";
 
-interface ErrorFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
-}
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "An unknown error occurred";
+};
 
-export const TaskListErrorFallback: React.FC<ErrorFallbackProps> = ({
+export const TaskListErrorFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 }) => (
@@ -22,7 +24,7 @@ export const TaskListErrorFallback: React.FC<ErrorFallbackProps> = ({
     <div>
       <h3 className="font-bold text-lg text-slate-900">Something went wrong</h3>
       <p className="text-sm text-slate-600 mt-2 font-mono bg-slate-50 p-3 rounded border border-slate-200">
-        {error.message}
+        {getErrorMessage(error)}
       </p>
     </div>
     <button
@@ -34,7 +36,7 @@ export const TaskListErrorFallback: React.FC<ErrorFallbackProps> = ({
   </MotionDiv>
 );
 
-export const AIErrorFallback: React.FC<ErrorFallbackProps> = ({
+export const AIErrorFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 }) => (
@@ -51,7 +53,7 @@ export const AIErrorFallback: React.FC<ErrorFallbackProps> = ({
         <h4 className="font-semibold text-rose-900 text-sm">
           AI Command Failed
         </h4>
-        <p className="text-sm text-rose-700 mt-1">{error.message}</p>
+        <p className="text-sm text-rose-700 mt-1">{getErrorMessage(error)}</p>
         <button
           onClick={resetErrorBoundary}
           className="text-xs text-rose-600 underline mt-2 hover:text-rose-800"
@@ -63,7 +65,7 @@ export const AIErrorFallback: React.FC<ErrorFallbackProps> = ({
   </MotionDiv>
 );
 
-export const ModalErrorFallback: React.FC<ErrorFallbackProps> = ({
+export const ModalErrorFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 }) => (
@@ -76,7 +78,7 @@ export const ModalErrorFallback: React.FC<ErrorFallbackProps> = ({
         Failed to load modal
       </h3>
       <p className="text-xs text-slate-600 mt-2 font-mono bg-slate-50 p-2 rounded border border-slate-200">
-        {error.message}
+        {getErrorMessage(error)}
       </p>
     </div>
     <button
