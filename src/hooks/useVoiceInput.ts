@@ -43,6 +43,7 @@ export const useVoiceInput = (
   enabled: boolean,
   onResult: (text: string) => void,
   onError: (msg: string) => void,
+  language?: string, // Empty/undefined means use system language
 ) => {
   const [isListening, setIsListening] = useState(false),
     start = useCallback(() => {
@@ -64,7 +65,7 @@ export const useVoiceInput = (
         const recognition = new SpeechRecognitionCtor();
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = "en-US";
+        recognition.lang = language || navigator.language || "en-US";
 
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
@@ -106,7 +107,7 @@ export const useVoiceInput = (
         logger.error("Voice", "Initialization failed", e);
         setIsListening(false);
       }
-    }, [enabled, onResult, onError, setIsListening]);
+    }, [enabled, onResult, onError, setIsListening, language]);
 
   return { isListening, start };
 };

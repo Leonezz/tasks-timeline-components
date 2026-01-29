@@ -39,6 +39,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
       settings.enableVoiceInput,
       (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
+      settings.voiceLanguage,
     ),
     effectiveAiActive = settings.aiConfig.enabled && isAiMode,
     handleSubmit = async () => {
