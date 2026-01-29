@@ -28,3 +28,4 @@ storybook-static
 
 *.md
 !README.md
+!CHANGELOG.md
