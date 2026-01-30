@@ -7,6 +7,7 @@ import {
   formatRecurrence,
   formatSmartDate,
   formatTime,
+  getTodayISO,
   type DateValidationState,
 } from "../utils";
 import { Icon } from "./Icon";
@@ -51,7 +52,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
     inputRef = useRef<HTMLInputElement>(null),
     isDone = task.status === "done",
     isCancelled = task.status === "cancelled",
-    today = DateTime.now().toISODate()!,
+    today = getTodayISO(),
     // Highlight logic
     isUrgent =
       !isDone &&

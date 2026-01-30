@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { type FunctionCall, GoogleGenAI, type Part } from "@google/genai";
-import { DateTime } from "luxon";
 import type { AppSettings, Task } from "../types";
-import { getToolDefinitions } from "../utils";
+import { getToolDefinitions, getNowISO, getTodayISO } from "../utils";
 import { logger } from "../utils/logger";
 
 interface ToolExecutionResult {
@@ -51,8 +50,8 @@ export const useAIAgent = (
             description: args.description,
             status: "todo",
             priority: args.priority || "medium",
-            createdAt: DateTime.now().toISO()!,
-            dueAt: args.dueAt || DateTime.now().toISODate()!,
+            createdAt: getNowISO(),
+            dueAt: args.dueAt || getTodayISO(),
             category: args.category,
             tags: args.tags
               ? args.tags.map((t: string) => ({ id: `tag-${t}`, name: t }))
