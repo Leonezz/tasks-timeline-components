@@ -413,10 +413,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
               settings.priorityFilterOnInputBar !== false ||
               settings.statusFilterOnInputBar !== false) &&
               settings.sortOnInputBar !== false && (
-                <div className="w-px h-4 bg-slate-300 mx-1 shrink-0 hidden sm:block" />
+                <div className="w-px h-4 bg-slate-300 mx-1 shrink-0 hidden min-[550px]:block" />
               )}
             {settings.sortOnInputBar !== false && (
-              <div className="hidden sm:block">
+              <div className="hidden min-[550px]:block">
                 <SortPopover sort={sort} onSortChange={onSortChange} />
               </div>
             )}
