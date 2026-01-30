@@ -51,7 +51,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
     inputRef = useRef<HTMLInputElement>(null),
     isDone = task.status === "done",
     isCancelled = task.status === "cancelled",
-    today = new Date().toISOString().split("T")[0],
+    today = DateTime.now().toISODate()!,
     // Highlight logic
     isUrgent =
       !isDone &&

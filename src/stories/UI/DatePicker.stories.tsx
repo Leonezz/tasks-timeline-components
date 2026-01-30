@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { DatePicker } from "../../components/ui/date-picker";
-import { DateTime as LuxonDateTime } from "luxon";
+import { DateTime } from "luxon";
 
 const meta: Meta<typeof DatePicker> = {
   title: "UI/DatePicker",
@@ -46,14 +46,12 @@ function DatePickerDemo({
           <>
             <div>
               <strong>Format:</strong>{" "}
-              {value.includes("T")
-                ? "ISO LuxonDateTime"
-                : "ISO Date (YYYY-MM-DD)"}
+              {value.includes("T") ? "ISO DateTime" : "ISO Date (YYYY-MM-DD)"}
             </div>
             <div>
               <strong>Parsed:</strong>{" "}
-              {LuxonDateTime.fromISO(value).toLocaleString(
-                showTime ? LuxonDateTime.DATETIME_MED : LuxonDateTime.DATE_MED,
+              {DateTime.fromISO(value).toLocaleString(
+                showTime ? DateTime.DATETIME_MED : DateTime.DATE_MED,
               )}
             </div>
           </>
@@ -80,7 +78,7 @@ export const DateOnly: Story = {
  * When showTime is true, the picker includes a time input and returns
  * a full ISO timestamp with timezone information.
  */
-export const LuxonDateTime: Story = {
+export const DateAndTime: Story = {
   render: () => <DatePickerDemo showTime={true} />,
 };
 
@@ -98,7 +96,7 @@ export const PrePopulatedDate: Story = {
  *
  * Test that existing datetime values are displayed correctly.
  */
-export const PrePopulatedLuxonDateTime: Story = {
+export const PrePopulatedDateAndTime: Story = {
   render: () => (
     <DatePickerDemo showTime={true} initialValue="2026-02-05T14:30:00.000Z" />
   ),
@@ -124,8 +122,7 @@ export const TimezoneConsistencyTest: Story = {
           <li>Select February 5, 2026 in the date-only picker below</li>
           <li>Verify the selected value shows as "2026-02-05" (not Jan)</li>
           <li>
-            The format should be "ISO Date (YYYY-MM-DD)", not "ISO
-            LuxonDateTime"
+            The format should be "ISO Date (YYYY-MM-DD)", not "ISO DateTime"
           </li>
           <li>Try dates near month boundaries (e.g., Jan 31, Mar 1)</li>
         </ol>
