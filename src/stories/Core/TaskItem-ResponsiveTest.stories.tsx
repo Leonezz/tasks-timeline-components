@@ -13,13 +13,17 @@ const meta: Meta<typeof TaskItem> = {
     layout: "padded",
     viewport: {
       viewports: {
-        mobile: {
-          name: "Mobile (320px)",
+        ultraNarrow: {
+          name: "Ultra Narrow (320px) - Compact Mode",
           styles: { width: "320px", height: "568px" },
         },
-        mobileLarge: {
-          name: "Mobile Large (375px)",
-          styles: { width: "375px", height: "667px" },
+        narrow: {
+          name: "Narrow (380px) - Timeline Appears",
+          styles: { width: "380px", height: "667px" },
+        },
+        mobile: {
+          name: "Mobile (400px) - Full Mobile",
+          styles: { width: "400px", height: "667px" },
         },
         tablet: {
           name: "Tablet (640px - sm breakpoint)",
@@ -30,7 +34,7 @@ const meta: Meta<typeof TaskItem> = {
           styles: { width: "1024px", height: "768px" },
         },
       },
-      defaultViewport: "mobile",
+      defaultViewport: "ultraNarrow",
     },
   },
   decorators: [
