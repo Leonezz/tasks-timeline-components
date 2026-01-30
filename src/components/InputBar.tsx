@@ -184,7 +184,9 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 ? "Listening..."
                 : effectiveAiActive
                   ? "Describe tasks using natural language..."
-                  : "Quick add (e.g., 'Meeting due:tomorrow p:high')"
+                  : window.innerWidth < 530
+                    ? "Quick add task..."
+                    : "Quick add (e.g., 'Meeting due:tomorrow p:high')"
             }
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -405,10 +407,12 @@ export const InputBar: React.FC<InputBarProps> = () => {
             settings.priorityFilterOnInputBar !== false ||
             settings.statusFilterOnInputBar !== false) &&
             settings.sortOnInputBar !== false && (
-              <div className="w-px h-4 bg-slate-300 mx-1 shrink-0" />
+              <div className="w-px h-4 bg-slate-300 mx-1 shrink-0 hidden sm:block" />
             )}
           {settings.sortOnInputBar !== false && (
-            <SortPopover sort={sort} onSortChange={onSortChange} />
+            <div className="hidden sm:block">
+              <SortPopover sort={sort} onSortChange={onSortChange} />
+            </div>
           )}
         </div>
       </div>
