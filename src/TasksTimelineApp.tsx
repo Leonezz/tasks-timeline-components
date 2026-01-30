@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   // New Features
   enableVoiceInput: true,
   voiceProvider: "browser",
+  voiceLanguage: "", // Empty means use system language (navigator.language)
   defaultFocusMode: false,
   totalTokenUsage: 0,
   defaultCategory: "General",

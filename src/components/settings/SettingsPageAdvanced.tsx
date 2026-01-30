@@ -290,27 +290,50 @@ export const SettingsPageAdvanced = ({
 
             {/* Voice Provider Config */}
             {settings.enableVoiceInput && (
-              <div className="pt-2">
-                <label className="text-xs font-medium text-slate-500 block mb-2">
-                  Voice Provider
-                </label>
-                <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
-                  {(["browser", "gemini-whisper"] as VoiceProvider[]).map(
-                    (p) => (
-                      <button
-                        key={p}
-                        onClick={() => setVoiceProvider(p)}
-                        className={cn(
-                          "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
-                          settings.voiceProvider === p
-                            ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
-                        )}
-                      >
-                        {p === "gemini-whisper" ? "Gemini" : "Browser"}
-                      </button>
-                    ),
-                  )}
+              <div className="pt-2 space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-2">
+                    Voice Provider
+                  </label>
+                  <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
+                    {(["browser", "gemini-whisper"] as VoiceProvider[]).map(
+                      (p) => (
+                        <button
+                          key={p}
+                          onClick={() => setVoiceProvider(p)}
+                          className={cn(
+                            "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
+                            settings.voiceProvider === p
+                              ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
+                          )}
+                        >
+                          {p === "gemini-whisper" ? "Gemini" : "Browser"}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-2">
+                    Voice Language
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.voiceLanguage}
+                    onChange={(e) =>
+                      onUpdateSettings({
+                        ...settings,
+                        voiceLanguage: e.target.value,
+                      })
+                    }
+                    placeholder="System default"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Leave empty for system language. Examples: en-US, zh-CN,
+                    ja-JP, es-ES
+                  </p>
                 </div>
               </div>
             )}

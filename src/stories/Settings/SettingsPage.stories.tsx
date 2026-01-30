@@ -48,6 +48,7 @@ const settings: AppSettings = {
 
   enableVoiceInput: true,
   voiceProvider: "browser",
+  voiceLanguage: "",
   defaultFocusMode: true,
   totalTokenUsage: 0,
   defaultCategory: "",

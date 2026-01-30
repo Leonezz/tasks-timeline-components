@@ -19,6 +19,7 @@ export const settingsBuilder = {
     groupingStrategy: ["dueAt"],
     enableVoiceInput: false,
     voiceProvider: "browser",
+    voiceLanguage: "",
     defaultFocusMode: false,
     totalTokenUsage: 0,
     defaultCategory: "General",

@@ -42,6 +42,7 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
       settings.enableVoiceInput,
       (text) => setNewTaskTitle((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
+      settings.voiceLanguage,
     ),
     // Parse the ISO date string from the group key
     dt = DateTime.fromISO(group.date),

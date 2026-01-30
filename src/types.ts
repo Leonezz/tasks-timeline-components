@@ -84,6 +84,7 @@ export interface AppSettings {
   // New Features
   enableVoiceInput: boolean;
   voiceProvider: VoiceProvider;
+  voiceLanguage: string; // Empty string means use system language (navigator.language)
   defaultFocusMode: boolean;
   totalTokenUsage: number;
   defaultCategory: string;
