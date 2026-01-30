@@ -54,28 +54,29 @@ const mockHandlers = {
 };
 
 /**
- * Compact Mode Demonstration (< 380px)
+ * Compact Mode Demonstration (< 400px)
  *
- * At ultra-narrow widths (< 380px), the layout enters "compact mode":
- * - Timeline column is HIDDEN (saves ~20px horizontal space)
+ * At narrow widths (< 400px), the layout optimizations include:
+ * - Timeline column REMAINS VISIBLE (important for task editing)
  * - Badges are smaller (h-4.5 instead of h-5)
  * - Tighter gaps (gap-1 instead of gap-1.5)
  * - Created date badge is hidden
  * - Reduced padding (px-1.5 instead of px-2)
+ * - InputBar header uses compact spacing
  *
- * This makes the UI usable even at 320px width!
+ * This makes the UI usable even at 350px width while keeping timeline access!
  */
 export const CompactMode350px: Story = {
   args: {
     task: taskBuilder.base({
       id: "1",
-      title: "Task in ultra-compact mode without timeline",
+      title: "Task in compact mode with timeline preserved",
       dueAt: DateTime.now().plus({ days: 1 }).toISODate()!,
       startAt: DateTime.now().toISODate()!,
       priority: "high",
       category: "Work",
       tags: [{ id: "1", name: "urgent" }],
-      description: "Notice: No timeline column to save space!",
+      description: "Notice: Timeline remains visible for editing access!",
     }),
     ...mockHandlers,
   },
@@ -85,37 +86,15 @@ export const CompactMode350px: Story = {
 };
 
 /**
- * Timeline Appears at 380px
- *
- * At 380px, the timeline column becomes visible.
- * Notice the difference from 350px!
- */
-export const TimelineAt380px: Story = {
-  args: {
-    task: taskBuilder.base({
-      id: "2",
-      title: "Task with timeline visible at 380px width",
-      dueAt: DateTime.now().plus({ days: 1 }).toISODate()!,
-      priority: "medium",
-      category: "Work",
-    }),
-    ...mockHandlers,
-  },
-  parameters: {
-    viewport: { defaultViewport: "narrow380" },
-  },
-};
-
-/**
  * Full Mobile at 400px
  *
  * At 400px and above, badges become full size (h-5).
- * Created date badge also appears.
+ * Timeline remains visible at all widths.
  */
-export const FullMobileAt400px: Story = {
+export const FullBadgesAt400px: Story = {
   args: {
     task: taskBuilder.base({
-      id: "3",
+      id: "2",
       title: "Task with full badges at 400px width",
       dueAt: DateTime.now().plus({ days: 1 }).toISODate()!,
       createdAt: DateTime.now().minus({ days: 3 }).toISO()!,
@@ -134,9 +113,9 @@ export const FullMobileAt400px: Story = {
  *
  * Shows how multiple tasks look in compact mode.
  * Switch between viewports to see progressive enhancement:
- * - 320px: Ultra compact, no timeline
- * - 380px: Timeline appears
+ * - 350px: Compact with timeline visible
  * - 400px: Full badges
+ * - 640px+: Desktop spacing
  */
 export const MultipleTasksCompact: Story = {
   render: () => (
@@ -184,13 +163,13 @@ export const MultipleTasksCompact: Story = {
 /**
  * Responsive Breakpoints Visualization
  *
- * This story helps you understand the 3 responsive breakpoints:
+ * This story helps you understand the responsive breakpoints:
  *
- * 1. < 380px: Compact mode (no timeline, smallest badges)
- * 2. 380px - 399px: Timeline shows, small badges
- * 3. 400px - 639px: Full mobile (all badges, larger size)
- * 4. 640px+: Desktop mode (largest spacing)
+ * 1. < 400px: Compact mode (timeline visible, smallest badges)
+ * 2. 400px - 639px: Full mobile (all badges, larger size)
+ * 3. 640px+: Desktop mode (largest spacing)
  *
+ * Timeline remains visible at ALL widths for editing access.
  * Use the viewport toolbar to switch between sizes and see the transitions!
  */
 export const BreakpointVisualization: Story = {
@@ -200,13 +179,11 @@ export const BreakpointVisualization: Story = {
         <h3 className="font-bold mb-2">Current Breakpoint Info</h3>
         <ul className="space-y-1">
           <li>
-            <strong>{"< 380px:"}</strong> Compact mode - No timeline
+            <strong>{"< 400px:"}</strong> Compact - Small badges, timeline
+            visible
           </li>
           <li>
-            <strong>380px-399px:</strong> Timeline visible - Small badges
-          </li>
-          <li>
-            <strong>400px-639px:</strong> Full mobile - All badges
+            <strong>400px-639px:</strong> Full mobile - All badges visible
           </li>
           <li>
             <strong>640px+:</strong> Desktop - Maximum spacing

@@ -145,9 +145,9 @@ export const InputBar: React.FC<InputBarProps> = () => {
 
   return (
     <div className="pt-3 pb-1">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto px-2 min-[400px]:px-4 sm:px-6">
         <div className="relative group z-10">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none z-10">
+          <div className="absolute inset-y-0 left-2 min-[400px]:left-3 flex items-center pointer-events-none z-10">
             {isLoading ? (
               <MotionDiv
                 animate={{ rotate: 360 }}
@@ -174,7 +174,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
           <input
             type="text"
             className={cn(
-              "w-full bg-white pl-10 pr-24 py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
+              "w-full bg-white pl-8 min-[400px]:pl-10 pr-20 min-[400px]:pr-24 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
                 : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
@@ -192,13 +192,13 @@ export const InputBar: React.FC<InputBarProps> = () => {
             disabled={isLoading || isListening}
           />
 
-          <div className="absolute inset-y-0 right-3 flex items-center gap-1">
+          <div className="absolute inset-y-0 right-2 min-[400px]:right-3 flex items-center gap-0.5 min-[400px]:gap-1">
             {/* Voice Input Button */}
             {settings.enableVoiceInput && (
               <button
                 onClick={start}
                 className={cn(
-                  "p-1.5 rounded-md transition-all duration-200 relative",
+                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
@@ -214,7 +214,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <button
                 onClick={toggleAiMode}
                 className={cn(
-                  "p-1.5 rounded-md transition-all duration-200",
+                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200",
                   effectiveAiActive
                     ? "text-purple-600 bg-purple-50 hover:bg-purple-100 ring-1 ring-purple-200"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
@@ -233,10 +233,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
             )}
             {onOpenSettings && settings.settingButtonOnInputBar !== false && (
               <>
-                <div className="w-px h-4 bg-slate-200 mx-1" />
+                <div className="w-px h-4 bg-slate-200 mx-0.5 min-[400px]:mx-1" />
                 <button
                   onClick={onOpenSettings}
-                  className="text-slate-400 hover:text-blue-600 p-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                  className="text-slate-400 hover:text-blue-600 p-1 min-[400px]:p-1.5 rounded-md hover:bg-blue-50 transition-colors"
                   title="Settings & Docs"
                 >
                   <Icon name="Settings" size={16} />
@@ -247,7 +247,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
         </div>
 
         {/* Filter Chips & Sort (Existing Code) */}
-        <div className="flex items-center gap-2 mt-2 overflow-x-auto no-scrollbar pb-2 pl-1 pr-4">
+        <div className="flex items-center gap-1.5 min-[400px]:gap-2 mt-2 overflow-x-auto no-scrollbar pb-2 pl-0.5 min-[400px]:pl-1 pr-2 min-[400px]:pr-4">
           {settings.tagsFilterOnInputBar !== false && (
             <FilterPopover
               label="Tags"
@@ -438,7 +438,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
+            "flex items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
               : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800",
@@ -529,7 +529,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold rounded-full transition-all shrink-0 outline-none ml-auto active:scale-95">
+        <button className="flex items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold rounded-full transition-all shrink-0 outline-none ml-auto active:scale-95">
           <Icon name="ArrowUpDown" size={12} />
           <span>Sort</span>
         </button>

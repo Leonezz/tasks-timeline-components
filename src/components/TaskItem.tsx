@@ -261,11 +261,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
           : "hover:bg-slate-50 border border-transparent",
       )}
     >
-      {/* Timeline Column - Hidden below 380px for ultra-narrow screens */}
+      {/* Timeline Column */}
       <div
         className={cn(
-          "relative flex-col items-center shrink-0",
-          "hidden min-[380px]:flex",
+          "relative flex flex-col items-center shrink-0",
           "w-4 min-[400px]:w-5 sm:w-6",
           iconTopSpacing,
         )}
