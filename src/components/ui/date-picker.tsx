@@ -50,7 +50,9 @@ export function DatePicker({
       dt = dt.set({ hour: hours, minute: minutes });
     }
 
-    onChange(dt.toISO() || "");
+    // Use toISODate() for date-only mode to avoid timezone conversion issues
+    const newValue = showTime ? dt.toISO() || "" : dt.toISODate() || "";
+    onChange(newValue);
     if (!showTime) {
       setOpen(false);
     }
@@ -66,6 +68,7 @@ export function DatePicker({
         hour: hours,
         minute: minutes,
       });
+      // When time is being edited, we always want the full ISO timestamp
       onChange(dt.toISO() || "");
     }
   };
