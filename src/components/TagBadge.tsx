@@ -32,8 +32,8 @@ export const TagBadge = ({
           )}
           title="Click to remove"
         >
-          <Icon name="Tag" size={10} />
-          <span>{tag.name}</span>
+          <Icon name="Tag" size={10} className="shrink-0" />
+          <span className="truncate">{tag.name}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
