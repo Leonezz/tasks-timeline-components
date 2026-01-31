@@ -28,9 +28,15 @@ interface DateHelpers {
 /**
  * Hook providing timezone-safe date utilities
  *
- * **Important:** The `today` value is computed on mount and won't update
- * if the component stays mounted past midnight. For most use cases this is fine.
- * For cases requiring real-time date updates, use `getTodayISO()` directly.
+ * ⚠️ **IMPORTANT: All values are frozen at component mount time.**
+ *
+ * - The `today`, `now`, `tomorrow`, and `yesterday` values do NOT update
+ *   if the component stays mounted across midnight or longer periods.
+ * - For real-time date updates (e.g., in long-running sessions), use the
+ *   utility functions from `utils/date-helpers.ts` directly:
+ *   - `getTodayISO()` for current date
+ *   - `getNowISO()` for current timestamp
+ *   - `getTomorrowISO()` for tomorrow's date
  *
  * @returns {DateHelpers} Object with date helper functions and values
  *
