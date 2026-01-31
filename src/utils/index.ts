@@ -15,6 +15,18 @@ export {
 } from "./task";
 export { parseTaskString } from "./parsing";
 export { getToolDefinitions } from "./ai-tools";
+export {
+  getTodayISO,
+  getNowISO,
+  getTomorrowISO,
+  getYesterdayISO,
+  dateToISODate,
+  dateToISO,
+  getDaysFromNowISO,
+  isSameDay,
+  isToday,
+  generateTimestampId,
+} from "./date-helpers";
 
 /**
  * Deep equality comparison for objects
