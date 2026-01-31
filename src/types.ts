@@ -54,7 +54,7 @@ export interface YearGroup {
 export type ThemeOption = "light" | "dark" | "midnight" | "coffee" | "system";
 export type FontSize = "sm" | "base" | "lg" | "xl";
 export type AIProvider = "gemini" | "openai" | "anthropic";
-export type VoiceProvider = "browser" | "gemini-whisper"; // Placeholder for future expansion
+export type VoiceProvider = "browser" | "openai" | "gemini";
 export type DateGroupBy = "dueAt" | "createdAt" | "startAt" | "completedAt";
 
 export interface ProviderConfig {
@@ -70,6 +70,24 @@ export interface AIConfig {
   providers: Record<AIProvider, ProviderConfig>;
 }
 
+export interface VoiceConfig {
+  enabled: boolean;
+  activeProvider: VoiceProvider;
+  language: string; // Empty string means use system language (navigator.language)
+  providers: {
+    browser: Record<string, never>; // No config needed for browser
+    openai: {
+      apiKey: string;
+      baseUrl: string;
+      model: string; // e.g., "whisper-1"
+    };
+    gemini: {
+      apiKey: string;
+      model: string; // e.g., "gemini-pro-speech"
+    };
+  };
+}
+
 export interface AppSettings {
   theme: ThemeOption;
   dateFormat: string;
@@ -80,11 +98,9 @@ export interface AppSettings {
   useRelativeDates: boolean;
   groupingStrategy: DateGroupBy[];
   aiConfig: AIConfig;
+  voiceConfig: VoiceConfig;
 
   // New Features
-  enableVoiceInput: boolean;
-  voiceProvider: VoiceProvider;
-  voiceLanguage: string; // Empty string means use system language (navigator.language)
   defaultFocusMode: boolean;
   totalTokenUsage: number;
   defaultCategory: string;

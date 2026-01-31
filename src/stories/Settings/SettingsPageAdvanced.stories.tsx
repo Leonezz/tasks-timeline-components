@@ -232,7 +232,10 @@ export const VoiceInputDisabled: Story = {
   args: {
     settings: {
       ...settingsBuilder.default(),
-      enableVoiceInput: false,
+      voiceConfig: {
+        ...settingsBuilder.default().voiceConfig,
+        enabled: false,
+      },
     },
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
@@ -241,9 +244,35 @@ export const VoiceInputDisabled: Story = {
 
 export const VoiceInputBrowser: Story = {
   args: {
-    settings: settingsBuilder.withVoiceInput({
-      voiceProvider: "browser",
-    }),
+    settings: {
+      ...settingsBuilder.withVoiceInput(),
+      voiceConfig: {
+        ...settingsBuilder.withVoiceInput().voiceConfig,
+        activeProvider: "browser",
+      },
+    },
+    onUpdateSettings: handleUpdateSettings,
+    availableTags: ["work", "personal"],
+  },
+};
+
+export const VoiceInputOpenAI: Story = {
+  args: {
+    settings: {
+      ...settingsBuilder.withVoiceInput(),
+      voiceConfig: {
+        ...settingsBuilder.withVoiceInput().voiceConfig,
+        activeProvider: "openai",
+        providers: {
+          ...settingsBuilder.withVoiceInput().voiceConfig.providers,
+          openai: {
+            apiKey: "sk-test-key",
+            baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+            model: "whisper-1",
+          },
+        },
+      },
+    },
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
   },
@@ -251,9 +280,20 @@ export const VoiceInputBrowser: Story = {
 
 export const VoiceInputGemini: Story = {
   args: {
-    settings: settingsBuilder.withVoiceInput({
-      voiceProvider: "gemini-whisper",
-    }),
+    settings: {
+      ...settingsBuilder.withVoiceInput(),
+      voiceConfig: {
+        ...settingsBuilder.withVoiceInput().voiceConfig,
+        activeProvider: "gemini",
+        providers: {
+          ...settingsBuilder.withVoiceInput().voiceConfig.providers,
+          gemini: {
+            apiKey: "AIza-test-key",
+            model: "gemini-1.5-flash",
+          },
+        },
+      },
+    },
     onUpdateSettings: handleUpdateSettings,
     availableTags: ["work", "personal"],
   },
@@ -584,8 +624,23 @@ export const AllFeaturesEnabled: Story = {
   args: {
     settings: {
       ...settingsBuilder.allProvidersConfigured(),
-      enableVoiceInput: true,
-      voiceProvider: "gemini-whisper",
+      voiceConfig: {
+        enabled: true,
+        activeProvider: "gemini",
+        language: "",
+        providers: {
+          browser: {},
+          openai: {
+            apiKey: "sk-test-key",
+            baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+            model: "whisper-1",
+          },
+          gemini: {
+            apiKey: "AIza-test-key",
+            model: "gemini-1.5-flash",
+          },
+        },
+      },
       filters: {
         tags: ["work", "urgent"],
         categories: [],
@@ -614,7 +669,10 @@ export const AllFeaturesDisabled: Story = {
         ...settingsBuilder.default().aiConfig,
         enabled: false,
       },
-      enableVoiceInput: false,
+      voiceConfig: {
+        ...settingsBuilder.default().voiceConfig,
+        enabled: false,
+      },
       filters: {
         tags: [],
         categories: [],

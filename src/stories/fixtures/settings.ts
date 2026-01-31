@@ -17,9 +17,6 @@ export const settingsBuilder = {
     fontSize: "base",
     useRelativeDates: true,
     groupingStrategy: ["dueAt"],
-    enableVoiceInput: false,
-    voiceProvider: "browser",
-    voiceLanguage: "",
     defaultFocusMode: false,
     totalTokenUsage: 0,
     defaultCategory: "General",
@@ -34,6 +31,23 @@ export const settingsBuilder = {
           apiKey: "",
           model: "claude-3-5-sonnet-20240620",
           baseUrl: "",
+        },
+      },
+    },
+    voiceConfig: {
+      enabled: false,
+      activeProvider: "browser",
+      language: "",
+      providers: {
+        browser: {},
+        openai: {
+          apiKey: "",
+          baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+          model: "whisper-1",
+        },
+        gemini: {
+          apiKey: "",
+          model: "gemini-1.5-flash",
         },
       },
     },
@@ -193,8 +207,23 @@ export const settingsBuilder = {
    */
   withVoiceInput: (overrides?: Partial<AppSettings>): AppSettings => ({
     ...settingsBuilder.default(),
-    enableVoiceInput: true,
-    voiceProvider: "browser",
+    voiceConfig: {
+      enabled: true,
+      activeProvider: "browser",
+      language: "",
+      providers: {
+        browser: {},
+        openai: {
+          apiKey: "",
+          baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+          model: "whisper-1",
+        },
+        gemini: {
+          apiKey: "",
+          model: "gemini-1.5-flash",
+        },
+      },
+    },
     ...overrides,
   }),
 

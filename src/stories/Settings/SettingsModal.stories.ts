@@ -46,9 +46,24 @@ const settings: AppSettings = {
     },
   },
 
-  enableVoiceInput: true,
-  voiceProvider: "browser",
-  voiceLanguage: "",
+  voiceConfig: {
+    enabled: true,
+    activeProvider: "browser",
+    language: "",
+    providers: {
+      browser: {},
+      openai: {
+        apiKey: "",
+        baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+        model: "whisper-1",
+      },
+      gemini: {
+        apiKey: "",
+        model: "gemini-1.5-flash",
+      },
+    },
+  },
+
   defaultFocusMode: true,
   totalTokenUsage: 0,
   defaultCategory: "",

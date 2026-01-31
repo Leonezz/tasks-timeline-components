@@ -35,11 +35,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
     [value, setValue] = useState(""),
     [isLoading, setIsLoading] = useState(false),
     // Use shared voice hook
-    { isListening, start } = useVoiceInput(
-      settings.enableVoiceInput,
+    { isListening, start, stop } = useVoiceInput(
+      settings.voiceConfig,
       (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
-      settings.voiceLanguage,
     ),
     effectiveAiActive = settings.aiConfig.enabled && isAiMode,
     handleSubmit = async () => {
@@ -197,19 +196,18 @@ export const InputBar: React.FC<InputBarProps> = () => {
 
           <div className="absolute inset-y-0 right-2 min-[400px]:right-3 flex items-center gap-0.5 min-[400px]:gap-1">
             {/* Voice Input Button */}
-            {settings.enableVoiceInput && (
+            {settings.voiceConfig.enabled && (
               <button
-                onClick={start}
+                onClick={isListening ? stop : start}
                 className={cn(
                   "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
-                disabled={isListening}
-                title="Voice Input"
+                title={isListening ? "Stop Recording" : "Start Voice Input"}
               >
-                <Icon name={isListening ? "Mic" : "Mic"} size={16} />
+                <Icon name={isListening ? "Square" : "Mic"} size={16} />
               </button>
             )}
 

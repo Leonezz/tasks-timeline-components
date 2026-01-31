@@ -1,113 +1,91 @@
 import { useCallback, useState } from "react";
+import {
+  BrowserVoiceProvider,
+  OpenAIWhisperProvider,
+  GeminiSpeechProvider,
+  type IVoiceProvider,
+  type VoiceInputResult,
+  type VoiceInputError,
+} from "../utils/voice-providers";
+import type { VoiceConfig } from "../types";
 import { logger } from "../utils/logger";
 
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-    length: number;
-  };
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
-  onerror:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
-    | null;
-  onresult:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
-    | null;
-}
-
-interface WindowWithSpeech extends Window {
-  SpeechRecognition?: new () => SpeechRecognition;
-  webkitSpeechRecognition?: new () => SpeechRecognition;
-}
-
 export const useVoiceInput = (
-  enabled: boolean,
+  voiceConfig: VoiceConfig,
   onResult: (text: string) => void,
   onError: (msg: string) => void,
-  language?: string, // Empty/undefined means use system language
 ) => {
-  const [isListening, setIsListening] = useState(false),
-    start = useCallback(() => {
-      if (!enabled) {
+  const [isListening, setIsListening] = useState(false);
+  const [stopFn, setStopFn] = useState<(() => void) | null>(null);
+
+  const start = useCallback(() => {
+    if (!voiceConfig.enabled) {
+      logger.warn("Voice", "Voice input is disabled in settings");
+      return;
+    }
+
+    // Get the appropriate provider
+    let provider: IVoiceProvider | null = null;
+
+    switch (voiceConfig.activeProvider) {
+      case "browser":
+        provider = new BrowserVoiceProvider();
+        break;
+      case "openai":
+        provider = new OpenAIWhisperProvider(voiceConfig.providers.openai);
+        break;
+      case "gemini":
+        provider = new GeminiSpeechProvider(voiceConfig.providers.gemini);
+        break;
+      default:
+        onError(`Unknown voice provider: ${voiceConfig.activeProvider}`);
         return;
-      }
+    }
 
-      const win = window as unknown as WindowWithSpeech,
-        SpeechRecognitionCtor =
-          win.SpeechRecognition || win.webkitSpeechRecognition;
+    // Check if provider is available
+    if (!provider.isAvailable()) {
+      onError(`${provider.getName()} is not available in this browser.`);
+      logger.error("Voice", `Provider ${provider.getName()} is not available`);
+      return;
+    }
 
-      if (!SpeechRecognitionCtor) {
-        onError("Browser does not support voice input.");
-        return;
-      }
+    logger.info("Voice", `Starting ${provider.getName()}...`, {
+      language: voiceConfig.language || navigator.language,
+    });
 
-      try {
-        logger.info("Voice", "Starting speech recognition...");
-        const recognition = new SpeechRecognitionCtor();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = language || navigator.language || "en-US";
+    setIsListening(true);
 
-        recognition.onstart = () => setIsListening(true);
-        recognition.onend = () => setIsListening(false);
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          setIsListening(false);
-          const errorMsg = event.error;
+    const handleResult = (result: VoiceInputResult) => {
+      logger.info("Voice", "Transcription received", {
+        text: result.transcript,
+        confidence: result.confidence,
+      });
+      setIsListening(false);
+      onResult(result.transcript);
+    };
 
-          // Ignore 'no-speech' as it just means silence
-          if (errorMsg === "no-speech") {
-            return;
-          }
+    const handleError = (error: VoiceInputError) => {
+      logger.error("Voice", "Voice input error", error);
+      setIsListening(false);
+      onError(error.message);
+    };
 
-          if (errorMsg === "not-allowed") {
-            const msg = "Microphone access denied. Please check permissions.";
-            onError(msg);
-            logger.error("Voice", msg);
-          } else if (errorMsg === "network") {
-            const msg = "Network error during voice recognition.";
-            onError(msg);
-            logger.error("Voice", msg);
-          } else {
-            const msg = `Voice input error: ${errorMsg}`;
-            onError(msg);
-            logger.warn("Voice", msg);
-          }
-        };
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = event.results[0]?.[0]?.transcript;
-          if (transcript) {
-            logger.info("Voice", "Transcript received", { text: transcript });
-            onResult(transcript);
-          }
-        };
+    const cleanup = provider.start(
+      voiceConfig.language,
+      handleResult,
+      handleError,
+    );
 
-        recognition.start();
-      } catch (e) {
-        console.error("Speech API Error", e);
-        onError("Failed to initialize voice input.");
-        logger.error("Voice", "Initialization failed", e);
-        setIsListening(false);
-      }
-    }, [enabled, onResult, onError, setIsListening, language]);
+    setStopFn(() => cleanup);
+  }, [voiceConfig, onResult, onError]);
 
-  return { isListening, start };
+  const stop = useCallback(() => {
+    if (stopFn) {
+      stopFn();
+      setStopFn(null);
+    }
+    setIsListening(false);
+  }, [stopFn]);
+
+  return { isListening, start, stop };
 };

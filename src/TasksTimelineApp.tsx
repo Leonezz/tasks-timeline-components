@@ -44,16 +44,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   useRelativeDates: true,
   groupingStrategy: ["dueAt"],
 
-  // New Features
-  enableVoiceInput: true,
-  voiceProvider: "browser",
-  voiceLanguage: "", // Empty means use system language (navigator.language)
-  defaultFocusMode: false,
-  totalTokenUsage: 0,
-  defaultCategory: "General",
-
-  settingButtonOnInputBar: undefined,
-
   aiConfig: {
     enabled: true,
     defaultMode: false,
@@ -72,6 +62,31 @@ const DEFAULT_SETTINGS: AppSettings = {
       },
     },
   },
+
+  voiceConfig: {
+    enabled: true,
+    activeProvider: "browser",
+    language: "", // Empty means use system language (navigator.language)
+    providers: {
+      browser: {},
+      openai: {
+        apiKey: "",
+        baseUrl: "https://api.openai.com/v1/audio/transcriptions",
+        model: "whisper-1",
+      },
+      gemini: {
+        apiKey: "",
+        model: "gemini-1.5-flash",
+      },
+    },
+  },
+
+  // New Features
+  defaultFocusMode: false,
+  totalTokenUsage: 0,
+  defaultCategory: "General",
+
+  settingButtonOnInputBar: undefined,
   filters: {
     tags: [],
     categories: [],

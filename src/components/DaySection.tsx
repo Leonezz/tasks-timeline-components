@@ -38,11 +38,14 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
   }, [isAdding, settings.defaultCategory]);
 
   // Voice Input for this section
-  const { isListening, start: startVoice } = useVoiceInput(
-      settings.enableVoiceInput,
+  const {
+      isListening,
+      start: startVoice,
+      stop: stopVoice,
+    } = useVoiceInput(
+      settings.voiceConfig,
       (text) => setNewTaskTitle((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
-      settings.voiceLanguage,
     ),
     // Parse the ISO date string from the group key
     dt = DateTime.fromISO(group.date),
@@ -323,16 +326,24 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                               </datalist>
                             </div>
 
-                            {settings.enableVoiceInput && (
+                            {settings.voiceConfig.enabled && (
                               <button
-                                onClick={startVoice}
+                                onClick={isListening ? stopVoice : startVoice}
                                 className={cn(
                                   "p-1 rounded hover:bg-slate-100 transition-colors",
                                   isListening && "text-rose-500 animate-pulse",
                                 )}
                                 tabIndex={-1}
+                                title={
+                                  isListening
+                                    ? "Stop Recording"
+                                    : "Start Voice Input"
+                                }
                               >
-                                <Icon name="Mic" size={14} />
+                                <Icon
+                                  name={isListening ? "Square" : "Mic"}
+                                  size={14}
+                                />
                               </button>
                             )}
                           </div>
