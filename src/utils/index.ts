@@ -27,6 +27,14 @@ export {
   isToday,
   generateTimestampId,
 } from "./date-helpers";
+export {
+  BrowserVoiceProvider,
+  OpenAIWhisperProvider,
+  GeminiSpeechProvider,
+  type IVoiceProvider,
+  type VoiceInputResult,
+  type VoiceInputError,
+} from "./voice-providers";
 
 /**
  * Deep equality comparison for objects

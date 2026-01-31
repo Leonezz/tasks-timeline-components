@@ -25,10 +25,35 @@ export const SettingsPageAdvanced = ({
   const toggleVoiceInput = () =>
       onUpdateSettings({
         ...settings,
-        enableVoiceInput: !settings.enableVoiceInput,
+        voiceConfig: {
+          ...settings.voiceConfig,
+          enabled: !settings.voiceConfig.enabled,
+        },
       }),
     setVoiceProvider = (p: VoiceProvider) =>
-      onUpdateSettings({ ...settings, voiceProvider: p }),
+      onUpdateSettings({
+        ...settings,
+        voiceConfig: { ...settings.voiceConfig, activeProvider: p },
+      }),
+    updateVoiceProviderConfig = (
+      provider: "openai" | "gemini",
+      field: "apiKey" | "baseUrl" | "model",
+      value: string,
+    ) => {
+      onUpdateSettings({
+        ...settings,
+        voiceConfig: {
+          ...settings.voiceConfig,
+          providers: {
+            ...settings.voiceConfig.providers,
+            [provider]: {
+              ...settings.voiceConfig.providers[provider],
+              [field]: value,
+            },
+          },
+        },
+      });
+    },
     // -- AI Settings Handlers --
     toggleAIEnabled = () =>
       onUpdateSettings({
@@ -275,7 +300,7 @@ export const SettingsPageAdvanced = ({
                 onClick={toggleVoiceInput}
                 className={cn(
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                  settings.enableVoiceInput
+                  settings.voiceConfig.enabled
                     ? "bg-emerald-500"
                     : "bg-slate-200 dark:bg-slate-700",
                 )}
@@ -283,48 +308,166 @@ export const SettingsPageAdvanced = ({
                 <MotionSpan
                   layout
                   className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow-sm block"
-                  animate={{ x: settings.enableVoiceInput ? 16 : 0 }}
+                  animate={{ x: settings.voiceConfig.enabled ? 16 : 0 }}
                 />
               </button>
             </div>
 
             {/* Voice Provider Config */}
-            {settings.enableVoiceInput && (
+            {settings.voiceConfig.enabled && (
               <div className="pt-2 space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-2">
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
                     Voice Provider
                   </label>
-                  <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
-                    {(["browser", "gemini-whisper"] as VoiceProvider[]).map(
+                  <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1">
+                    {(["browser", "openai", "gemini"] as VoiceProvider[]).map(
                       (p) => (
                         <button
                           key={p}
                           onClick={() => setVoiceProvider(p)}
                           className={cn(
                             "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
-                            settings.voiceProvider === p
+                            settings.voiceConfig.activeProvider === p
                               ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
                               : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
                           )}
                         >
-                          {p === "gemini-whisper" ? "Gemini" : "Browser"}
+                          {p === "openai"
+                            ? "OpenAI"
+                            : p === "gemini"
+                              ? "Gemini"
+                              : "Browser"}
                         </button>
                       ),
                     )}
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1.5">
+                    {settings.voiceConfig.activeProvider === "browser" &&
+                      "Uses Web Speech API (free, requires internet in Chrome/Edge)"}
+                    {settings.voiceConfig.activeProvider === "openai" &&
+                      "OpenAI Whisper (requires API key, highly accurate)"}
+                    {settings.voiceConfig.activeProvider === "gemini" &&
+                      "Google Gemini (requires API key, supports audio transcription)"}
+                  </p>
                 </div>
+
+                {/* OpenAI Provider Config */}
+                {settings.voiceConfig.activeProvider === "openai" && (
+                  <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                        OpenAI API Key
+                      </label>
+                      <input
+                        type="password"
+                        value={settings.voiceConfig.providers.openai.apiKey}
+                        onChange={(e) =>
+                          updateVoiceProviderConfig(
+                            "openai",
+                            "apiKey",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="sk-..."
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                        Model
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.voiceConfig.providers.openai.model}
+                        onChange={(e) =>
+                          updateVoiceProviderConfig(
+                            "openai",
+                            "model",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="whisper-1"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                        Base URL (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.voiceConfig.providers.openai.baseUrl}
+                        onChange={(e) =>
+                          updateVoiceProviderConfig(
+                            "openai",
+                            "baseUrl",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="https://api.openai.com/v1/audio/transcriptions"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Gemini Provider Config */}
+                {settings.voiceConfig.activeProvider === "gemini" && (
+                  <div className="space-y-3 pl-3 border-l-2 border-purple-200 dark:border-purple-800">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                        Gemini API Key
+                      </label>
+                      <input
+                        type="password"
+                        value={settings.voiceConfig.providers.gemini.apiKey}
+                        onChange={(e) =>
+                          updateVoiceProviderConfig(
+                            "gemini",
+                            "apiKey",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="AIza..."
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                        Model
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.voiceConfig.providers.gemini.model}
+                        onChange={(e) =>
+                          updateVoiceProviderConfig(
+                            "gemini",
+                            "model",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="gemini-1.5-flash"
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-2">
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
                     Voice Language
                   </label>
                   <input
                     type="text"
-                    value={settings.voiceLanguage}
+                    value={settings.voiceConfig.language}
                     onChange={(e) =>
                       onUpdateSettings({
                         ...settings,
-                        voiceLanguage: e.target.value,
+                        voiceConfig: {
+                          ...settings.voiceConfig,
+                          language: e.target.value,
+                        },
                       })
                     }
                     placeholder="System default"

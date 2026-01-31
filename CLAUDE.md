@@ -181,6 +181,39 @@ The library uses Gemini's function calling API:
 - Parameters use `@google/genai` Type enum (not plain strings)
 - Fallback to regex-based parsing if AI unavailable
 
+### Voice Input System
+
+The library provides pluggable voice input with multiple provider support:
+
+**Available Providers:**
+- **Browser** - Web Speech API (free, limited accuracy, network-dependent)
+- **OpenAI** - Whisper API (paid, highly accurate, requires API key)
+- **Gemini** - Google speech-to-text (paid, accurate, requires API key)
+
+**Configuration Structure:**
+```typescript
+voiceConfig: {
+  enabled: boolean;
+  activeProvider: "browser" | "openai" | "gemini";
+  language: string; // Empty for system default
+  providers: {
+    browser: {};
+    openai: { apiKey, baseUrl, model };
+    gemini: { apiKey, model };
+  };
+}
+```
+
+**Key Implementation Files:**
+- `src/utils/voice-providers.ts` - Provider implementations (BrowserVoiceProvider, OpenAIWhisperProvider, GeminiSpeechProvider)
+- `src/hooks/useVoiceInput.ts` - React hook for voice input
+- `src/components/settings/SettingsPageAdvanced.tsx` - Settings UI with provider selection
+
+**Provider Interface:**
+All providers implement `IVoiceProvider` with methods: `start()`, `isAvailable()`, `getName()`
+
+See `docs/VOICE_INPUT.md` for detailed documentation.
+
 ### Shadow DOM Considerations
 
 - Modals/popovers need `portalContainer` from `useAppContext()`
