@@ -463,7 +463,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                         size={20}
                         className="mb-0.5"
                       />
-                      <span className="text-[9px] font-bold uppercase tracking-wider">
+                      <span className="text-[9px] font-bold uppercase tracking-wider truncate w-full text-center">
                         Focus
                       </span>
                     </button>
@@ -482,7 +482,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                         <span className="text-lg font-black text-slate-800 leading-none">
                           {stats.todo}
                         </span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           To Do
                         </span>
                       </button>
@@ -500,7 +500,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                         <span className="text-lg font-black text-purple-600 leading-none">
                           {stats.unplanned}
                         </span>
-                        <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mt-1">
+                        <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           Unplanned
                         </span>
                       </button>
@@ -540,7 +540,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                         <span className="text-lg font-black text-blue-600 leading-none">
                           {stats.scheduled + stats.doing}
                         </span>
-                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1">
+                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           Doing
                         </span>
                       </button>

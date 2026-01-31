@@ -89,8 +89,8 @@ export const DateBadge = ({
     <Popover>
       <PopoverTrigger asChild>
         <button className={className} title={titleMap[type]}>
-          <Icon name={icon} size={10} />
-          <span className="font-mono">
+          <Icon name={icon} size={10} className="shrink-0" />
+          <span className="font-mono truncate">
             {prefix}
             {label}
           </span>

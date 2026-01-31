@@ -246,7 +246,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
     startTime = task.startAt ? formatTime(task.startAt) : null,
     displayTime = dueTime || startTime,
     badgeClass =
-      "flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
+      "flex items-center gap-1 min-[400px]:gap-1.5 px-1.5 min-[400px]:px-2 h-4.5 min-[400px]:h-5 rounded-full border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
 
   return (
     <MotionDiv
@@ -254,7 +254,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       className={cn(
-        "group relative flex items-stretch gap-2 pb-1.5 pt-0.5 px-1 transition-all rounded-lg",
+        "group relative flex items-stretch gap-1 min-[400px]:gap-1.5 sm:gap-2 pb-1.5 pt-0.5 px-0.5 sm:px-1 transition-all rounded-lg",
         (isDone || isCancelled) && "opacity-60",
         isUrgent
           ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
@@ -264,7 +264,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
       {/* Timeline Column */}
       <div
         className={cn(
-          "relative flex flex-col items-center shrink-0 w-6",
+          "relative flex flex-col items-center shrink-0",
+          "w-4 min-[400px]:w-5 sm:w-6",
           iconTopSpacing,
         )}
       >
@@ -360,9 +361,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
 
       {/* Content */}
       <div
-        className={cn("flex-1 min-w-0 pt-0.5", displayTime ? "pr-16" : "pr-8")}
+        className={cn(
+          "flex-1 min-w-0 pt-0.5",
+          displayTime ? "pr-12 sm:pr-16" : "pr-6 sm:pr-8",
+        )}
       >
-        <div className="flex items-center gap-2 min-h-5.5 mb-0.5">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-h-5.5 mb-0.5">
           {isEditing ? (
             <input
               ref={inputRef}
@@ -380,7 +384,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
               <MotionButton
                 onClick={() => setIsEditing(true)}
                 className={cn(
-                  "font-medium leading-tight text-slate-800 transition-all cursor-text text-left border-none bg-transparent p-0 appearance-none font-inherit",
+                  "font-medium leading-tight text-slate-800 transition-all cursor-text text-left border-none bg-transparent p-0 appearance-none font-inherit truncate flex-1 min-w-0",
                   fontSizeClass,
                   isDone && "line-through text-slate-500 decoration-slate-300",
                   isCancelled &&
@@ -406,7 +410,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
         {/* Tags, Priority, Etc */}
         <div
           className={cn(
-            "flex flex-wrap items-center gap-2 font-medium text-slate-500",
+            "flex flex-wrap items-center gap-1 min-[400px]:gap-1.5 sm:gap-2 font-medium text-slate-500",
             metadataSizeClass,
           )}
           onClick={(e) => {
@@ -470,6 +474,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
                 className={cn(
                   badgeClass,
                   "text-slate-500 bg-slate-50 border-slate-200",
+                  "hidden min-[400px]:flex",
                 )}
               />
             )}
