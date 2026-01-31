@@ -124,12 +124,14 @@ src/
 ├── hooks/
 │   ├── useTaskFiltering.ts   # Filter/search logic
 │   ├── useTaskStats.ts       # Statistics calculation
-│   └── useAIAgent.ts         # AI provider integration
+│   ├── useAIAgent.ts         # AI provider integration
+│   └── useDateHelpers.ts     # Timezone-safe date utilities hook
 ├── utils/                    # Core utilities (refactored)
 │   ├── task.ts               # deriveTaskStatus, groupTasksByYearAndDate
 │   ├── ai-tools.ts           # getToolDefinitions
 │   ├── parsing.ts            # parseTaskString
 │   ├── date.ts               # Date formatting utilities
+│   ├── date-helpers.ts       # Timezone-safe date operations
 │   └── cn.ts                 # Tailwind class merge utility
 ├── lib/utils.ts              # Shadcn re-export
 ├── types.ts                  # All TypeScript definitions
