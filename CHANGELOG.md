@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.12] - 2026-01-31
+
+### Fixed
+
+- **Calendar date picker timezone bug** (#13)
+  - Fixed DatePicker component to use `toISODate()` for date-only selections instead of `toISO()`
+  - Prevents timezone conversion issues where selecting Feb 5 would save as Jan 5 in certain timezones
+  - Added timezone-safe date helper utilities in `utils/date-helpers.ts`
+  - Added `useDateHelpers` React hook for consistent date handling
+
+### Added
+
+- **Centralized timezone-safe date handling system**
+  - New utilities: `getTodayISO()`, `getNowISO()`, `getTomorrowISO()`, etc.
+  - Custom ESLint rules to prevent dangerous date patterns like `new Date().toISOString().split("T")[0]`
+  - Comprehensive documentation in CLAUDE.md about timezone-safe patterns
+  - Storybook stories for DatePicker with timezone consistency tests
+
+### Changed
+
+- Updated ESLint configuration to use standard flat config format
+- Enhanced documentation with timezone safety guidelines
+
 ## [0.0.11] - 2026-01-29
 
 ### Fixed
