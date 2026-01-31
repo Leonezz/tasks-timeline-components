@@ -273,11 +273,30 @@ In timezone GMT+8 at 4pm on Jan 30:
 
 ### ESLint Protection
 
-The ESLint config automatically catches dangerous patterns:
+The project includes **custom ESLint rules** that automatically prevent timezone bugs:
+
+**Configuration:** `eslint.config.js` uses `no-restricted-syntax` to block dangerous patterns
+
+**Blocked patterns:**
+1. `new Date().toISOString().split("T")[0]` - Returns UTC date instead of local
+2. `Date().toISOString().split("T")[0]` - Same issue without `new` keyword
+
+**Error message when detected:**
 ```
 ❌ TIMEZONE BUG: new Date().toISOString().split("T")[0] returns UTC date,
    not local date. Use getTodayISO() from utils/date-helpers instead.
 ```
+
+**How it works:**
+The ESLint rule uses AST (Abstract Syntax Tree) selectors to identify the exact
+pattern of chaining `.toISOString()` and `.split()` calls on `Date()` constructors.
+This prevents accidental timezone conversion bugs from being committed.
+
+**For contributors:**
+If you see this error, simply replace the pattern with the appropriate helper:
+- `getTodayISO()` for today's date
+- `getNowISO()` for current timestamp
+- See "Available Utilities" section above for full list
 
 ## Plans & Progresses & Other Intermediate Files
 
