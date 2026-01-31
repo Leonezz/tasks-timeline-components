@@ -25,3 +25,14 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# AI Assistant Files
+.serena/
+.playwright-mcp/
+claude/
+prd/
+
+# GitHub Templates (optional, keep in repo if needed)
+.github/ISSUE_TEMPLATE/
+.github/WORKFLOW_SETUP.md
+.github/pull_request_template.md
