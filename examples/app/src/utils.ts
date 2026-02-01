@@ -69,8 +69,13 @@ export const formatSmartDate = (
   if (diff === 0) return "Today";
   if (diff === 1) return "Tomorrow";
   if (diff === -1) return "Yesterday";
-  if (Math.abs(diff) < 7) return dt.toRelativeCalendar();
-  return dt.toRelative();
+  // Within 5 days: show day-based urgency ("in 2 days")
+  // Beyond 5 days: let Luxon choose appropriate unit ("in 2 weeks", "in 1 month")
+  // This fixes issue #14 where Feb 1 from Jan 30 showed "next month" instead of "in 2 days"
+  if (Math.abs(diff) <= 5) {
+    return target.toRelative({ base: now, unit: "days" }) || "";
+  }
+  return target.toRelative({ base: now }) || "";
 };
 
 export const formatRecurrence = (ruleStr: string): string => {
@@ -94,12 +99,12 @@ export const deriveTaskStatus = (task: Task): TaskStatus => {
   const tomorrow = now.plus({ days: 1 }).toISODate();
 
   // 2. Overdue: Due date is strictly in the past
-  if (task.dueDate && task.dueDate < today) {
+  if (task.dueAt && task.dueAt < today) {
     return "overdue";
   }
 
   // 3. Due: Due date is Today or Tomorrow
-  if (task.dueDate && (task.dueDate === today || task.dueDate === tomorrow)) {
+  if (task.dueAt && (task.dueAt === today || task.dueAt === tomorrow)) {
     return "due";
   }
 

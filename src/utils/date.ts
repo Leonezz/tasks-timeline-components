@@ -69,10 +69,13 @@ export const formatSmartDate = (
   if (diff === -1) {
     return "Yesterday";
   }
-  if (Math.abs(diff) < 7) {
-    return dt.toRelativeCalendar() || "INVALID";
+  // Within 5 days: show day-based urgency ("in 2 days")
+  // Beyond 5 days: let Luxon choose appropriate unit ("in 2 weeks", "in 1 month")
+  // This fixes issue #14 where Feb 1 from Jan 30 showed "next month" instead of "in 2 days"
+  if (Math.abs(diff) <= 5) {
+    return target.toRelative({ base: now, unit: "days" }) || "INVALID";
   }
-  return dt.toRelative() || "INVALID";
+  return target.toRelative({ base: now }) || "INVALID";
 };
 
 export const formatRecurrence = (ruleStr: string): string => {
