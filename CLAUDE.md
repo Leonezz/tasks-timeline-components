@@ -132,6 +132,7 @@ src/
 │   ├── parsing.ts            # parseTaskString
 │   ├── date.ts               # Date formatting utilities
 │   ├── date-helpers.ts       # Timezone-safe date operations
+│   ├── voice-providers.ts    # Voice input provider implementations
 │   └── cn.ts                 # Tailwind class merge utility
 ├── lib/utils.ts              # Shadcn re-export
 ├── types.ts                  # All TypeScript definitions

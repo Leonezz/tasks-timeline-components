@@ -61,6 +61,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
+    "test": "vitest --project=unit",
+    "test:watch": "vitest --project=unit --watch",
     "storybook": "storybook dev -p 6006",
     "test-storybook": "vitest --project=storybook",
     "build-storybook": "storybook build",
