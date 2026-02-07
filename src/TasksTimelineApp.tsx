@@ -218,17 +218,29 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           };
 
           // Override API key from prop if present, even if settings exist
-          if (apiKey) {
-            mergedSettings.aiConfig.providers.gemini.apiKey = apiKey;
-          }
+          const finalSettings = apiKey
+            ? {
+                ...mergedSettings,
+                aiConfig: {
+                  ...mergedSettings.aiConfig,
+                  providers: {
+                    ...mergedSettings.aiConfig.providers,
+                    gemini: {
+                      ...mergedSettings.aiConfig.providers.gemini,
+                      apiKey,
+                    },
+                  },
+                },
+              }
+            : mergedSettings;
 
-          setSettings(mergedSettings);
+          setSettings(finalSettings);
 
           // Set derived states from settings
-          setIsFocusMode(mergedSettings.defaultFocusMode);
+          setIsFocusMode(finalSettings.defaultFocusMode);
           setIsAiMode(
-            mergedSettings.aiConfig.enabled &&
-              mergedSettings.aiConfig.defaultMode,
+            finalSettings.aiConfig.enabled &&
+              finalSettings.aiConfig.defaultMode,
           );
         } else {
           // Use defaults

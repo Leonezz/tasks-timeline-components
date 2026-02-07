@@ -1,8 +1,5 @@
 import type { AIProvider, ProviderConfig } from "../types";
 import type { IAIProvider, TestResult } from "./types";
-import { GeminiProvider } from "./gemini-provider";
-import { OpenAIProvider } from "./openai-provider";
-import { AnthropicProvider } from "./anthropic-provider";
 
 export { getToolDefinitions } from "./tools";
 export { getSystemPrompt } from "./system-prompt";
@@ -16,27 +13,35 @@ export type {
   TestResult,
 } from "./types";
 
-export function createProvider(
+export async function createProvider(
   type: AIProvider,
   config: ProviderConfig,
-): IAIProvider {
+): Promise<IAIProvider> {
   switch (type) {
-    case "gemini":
+    case "gemini": {
+      const { GeminiProvider } = await import("./gemini-provider");
       return new GeminiProvider(config);
-    case "openai":
+    }
+    case "openai": {
+      const { OpenAIProvider } = await import("./openai-provider");
       return new OpenAIProvider({
         ...config,
         baseUrl: config.baseUrl || "https://api.openai.com/v1",
         model: config.model || "gpt-4o",
       });
-    case "anthropic":
+    }
+    case "anthropic": {
+      const { AnthropicProvider } = await import("./anthropic-provider");
       return new AnthropicProvider({
         ...config,
         baseUrl: config.baseUrl || "https://api.anthropic.com",
         model: config.model || "claude-sonnet-4-20250514",
       });
-    case "openai-compatible":
+    }
+    case "openai-compatible": {
+      const { OpenAIProvider } = await import("./openai-provider");
       return new OpenAIProvider(config);
+    }
   }
 }
 
@@ -45,7 +50,7 @@ export async function testProvider(
   config: ProviderConfig,
 ): Promise<TestResult> {
   try {
-    const provider = createProvider(type, config);
+    const provider = await createProvider(type, config);
     return await provider.test();
   } catch (error) {
     return {

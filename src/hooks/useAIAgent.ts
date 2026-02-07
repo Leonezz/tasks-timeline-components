@@ -6,7 +6,7 @@ import {
   getToolDefinitions,
   getSystemPrompt,
 } from "../providers";
-import type { ToolCall, ToolResult } from "../providers/types";
+import type { ChatMessage, ToolCall, ToolResult } from "../providers/types";
 import { logger } from "../utils/logger";
 
 interface ToolExecutionResult {
@@ -195,7 +195,7 @@ export const useAIAgent = (
         config = settings.aiConfig.providers[activeProvider];
 
       try {
-        const provider = createProvider(activeProvider, config),
+        const provider = await createProvider(activeProvider, config),
           tools = getToolDefinitions(),
           systemPrompt = getSystemPrompt();
 
@@ -215,6 +215,7 @@ export const useAIAgent = (
 
         let loopCount = 0;
         const maxLoops = 5;
+        const history: ChatMessage[] = [{ role: "user", content: input }];
 
         // Process tool calls in a loop
         while (
@@ -223,19 +224,35 @@ export const useAIAgent = (
           loopCount < maxLoops
         ) {
           loopCount++;
+
+          // Record assistant response with tool calls in history
+          history.push({
+            role: "assistant",
+            content: response.text,
+            toolCalls: response.toolCalls,
+          });
+
           const toolResults: ToolResult[] = [];
 
           for (const call of response.toolCalls) {
+            if (!call.name) continue;
             const result = await executeTool(call);
-            toolResults.push({ name: call.name!, result });
+            toolResults.push({ id: call.id, name: call.name, result });
           }
 
-          // Send tool results back to the provider
+          // Record tool results in history
+          history.push({
+            role: "tool",
+            toolResults,
+          });
+
+          // Send tool results back to the provider with accumulated history
           response = await provider.chat(
             systemPrompt,
             input,
             tools,
             toolResults,
+            history,
           );
 
           // Track Tokens for follow-up turns

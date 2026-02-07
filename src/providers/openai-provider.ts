@@ -21,6 +21,7 @@ export class OpenAIProvider implements IAIProvider {
       return new OpenAI({
         apiKey: this.config.apiKey,
         baseURL: this.config.baseUrl || undefined,
+        // Required for browser-based usage in this component library
         dangerouslyAllowBrowser: true,
       });
     } catch {
@@ -63,7 +64,7 @@ export class OpenAIProvider implements IAIProvider {
           };
           if (msg.toolCalls && msg.toolCalls.length > 0) {
             assistantMsg.tool_calls = msg.toolCalls.map((tc, i) => ({
-              id: `call_${i}`,
+              id: tc.id || `call_${i}`,
               type: "function" as const,
               function: {
                 name: tc.name,
@@ -77,7 +78,7 @@ export class OpenAIProvider implements IAIProvider {
             messages.push({
               role: "tool",
               content: JSON.stringify(tr.result),
-              tool_call_id: `call_${msg.toolResults.indexOf(tr)}`,
+              tool_call_id: tr.id || `call_${tr.name}`,
             });
           }
         }
@@ -90,7 +91,7 @@ export class OpenAIProvider implements IAIProvider {
         messages.push({
           role: "tool",
           content: JSON.stringify(tr.result),
-          tool_call_id: `call_${tr.name}`,
+          tool_call_id: tr.id || `call_${tr.name}`,
         });
       }
     } else {
@@ -126,6 +127,7 @@ export class OpenAIProvider implements IAIProvider {
       result.toolCalls = choice.message.tool_calls
         .filter((tc) => tc.type === "function")
         .map((tc) => ({
+          id: tc.id,
           name: (tc as { function: { name: string; arguments: string } })
             .function.name,
           args: JSON.parse(

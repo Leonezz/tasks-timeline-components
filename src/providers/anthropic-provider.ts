@@ -69,7 +69,7 @@ export class AnthropicProvider implements IAIProvider {
             for (const tc of msg.toolCalls) {
               content.push({
                 type: "tool_use",
-                id: `toolu_${tc.name}`,
+                id: tc.id || `toolu_${tc.name}`,
                 name: tc.name,
                 input: tc.args,
               });
@@ -82,7 +82,7 @@ export class AnthropicProvider implements IAIProvider {
         } else if (msg.role === "tool" && msg.toolResults) {
           const content = msg.toolResults.map((tr) => ({
             type: "tool_result",
-            tool_use_id: `toolu_${tr.name}`,
+            tool_use_id: tr.id || `toolu_${tr.name}`,
             content: JSON.stringify(tr.result),
           }));
           messages.push({ role: "user", content });
@@ -94,7 +94,7 @@ export class AnthropicProvider implements IAIProvider {
     if (toolResults && toolResults.length > 0) {
       const content = toolResults.map((tr) => ({
         type: "tool_result",
-        tool_use_id: `toolu_${tr.name}`,
+        tool_use_id: tr.id || `toolu_${tr.name}`,
         content: JSON.stringify(tr.result),
       }));
       messages.push({ role: "user", content });
@@ -131,6 +131,7 @@ export class AnthropicProvider implements IAIProvider {
       } else if (block.type === "tool_use") {
         if (!result.toolCalls) result.toolCalls = [];
         result.toolCalls.push({
+          id: block.id,
           name: block.name,
           args: (block.input as Record<string, unknown>) || {},
         });
