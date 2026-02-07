@@ -53,7 +53,11 @@ export interface YearGroup {
 
 export type ThemeOption = "light" | "dark" | "midnight" | "coffee" | "system";
 export type FontSize = "sm" | "base" | "lg" | "xl";
-export type AIProvider = "gemini" | "openai" | "anthropic";
+export type AIProvider =
+  | "gemini"
+  | "openai"
+  | "anthropic"
+  | "openai-compatible";
 export type VoiceProvider = "browser" | "openai" | "gemini";
 export type DateGroupBy = "dueAt" | "createdAt" | "startAt" | "completedAt";
 

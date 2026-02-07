@@ -43,6 +43,7 @@ const settings: AppSettings = {
         baseUrl: "",
         model: "",
       },
+      "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
     },
   },
 

@@ -1,34 +1,33 @@
-import { type FunctionDeclaration, Type } from "@google/genai";
+import type { ToolDefinition } from "./types";
 
-// Define tool declarations for Gemini Function Calling
-export const getToolDefinitions = (): FunctionDeclaration[] => [
+export const getToolDefinitions = (): ToolDefinition[] => [
   {
     name: "create_task",
     description: "Creates a new task with given properties.",
     parameters: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
-        title: { type: Type.STRING, description: "The title of the task." },
+        title: { type: "string", description: "The title of the task." },
         description: {
-          type: Type.STRING,
+          type: "string",
           description: "Additional details about the task.",
         },
         priority: {
-          type: Type.STRING,
+          type: "string",
           description: "Task priority: low, medium, or high.",
           enum: ["low", "medium", "high"],
         },
         dueAt: {
-          type: Type.STRING,
+          type: "string",
           description: "ISO 8601 date string (YYYY-MM-DD).",
         },
         category: {
-          type: Type.STRING,
+          type: "string",
           description: "The organizational category.",
         },
         tags: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
+          type: "array",
+          items: { type: "string" },
           description: "A list of tag names.",
         },
       },
@@ -39,10 +38,10 @@ export const getToolDefinitions = (): FunctionDeclaration[] => [
     name: "query_tasks",
     description: "Queries existing tasks based on filters.",
     parameters: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
         status: {
-          type: Type.STRING,
+          type: "string",
           description: "Filter by task status.",
           enum: [
             "done",
@@ -56,11 +55,11 @@ export const getToolDefinitions = (): FunctionDeclaration[] => [
           ],
         },
         date: {
-          type: Type.STRING,
+          type: "string",
           description: "Filter by date (YYYY-MM-DD).",
         },
         search: {
-          type: Type.STRING,
+          type: "string",
           description: "Search term for task title.",
         },
       },
@@ -70,16 +69,16 @@ export const getToolDefinitions = (): FunctionDeclaration[] => [
     name: "update_task",
     description: "Updates properties of an existing task.",
     parameters: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
         id: {
-          type: Type.STRING,
+          type: "string",
           description: "The unique ID of the task to update.",
         },
-        title: { type: Type.STRING },
-        description: { type: Type.STRING },
+        title: { type: "string" },
+        description: { type: "string" },
         status: {
-          type: Type.STRING,
+          type: "string",
           enum: [
             "done",
             "scheduled",
@@ -91,10 +90,10 @@ export const getToolDefinitions = (): FunctionDeclaration[] => [
             "doing",
           ],
         },
-        priority: { type: Type.STRING, enum: ["low", "medium", "high"] },
-        dueAt: { type: Type.STRING },
-        category: { type: Type.STRING },
-        tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+        priority: { type: "string", enum: ["low", "medium", "high"] },
+        dueAt: { type: "string" },
+        category: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
       },
       required: ["id"],
     },
@@ -103,10 +102,10 @@ export const getToolDefinitions = (): FunctionDeclaration[] => [
     name: "delete_task",
     description: "Deletes a task by its ID.",
     parameters: {
-      type: Type.OBJECT,
+      type: "object",
       properties: {
         id: {
-          type: Type.STRING,
+          type: "string",
           description: "The ID of the task to delete.",
         },
       },

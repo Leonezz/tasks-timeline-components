@@ -110,15 +110,16 @@ export const GeminiProvider: Story = {
         providers: {
           gemini: {
             apiKey: "test-gemini-key",
-            model: "gemini-2-flash",
+            model: "gemini-2.0-flash",
             baseUrl: "",
           },
           openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
           anthropic: {
             apiKey: "",
-            model: "claude-3-5-sonnet-20240620",
+            model: "claude-sonnet-4-20250514",
             baseUrl: "",
           },
+          "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
         },
       },
     }),
@@ -135,7 +136,7 @@ export const OpenAIProvider: Story = {
         defaultMode: true,
         activeProvider: "openai",
         providers: {
-          gemini: { apiKey: "", model: "gemini-2-flash", baseUrl: "" },
+          gemini: { apiKey: "", model: "gemini-2.0-flash", baseUrl: "" },
           openai: {
             apiKey: "sk-test-openai-key",
             model: "gpt-4o",
@@ -143,9 +144,10 @@ export const OpenAIProvider: Story = {
           },
           anthropic: {
             apiKey: "",
-            model: "claude-3-5-sonnet-20240620",
+            model: "claude-sonnet-4-20250514",
             baseUrl: "",
           },
+          "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
         },
       },
     }),
@@ -162,13 +164,14 @@ export const AnthropicProvider: Story = {
         defaultMode: true,
         activeProvider: "anthropic",
         providers: {
-          gemini: { apiKey: "", model: "gemini-2-flash", baseUrl: "" },
+          gemini: { apiKey: "", model: "gemini-2.0-flash", baseUrl: "" },
           openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
           anthropic: {
             apiKey: "sk-ant-test-key",
-            model: "claude-3-5-sonnet-20240620",
+            model: "claude-sonnet-4-20250514",
             baseUrl: "",
           },
+          "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
         },
       },
     }),
@@ -194,7 +197,7 @@ export const WithCustomBaseURL: Story = {
         defaultMode: true,
         activeProvider: "openai",
         providers: {
-          gemini: { apiKey: "", model: "gemini-2-flash", baseUrl: "" },
+          gemini: { apiKey: "", model: "gemini-2.0-flash", baseUrl: "" },
           openai: {
             apiKey: "sk-test-key",
             model: "gpt-4o",
@@ -202,9 +205,10 @@ export const WithCustomBaseURL: Story = {
           },
           anthropic: {
             apiKey: "",
-            model: "claude-3-5-sonnet-20240620",
+            model: "claude-sonnet-4-20250514",
             baseUrl: "",
           },
+          "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
         },
       },
     },

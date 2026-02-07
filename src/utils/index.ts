@@ -14,7 +14,7 @@ export {
   type DateValidationState,
 } from "./task";
 export { parseTaskString } from "./parsing";
-export { getToolDefinitions } from "./ai-tools";
+export { getToolDefinitions } from "../providers/tools";
 export {
   getTodayISO,
   getNowISO,
