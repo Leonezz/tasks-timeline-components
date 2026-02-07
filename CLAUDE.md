@@ -102,10 +102,22 @@ The project is a **dual-purpose repository**:
 
 #### 5. AI Integration Architecture
 
-- Multi-provider support: Gemini, OpenAI, Anthropic
-- Function calling via Gemini SDK for task operations
-- Tool definitions in `getToolDefinitions()` (utils/ai-tools.ts:4-116)
+- **Provider Strategy Pattern** with pluggable `IAIProvider` interface
+- Supports 4 provider types: Gemini, OpenAI, Anthropic, and OpenAI-compatible (DeepSeek, Ollama, etc.)
+- Tool definitions use standard **JSON Schema** format (`src/providers/tools.ts`)
+- Gemini provider converts JSON Schema → Gemini `Type` enum internally
+- OpenAI and Anthropic SDKs loaded via **dynamic import** (optional peer dependencies)
+- Provider factory: `createProvider(type, config)` returns the appropriate `IAIProvider`
+- Shared system prompt in `src/providers/system-prompt.ts`
 - Natural language parsing fallback via `parseTaskString()` (utils/parsing.ts)
+
+**Key files:**
+- `src/providers/types.ts` — `IAIProvider` interface, `ToolDefinition`, `ToolCall`, `ToolResult`
+- `src/providers/tools.ts` — JSON Schema tool definitions (create/query/update/delete tasks)
+- `src/providers/gemini-provider.ts` — Gemini implementation (uses `@google/genai`)
+- `src/providers/openai-provider.ts` — OpenAI implementation (also serves `openai-compatible`)
+- `src/providers/anthropic-provider.ts` — Anthropic implementation
+- `src/providers/index.ts` — Factory, barrel exports, `testProvider()` utility
 
 ### Component Organization
 
@@ -126,9 +138,16 @@ src/
 │   ├── useTaskStats.ts       # Statistics calculation
 │   ├── useAIAgent.ts         # AI provider integration
 │   └── useDateHelpers.ts     # Timezone-safe date utilities hook
-├── utils/                    # Core utilities (refactored)
+├── providers/                # AI provider architecture
+│   ├── types.ts              # IAIProvider interface, ToolDefinition, ToolCall
+│   ├── tools.ts              # JSON Schema tool definitions
+│   ├── system-prompt.ts      # Shared system prompt for all providers
+│   ├── gemini-provider.ts    # Gemini implementation (@google/genai)
+│   ├── openai-provider.ts    # OpenAI implementation (also openai-compatible)
+│   ├── anthropic-provider.ts # Anthropic implementation (@anthropic-ai/sdk)
+│   └── index.ts              # Factory (createProvider), testProvider, exports
+├── utils/                    # Core utilities
 │   ├── task.ts               # deriveTaskStatus, groupTasksByYearAndDate
-│   ├── ai-tools.ts           # getToolDefinitions
 │   ├── parsing.ts            # parseTaskString
 │   ├── date.ts               # Date formatting utilities
 │   ├── date-helpers.ts       # Timezone-safe date operations
@@ -174,13 +193,14 @@ When modifying task status code, understand that status is **derived** from date
 - Setting `startAt` triggers `scheduled`/`doing` status
 - Only `done` and `cancelled` are "terminal" states
 
-### AI Function Calling
+### AI Tool Definitions
 
-The library uses Gemini's function calling API:
+The library uses provider-agnostic JSON Schema tool definitions:
 
-- Tool definitions must match the schema in `getToolDefinitions()`
-- Parameters use `@google/genai` Type enum (not plain strings)
-- Fallback to regex-based parsing if AI unavailable
+- Tool definitions in `getToolDefinitions()` (`src/providers/tools.ts`) use standard JSON Schema
+- Each provider converts JSON Schema to its native format internally (e.g., Gemini converts to `Type` enum)
+- 4 tools: `create_task`, `query_tasks`, `update_task`, `delete_task`
+- Fallback to regex-based parsing via `parseTaskString()` if AI unavailable
 
 ### Voice Input System
 
