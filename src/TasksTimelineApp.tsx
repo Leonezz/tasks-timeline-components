@@ -7,6 +7,7 @@ import { SettingsModal } from "./components/settings/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
 import { Toast, type ToastMessage, type ToastType } from "./components/Toast";
 import type {
+  AIProvider,
   AppSettings,
   CustomSettingsTab,
   FilterState,
@@ -190,6 +191,28 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               providers: {
                 ...DEFAULT_SETTINGS.aiConfig.providers,
                 ...(loadedSettings.aiConfig?.providers || {}),
+                // Ensure each provider has all required fields
+                ...Object.fromEntries(
+                  (
+                    Object.keys(
+                      DEFAULT_SETTINGS.aiConfig.providers,
+                    ) as AIProvider[]
+                  ).map((key) => [
+                    key,
+                    {
+                      ...DEFAULT_SETTINGS.aiConfig.providers[key],
+                      ...(loadedSettings.aiConfig?.providers?.[key] || {}),
+                    },
+                  ]),
+                ),
+              },
+            },
+            voiceConfig: {
+              ...DEFAULT_SETTINGS.voiceConfig,
+              ...(loadedSettings.voiceConfig || {}),
+              providers: {
+                ...DEFAULT_SETTINGS.voiceConfig.providers,
+                ...(loadedSettings.voiceConfig?.providers || {}),
               },
             },
           };

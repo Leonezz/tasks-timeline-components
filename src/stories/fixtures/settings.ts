@@ -25,13 +25,14 @@ export const settingsBuilder = {
       defaultMode: false,
       activeProvider: "gemini",
       providers: {
-        gemini: { apiKey: "", model: "gemini-2-flash", baseUrl: "" },
+        gemini: { apiKey: "", model: "gemini-2.0-flash", baseUrl: "" },
         openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
         anthropic: {
           apiKey: "",
-          model: "claude-3-5-sonnet-20240620",
+          model: "claude-sonnet-4-20250514",
           baseUrl: "",
         },
+        "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
     },
     voiceConfig: {
@@ -76,13 +77,14 @@ export const settingsBuilder = {
       defaultMode: true,
       activeProvider: "gemini",
       providers: {
-        gemini: { apiKey: "test-key", model: "gemini-2-flash", baseUrl: "" },
+        gemini: { apiKey: "test-key", model: "gemini-2.0-flash", baseUrl: "" },
         openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
         anthropic: {
           apiKey: "",
-          model: "claude-3-5-sonnet-20240620",
+          model: "claude-sonnet-4-20250514",
           baseUrl: "",
         },
+        "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
     },
     ...overrides,
@@ -239,7 +241,7 @@ export const settingsBuilder = {
       providers: {
         gemini: {
           apiKey: "test-gemini-key",
-          model: "gemini-2-flash",
+          model: "gemini-2.0-flash",
           baseUrl: "",
         },
         openai: {
@@ -249,9 +251,10 @@ export const settingsBuilder = {
         },
         anthropic: {
           apiKey: "test-anthropic-key",
-          model: "claude-3-5-sonnet-20240620",
+          model: "claude-sonnet-4-20250514",
           baseUrl: "",
         },
+        "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
     },
     ...overrides,

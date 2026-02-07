@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   AIProvider,
   AppSettings,
@@ -8,8 +9,43 @@ import type {
 } from "@/types";
 import { Icon } from "../Icon";
 import { cn } from "@/utils";
+import { testProvider } from "@/providers";
+import type { TestResult } from "@/providers/types";
 import { MotionDiv, MotionSpan } from "../Motion";
 import { AnimatePresence } from "framer-motion";
+
+const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
+  gemini: "Gemini",
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  "openai-compatible": "Custom",
+};
+
+const AI_PROVIDER_PLACEHOLDERS: Record<
+  AIProvider,
+  { apiKey: string; baseUrl: string; model: string }
+> = {
+  gemini: {
+    apiKey: "AIza...",
+    baseUrl: "(Default)",
+    model: "gemini-2.0-flash",
+  },
+  openai: {
+    apiKey: "sk-...",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o",
+  },
+  anthropic: {
+    apiKey: "sk-ant-...",
+    baseUrl: "https://api.anthropic.com",
+    model: "claude-sonnet-4-20250514",
+  },
+  "openai-compatible": {
+    apiKey: "Your API key",
+    baseUrl: "https://api.deepseek.com/v1",
+    model: "deepseek-chat",
+  },
+};
 
 interface SettingsPageAdvancedProps {
   settings: AppSettings;
@@ -103,7 +139,21 @@ export const SettingsPageAdvanced = ({
       });
     },
     activeProviderConfig =
-      settings.aiConfig.providers[settings.aiConfig.activeProvider];
+      settings.aiConfig.providers[settings.aiConfig.activeProvider],
+    placeholders = AI_PROVIDER_PLACEHOLDERS[settings.aiConfig.activeProvider];
+
+  const [testResult, setTestResult] = useState<TestResult | null>(null),
+    [isTesting, setIsTesting] = useState(false),
+    handleTestConnection = async () => {
+      setIsTesting(true);
+      setTestResult(null);
+      const result = await testProvider(
+        settings.aiConfig.activeProvider,
+        activeProviderConfig,
+      );
+      setTestResult(result);
+      setIsTesting(false);
+    };
 
   return (
     <div className="p-6 space-y-8 bg-slate-50/30 dark:bg-slate-900/20">
@@ -188,22 +238,27 @@ export const SettingsPageAdvanced = ({
                 {/* AI Provider Selector */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-lg">
-                    {(["gemini", "openai", "anthropic"] as AIProvider[]).map(
-                      (p) => (
-                        <button
-                          key={p}
-                          onClick={() => setAIProvider(p)}
-                          className={cn(
-                            "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
-                            settings.aiConfig.activeProvider === p
-                              ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
-                          )}
-                        >
-                          {p}
-                        </button>
-                      ),
-                    )}
+                    {(
+                      [
+                        "gemini",
+                        "openai",
+                        "anthropic",
+                        "openai-compatible",
+                      ] as AIProvider[]
+                    ).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setAIProvider(p)}
+                        className={cn(
+                          "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
+                          settings.aiConfig.activeProvider === p
+                            ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
+                        )}
+                      >
+                        {AI_PROVIDER_LABELS[p]}
+                      </button>
+                    ))}
                   </div>
 
                   {/* Provider Config Fields */}
@@ -216,19 +271,16 @@ export const SettingsPageAdvanced = ({
                       <input
                         type="password"
                         value={activeProviderConfig.apiKey}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           updateProviderConfig(
                             settings.aiConfig.activeProvider,
                             "apiKey",
                             e.target.value,
-                          )
-                        }
+                          );
+                          setTestResult(null);
+                        }}
                         className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500 font-mono tracking-wide"
-                        placeholder={
-                          settings.aiConfig.activeProvider === "gemini"
-                            ? "(Auto-configured via Env)"
-                            : "sk-..."
-                        }
+                        placeholder={placeholders.apiKey}
                       />
                     </div>
 
@@ -240,13 +292,15 @@ export const SettingsPageAdvanced = ({
                         <input
                           type="text"
                           value={activeProviderConfig.model}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             updateProviderConfig(
                               settings.aiConfig.activeProvider,
                               "model",
                               e.target.value,
-                            )
-                          }
+                            );
+                            setTestResult(null);
+                          }}
+                          placeholder={placeholders.model}
                           className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500"
                         />
                       </div>
@@ -257,17 +311,54 @@ export const SettingsPageAdvanced = ({
                         <input
                           type="text"
                           value={activeProviderConfig.baseUrl}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             updateProviderConfig(
                               settings.aiConfig.activeProvider,
                               "baseUrl",
                               e.target.value,
-                            )
-                          }
-                          placeholder="Default"
+                            );
+                            setTestResult(null);
+                          }}
+                          placeholder={placeholders.baseUrl}
                           className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500"
                         />
                       </div>
+                    </div>
+
+                    {/* Test Connection Button */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={handleTestConnection}
+                        disabled={isTesting}
+                        className={cn(
+                          "px-3 py-1.5 text-[10px] font-bold uppercase rounded-md border transition-all",
+                          isTesting
+                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-wait"
+                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300",
+                        )}
+                      >
+                        {isTesting ? "Testing..." : "Test Connection"}
+                      </button>
+                      {testResult && (
+                        <span
+                          className={cn(
+                            "text-[10px] flex items-center gap-1",
+                            testResult.success
+                              ? "text-emerald-600"
+                              : "text-red-500",
+                          )}
+                        >
+                          <Icon
+                            name={
+                              testResult.success ? "CheckCircle2" : "XCircle"
+                            }
+                            size={12}
+                          />
+                          {testResult.message.length > 60
+                            ? testResult.message.slice(0, 60) + "..."
+                            : testResult.message}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

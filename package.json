@@ -97,7 +97,13 @@
   },
   "peerDependencies": {
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "openai": "^4.0.0",
+    "@anthropic-ai/sdk": "^0.30.0"
+  },
+  "peerDependenciesMeta": {
+    "openai": { "optional": true },
+    "@anthropic-ai/sdk": { "optional": true }
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.3",

@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
-import { type FunctionCall, GoogleGenAI, type Part } from "@google/genai";
 import type { AppSettings, Task } from "../types";
-import { getToolDefinitions, getNowISO, getTodayISO } from "../utils";
+import { getNowISO, getTodayISO } from "../utils";
+import {
+  createProvider,
+  getToolDefinitions,
+  getSystemPrompt,
+} from "../providers";
+import type { ToolCall, ToolResult } from "../providers/types";
 import { logger } from "../utils/logger";
 
 interface ToolExecutionResult {
@@ -35,7 +40,7 @@ export const useAIAgent = (
   }, [tasks]);
 
   const executeTool = async (
-      call: FunctionCall,
+      call: ToolCall,
     ): Promise<ToolExecutionResult | Task[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const args = call.args as Record<string, any>,
@@ -186,86 +191,67 @@ export const useAIAgent = (
       }
     },
     handleAICommand = async (input: string) => {
-      const config =
-        settings.aiConfig.providers[settings.aiConfig.activeProvider];
-
-      // Ensure Gemini is selected for this demo implementation
-      if (settings.aiConfig.activeProvider !== "gemini") {
-        onNotify(
-          "error",
-          "Provider Not Supported",
-          "Only Gemini provider is fully implemented in this demo.",
-        );
-        return;
-      }
-
-      // Always initialize GoogleGenAI with the externally provided process.env.API_KEY
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }),
-        tools = getToolDefinitions();
+      const activeProvider = settings.aiConfig.activeProvider,
+        config = settings.aiConfig.providers[activeProvider];
 
       try {
-        logger.info("AI", "Sending prompt to Gemini", {
+        const provider = createProvider(activeProvider, config),
+          tools = getToolDefinitions(),
+          systemPrompt = getSystemPrompt();
+
+        logger.info("AI", `Sending prompt to ${activeProvider}`, {
           input,
           model: config.model,
         });
-        const chat = ai.chats.create({
-          model: config.model || "gemini-3-flash-preview",
-          config: {
-            systemInstruction: `You are a task manager agent. You have tools to query, create, update, and delete tasks. When asked to modify tasks based on criteria (e.g. 'all tasks next week'), ALWAYS query_tasks first to get their IDs. Today is ${new Date().toISOString()}`,
-            tools: [{ functionDeclarations: tools }],
-          },
-        });
 
-        // Single Turn Execution Loop
-        let chatResponse = await chat.sendMessage({ message: input });
+        // Initial chat call
+        let response = await provider.chat(systemPrompt, input, tools);
 
         // Track Tokens
-        if (chatResponse.usageMetadata && onTokenUsageUpdate) {
-          const total = chatResponse.usageMetadata.totalTokenCount || 0;
-          onTokenUsageUpdate(total);
-          logger.debug("AI", "Token Usage", { tokens: total });
+        if (response.tokenCount && onTokenUsageUpdate) {
+          onTokenUsageUpdate(response.tokenCount);
+          logger.debug("AI", "Token Usage", { tokens: response.tokenCount });
         }
 
         let loopCount = 0;
         const maxLoops = 5;
 
-        // Process tool calls recursively if the model requests them
+        // Process tool calls in a loop
         while (
-          chatResponse.functionCalls &&
-          chatResponse.functionCalls.length > 0 &&
+          response.toolCalls &&
+          response.toolCalls.length > 0 &&
           loopCount < maxLoops
         ) {
           loopCount++;
-          const functionResponses: Part[] = [];
+          const toolResults: ToolResult[] = [];
 
-          for (const call of chatResponse.functionCalls) {
+          for (const call of response.toolCalls) {
             const result = await executeTool(call);
-            functionResponses.push({
-              functionResponse: {
-                id: call.id,
-                name: call.name,
-                response: { result },
-              },
-            });
+            toolResults.push({ name: call.name!, result });
           }
 
-          // Send tool outputs back to model to update context
-          chatResponse = await chat.sendMessage({ message: functionResponses });
+          // Send tool results back to the provider
+          response = await provider.chat(
+            systemPrompt,
+            input,
+            tools,
+            toolResults,
+          );
 
           // Track Tokens for follow-up turns
-          if (chatResponse.usageMetadata && onTokenUsageUpdate) {
-            const total = chatResponse.usageMetadata.totalTokenCount || 0;
-            onTokenUsageUpdate(total);
+          if (response.tokenCount && onTokenUsageUpdate) {
+            onTokenUsageUpdate(response.tokenCount);
           }
         }
       } catch (e) {
-        console.error("AI Error", e);
+        logger.error("AI", "Agent processing failed", e);
         onNotify(
           "error",
           "AI Agent Error",
-          "Something went wrong while processing your request.",
+          e instanceof Error
+            ? e.message
+            : "Something went wrong while processing your request.",
         );
-        logger.error("AI", "Agent processing failed", e);
       }
     };
 

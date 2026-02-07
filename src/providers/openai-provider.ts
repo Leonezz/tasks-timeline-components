@@ -123,10 +123,16 @@ export class OpenAIProvider implements IAIProvider {
     }
 
     if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
-      result.toolCalls = choice.message.tool_calls.map((tc) => ({
-        name: tc.function.name,
-        args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-      }));
+      result.toolCalls = choice.message.tool_calls
+        .filter((tc) => tc.type === "function")
+        .map((tc) => ({
+          name: (tc as { function: { name: string; arguments: string } })
+            .function.name,
+          args: JSON.parse(
+            (tc as { function: { name: string; arguments: string } }).function
+              .arguments,
+          ) as Record<string, unknown>,
+        }));
     }
 
     if (response.usage) {
