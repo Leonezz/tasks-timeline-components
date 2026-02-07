@@ -51,15 +51,16 @@ const DEFAULT_SETTINGS: AppSettings = {
     providers: {
       gemini: {
         apiKey: "",
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         baseUrl: "",
       },
       openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
       anthropic: {
         apiKey: "",
-        model: "claude-3-5-sonnet-20240620",
+        model: "claude-sonnet-4-20250514",
         baseUrl: "",
       },
+      "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
     },
   },
 
