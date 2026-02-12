@@ -45,6 +45,7 @@ const settings: AppSettings = {
       },
       "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
     },
+    systemPrompt: "",
   },
 
   voiceConfig: {

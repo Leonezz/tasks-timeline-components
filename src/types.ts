@@ -72,6 +72,7 @@ export interface AIConfig {
   defaultMode: boolean;
   activeProvider: AIProvider;
   providers: Record<AIProvider, ProviderConfig>;
+  systemPrompt: string;
 }
 
 export interface VoiceConfig {

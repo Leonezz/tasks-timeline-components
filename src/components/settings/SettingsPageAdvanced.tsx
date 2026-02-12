@@ -362,6 +362,31 @@ export const SettingsPageAdvanced = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Custom System Prompt */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase">
+                    Custom System Prompt
+                  </label>
+                  <textarea
+                    value={settings.aiConfig.systemPrompt}
+                    onChange={(e) =>
+                      onUpdateSettings({
+                        ...settings,
+                        aiConfig: {
+                          ...settings.aiConfig,
+                          systemPrompt: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full h-24 p-3 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 outline-none resize-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all leading-relaxed"
+                    placeholder="Add custom instructions for the AI agent..."
+                    spellCheck={false}
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Additional instructions appended to the AI system prompt.
+                  </p>
+                </div>
               </MotionDiv>
             )}
           </AnimatePresence>
