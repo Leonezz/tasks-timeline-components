@@ -18,6 +18,7 @@ import { delay } from "../test-utils";
 // Extend component props with story-specific args for decorator usage
 interface DaySectionStoryArgs {
   group: DayGroup;
+  lazy?: boolean;
   settings?: ReturnType<typeof settingsBuilder.default>;
   isAiMode?: boolean;
   availableCategories?: string[];
@@ -27,6 +28,9 @@ const meta: Meta<DaySectionStoryArgs> = {
   title: "Sections/DaySection",
   component: DaySection as unknown as React.FC<DaySectionStoryArgs>,
   tags: ["autodocs"],
+  args: {
+    lazy: false,
+  },
   parameters: {
     layout: "fullscreen",
   },

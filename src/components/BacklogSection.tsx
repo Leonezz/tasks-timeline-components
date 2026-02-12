@@ -4,6 +4,7 @@ import type { Task } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
+import { useLazyRender } from "../hooks/useLazyRender";
 import { computeDateValidation } from "../utils";
 import {
   Collapsible,
@@ -13,10 +14,17 @@ import {
 
 interface BacklogSectionProps {
   tasks: Task[];
+  /** When false, skip lazy rendering (e.g. for standalone stories). Default: true */
+  lazy?: boolean;
 }
 
-export const BacklogSection: React.FC<BacklogSectionProps> = ({ tasks }) => {
-  const { settings } = useSettingsContext(),
+export const BacklogSection: React.FC<BacklogSectionProps> = ({
+  tasks,
+  lazy = true,
+}) => {
+  const { containerRef, contentRef, isNearViewport, placeholderHeight } =
+      useLazyRender(tasks.length, { enabled: lazy }),
+    { settings } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -52,17 +60,26 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({ tasks }) => {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className="space-y-0.5">
-                  {tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      dateValidation={computeDateValidation(
-                        task,
-                        settings.groupingStrategy,
-                      )}
+                <div ref={containerRef} className="space-y-0.5">
+                  {isNearViewport ? (
+                    <div ref={contentRef}>
+                      {tasks.map((task) => (
+                        <TaskItem
+                          key={task.id}
+                          task={task}
+                          dateValidation={computeDateValidation(
+                            task,
+                            settings.groupingStrategy,
+                          )}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{ height: placeholderHeight }}
+                      className="bg-slate-50/30 rounded"
                     />
-                  ))}
+                  )}
                 </div>
               </motion.div>
             </CollapsibleContent>

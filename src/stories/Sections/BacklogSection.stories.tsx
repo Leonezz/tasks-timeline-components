@@ -12,6 +12,7 @@ import { delay } from "../test-utils";
 // Extend component props with story-specific args for decorator usage
 interface BacklogSectionStoryArgs {
   tasks: Task[];
+  lazy?: boolean;
   settings?: ReturnType<typeof settingsBuilder.default>;
 }
 
@@ -19,6 +20,9 @@ const meta: Meta<BacklogSectionStoryArgs> = {
   title: "Sections/BacklogSection",
   component: BacklogSection as unknown as React.FC<BacklogSectionStoryArgs>,
   tags: ["autodocs"],
+  args: {
+    lazy: false,
+  },
   parameters: {
     layout: "fullscreen",
   },
