@@ -6,6 +6,7 @@ import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { cn, formatRelativeDate } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
+import { useLazyRender } from "../hooks/useLazyRender";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import {
@@ -16,10 +17,17 @@ import {
 
 interface DaySectionProps {
   group: DayGroup;
+  /** When false, skip lazy rendering (e.g. for the Today section). Default: true */
+  lazy?: boolean;
 }
 
-export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
-  const { onAddTask, onAICommand } = useTasksContext(),
+export const DaySection: React.FC<DaySectionProps> = ({
+  group,
+  lazy = true,
+}) => {
+  const { containerRef, contentRef, isNearViewport, placeholderHeight } =
+      useLazyRender(group.tasks.length, { enabled: lazy }),
+    { onAddTask, onAICommand } = useTasksContext(),
     { settings, isAiMode, onVoiceError } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true),
     [isAdding, setIsAdding] = useState(false),
@@ -215,10 +223,19 @@ export const DaySection: React.FC<DaySectionProps> = ({ group }) => {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="overflow-hidden"
               >
-                <div className="space-y-0.5 relative pb-2">
-                  {group.tasks.map((task) => (
-                    <TaskItem key={task.id} task={task} />
-                  ))}
+                <div ref={containerRef} className="space-y-0.5 relative pb-2">
+                  {isNearViewport ? (
+                    <div ref={contentRef}>
+                      {group.tasks.map((task) => (
+                        <TaskItem key={task.id} task={task} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{ height: placeholderHeight }}
+                      className="bg-slate-50/30 rounded"
+                    />
+                  )}
 
                   {/* Add Item Row - Aligned with TaskItem grid */}
                   <div className="group relative flex items-stretch gap-2 py-1.5 px-1 transition-all rounded-lg">

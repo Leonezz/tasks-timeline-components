@@ -102,7 +102,7 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
               : ""}
           </span>
         </div>
-        <DaySection group={todayGroup} />
+        <DaySection group={todayGroup} lazy={false} />
       </div>
 
       {/* Timeline - Hidden in Focus Mode */}

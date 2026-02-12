@@ -364,3 +364,71 @@ export const WithItemClick: Story = {
     onItemClick: (task: Task) => console.log("Item clicked:", task),
   },
 };
+
+// ========================================
+// Virtualization / Lazy Rendering Tests
+// ========================================
+
+export const LargeDatasetVirtualized: Story = {
+  args: {
+    tasks: [
+      // 500 tasks across 6 months — tests lazy rendering of off-screen sections
+      ...taskBuilder.manyAcrossDays(
+        500,
+        today.minus({ months: 3 }),
+        today.plus({ months: 3 }),
+      ),
+      // 50 backlog tasks
+      ...taskBuilder.many(50, {
+        dueAt: undefined,
+        startAt: undefined,
+        createdAt: undefined,
+        completedAt: undefined,
+      }),
+    ],
+    settings: settingsBuilder.default(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "550 tasks across 6 months plus backlog. DaySections use IntersectionObserver-based lazy rendering — only sections near the viewport render their TaskItems. Scroll to verify smooth performance.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    await step(
+      "Verify initial render has content without rendering all tasks",
+      async () => {
+        // The page should render without hanging
+        expect(canvasElement.textContent).toBeTruthy();
+        // Not all 550 tasks should be in the DOM at once
+        const taskItems = canvasElement.querySelectorAll(
+          '[class*="group relative"]',
+        );
+        // With lazy rendering, only visible sections render tasks
+        // We expect far fewer than 550 task DOM nodes
+        expect(taskItems.length).toBeLessThan(550);
+      },
+    );
+  },
+};
+
+export const LargeDatasetNoBacklog: Story = {
+  args: {
+    tasks: taskBuilder.manyAcrossDays(
+      300,
+      today.minus({ months: 1 }),
+      today.plus({ months: 2 }),
+    ),
+    settings: settingsBuilder.default(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "300 dated tasks with no backlog. Verifies lazy rendering works for timeline sections only.",
+      },
+    },
+  },
+};
