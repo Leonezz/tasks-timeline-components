@@ -120,6 +120,8 @@ export interface TasksTimelineAppProps {
   onItemClick?: (item: Task) => void;
   /** Custom tabs to inject into the Settings page */
   customSettingsTabs?: CustomSettingsTab[];
+  /** Custom renderer for task titles. When provided, replaces the default plain-text display. */
+  renderTitle?: (title: string) => React.ReactNode;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -133,6 +135,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   systemInDarkMode,
   onItemClick,
   customSettingsTabs,
+  renderTitle,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
@@ -447,6 +450,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             onEditTask: setEditingTask,
             onAICommand: handleAICommand,
             onItemClick,
+            renderTitle,
           }}
         >
           <SettingsProvider

@@ -265,6 +265,17 @@ export const EmptyAPIKey: Story = {
   },
 };
 
+export const WithCustomRenderTitle: Story = {
+  args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
+    onItemClick: handleItemClick,
+    renderTitle: (title: string) => title.toUpperCase(),
+  },
+};
+
 export const VeryLongClassName: Story = {
   args: {
     tasks: mockTasks,

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
-import { userEvent } from "storybook/test";
-import { withinShadow } from "../test-utils";
+import React, { useState } from "react";
+import { expect, userEvent } from "storybook/test";
+import { delay, withinShadow } from "../test-utils";
 import { TaskItem } from "../../components/TaskItem";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
 import type { DateValidationState } from "../../utils";
@@ -16,6 +16,7 @@ interface TaskItemStoryArgs {
   task: Task;
   dateValidation?: DateValidationState;
   settings?: ReturnType<typeof settingsBuilder.default>;
+  renderTitle?: (title: string) => React.ReactNode;
 }
 
 const meta: Meta<TaskItemStoryArgs> = {
@@ -83,6 +84,7 @@ const meta: Meta<TaskItemStoryArgs> = {
           onAICommand: async (input: string) =>
             console.log("AI command:", input),
           onItemClick: (task: Task) => console.log("Item clicked:", task),
+          renderTitle: (context.args as TaskItemStoryArgs).renderTitle,
         },
         settingsContextValue = {
           settings:
@@ -506,6 +508,168 @@ export const StatusTransitionToCancelled: Story = {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const cancelledOption = canvas.getByText(/^cancelled$/i);
       await userEvent.click(cancelledOption);
+    });
+  },
+};
+
+// ========================================
+// renderTitle Callback Tests
+// ========================================
+
+export const RenderTitleUpperCase: Story = {
+  args: {
+    task: taskBuilder.base({
+      id: "render-title-upper",
+      title: "Custom rendered title",
+    }),
+    renderTitle: (title: string) => title.toUpperCase(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates renderTitle callback transforming title text to uppercase.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Verify title is rendered uppercase", async () => {
+      await delay(500);
+      const titleElement = canvas.getByText("CUSTOM RENDERED TITLE");
+      expect(titleElement).toBeTruthy();
+    });
+  },
+};
+
+export const RenderTitleWithJSX: Story = {
+  args: {
+    task: taskBuilder.base({
+      id: "render-title-jsx",
+      title: "Visit https://example.com for details",
+    }),
+    renderTitle: (title: string) => {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const parts = title.split(urlRegex);
+      return React.createElement(
+        "span",
+        null,
+        ...parts.map((part, i) =>
+          urlRegex.test(part)
+            ? React.createElement(
+                "a",
+                {
+                  key: i,
+                  href: part,
+                  className: "text-blue-500 underline",
+                  "data-testid": "rendered-link",
+                },
+                part,
+              )
+            : part,
+        ),
+      );
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates renderTitle callback converting URLs into clickable links (JSX).",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    await step("Verify URL is rendered as a link", async () => {
+      await delay(500);
+      const shadowRoot = canvasElement.querySelector(
+        "#tasks-timeline-app",
+      )?.shadowRoot;
+      expect(shadowRoot).toBeTruthy();
+      const link = shadowRoot!.querySelector(
+        'a[href="https://example.com"]',
+      ) as HTMLAnchorElement;
+      expect(link).toBeTruthy();
+      expect(link.tagName).toBe("A");
+      expect(link.textContent).toBe("https://example.com");
+    });
+  },
+};
+
+export const RenderTitleNotAppliedDuringEdit: Story = {
+  args: {
+    task: taskBuilder.base({
+      id: "render-title-edit",
+      title: "Editable title test",
+    }),
+    renderTitle: (title: string) => title.toUpperCase(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Verifies that renderTitle only affects read-only display — inline editing still shows the raw title string.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const shadowRoot = canvasElement.querySelector(
+      "#tasks-timeline-app",
+    )?.shadowRoot;
+    expect(shadowRoot).toBeTruthy();
+
+    await step("Verify title is rendered uppercase initially", async () => {
+      await delay(500);
+      const buttons = Array.from(
+        shadowRoot!.querySelectorAll("button"),
+      ) as HTMLButtonElement[];
+      const titleButton = buttons.find(
+        (b) => b.textContent?.trim() === "EDITABLE TITLE TEST",
+      );
+      expect(titleButton).toBeTruthy();
+    });
+
+    await step("Click to edit and verify raw title in input", async () => {
+      const buttons = Array.from(
+        shadowRoot!.querySelectorAll("button"),
+      ) as HTMLButtonElement[];
+      const titleButton = buttons.find(
+        (b) => b.textContent?.trim() === "EDITABLE TITLE TEST",
+      )!;
+      await userEvent.click(titleButton);
+      await delay(300);
+      // The input should contain the raw title, not the transformed one
+      const input = shadowRoot!.querySelector("input") as HTMLInputElement;
+      expect(input).toBeTruthy();
+      expect(input.value).toBe("Editable title test");
+    });
+  },
+};
+
+export const RenderTitleUndefined: Story = {
+  args: {
+    task: taskBuilder.base({
+      id: "render-title-undefined",
+      title: "Plain text fallback",
+    }),
+    // renderTitle intentionally omitted
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "When renderTitle is not provided, title displays as plain text (default behavior).",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Verify title renders as plain text", async () => {
+      await delay(500);
+      const titleElement = canvas.getByText("Plain text fallback");
+      expect(titleElement).toBeTruthy();
     });
   },
 };

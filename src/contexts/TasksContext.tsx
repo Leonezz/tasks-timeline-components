@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext } from "react";
+import React, { type ReactNode, createContext, useContext } from "react";
 import type { Task } from "../types";
 
 /* eslint-disable react-refresh/only-export-components */
@@ -12,6 +12,7 @@ export interface TasksContextType {
   onEditTask?: (task: Task) => void;
   onAICommand: (input: string) => Promise<void>;
   onItemClick?: (item: Task) => void;
+  renderTitle?: (title: string) => React.ReactNode;
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);

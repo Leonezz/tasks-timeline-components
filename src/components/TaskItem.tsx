@@ -43,6 +43,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
       onEditTask,
       availableCategories,
       onItemClick,
+      renderTitle,
     } = useTasksContext(),
     { settings } = useSettingsContext(),
     [isEditing, setIsEditing] = useState(false),
@@ -393,7 +394,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
                   isUrgent && "text-rose-700 font-semibold",
                 )}
               >
-                {task.title}
+                {renderTitle ? renderTitle(task.title) : task.title}
               </MotionButton>
             </>
           )}
