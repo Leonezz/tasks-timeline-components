@@ -31,6 +31,7 @@ export const useAIAgent = (
     desc?: string,
   ) => void,
   onTokenUsageUpdate?: (tokens: number) => void,
+  aiSystemPrompt?: string,
 ) => {
   const tasksRef = useRef(tasks);
 
@@ -197,7 +198,10 @@ export const useAIAgent = (
       try {
         const provider = await createProvider(activeProvider, config),
           tools = getToolDefinitions(),
-          systemPrompt = getSystemPrompt();
+          systemPrompt = getSystemPrompt(
+            aiSystemPrompt,
+            settings.aiConfig.systemPrompt,
+          );
 
         logger.info("AI", `Sending prompt to ${activeProvider}`, {
           input,

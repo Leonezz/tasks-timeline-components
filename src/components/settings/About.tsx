@@ -107,7 +107,7 @@ export const About = () => (
     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
       <p className="text-[10px] text-slate-400 leading-relaxed">
         Built with React, Tailwind, Framer Motion & Gemini AI. <br />
-        MIT License © {new Date().getFullYear()} Chronos
+        MIT License © {new Date().getFullYear()} Tasks Timeline View
       </p>
     </div>
   </div>

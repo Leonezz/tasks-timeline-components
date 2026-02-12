@@ -1,7 +1,10 @@
 import { getTodayISO } from "../utils/date-helpers";
 
-export const getSystemPrompt = (): string =>
-  `You are a task management assistant. You help users create, query, update, and delete tasks.
+export const getSystemPrompt = (
+  developerPrompt?: string,
+  userPrompt?: string,
+): string => {
+  let prompt = `You are a task management assistant. You help users create, query, update, and delete tasks.
 
 ## Task Schema
 Tasks have these fields:
@@ -33,3 +36,12 @@ Tasks have these fields:
 - Be concise and helpful
 - After performing actions, briefly confirm what was done
 - If a request is ambiguous, ask for clarification`;
+
+  if (developerPrompt) {
+    prompt += `\n\n## Host Application Context\n${developerPrompt}`;
+  }
+  if (userPrompt) {
+    prompt += `\n\n## User Instructions\n${userPrompt}`;
+  }
+  return prompt;
+};

@@ -34,6 +34,7 @@ export const settingsBuilder = {
         },
         "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
+      systemPrompt: "",
     },
     voiceConfig: {
       enabled: false,
@@ -86,6 +87,7 @@ export const settingsBuilder = {
         },
         "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
+      systemPrompt: "",
     },
     ...overrides,
   }),
@@ -256,6 +258,7 @@ export const settingsBuilder = {
         },
         "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
       },
+      systemPrompt: "",
     },
     ...overrides,
   }),

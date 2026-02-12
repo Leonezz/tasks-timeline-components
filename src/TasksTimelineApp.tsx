@@ -63,6 +63,7 @@ const DEFAULT_SETTINGS: AppSettings = {
       },
       "openai-compatible": { apiKey: "", model: "", baseUrl: "" },
     },
+    systemPrompt: "",
   },
 
   voiceConfig: {
@@ -122,6 +123,8 @@ export interface TasksTimelineAppProps {
   customSettingsTabs?: CustomSettingsTab[];
   /** Custom renderer for task titles. When provided, replaces the default plain-text display. */
   renderTitle?: (title: string) => React.ReactNode;
+  /** Additional system prompt injected by the host application */
+  aiSystemPrompt?: string;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -136,6 +139,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   onItemClick,
   customSettingsTabs,
   renderTitle,
+  aiSystemPrompt,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
@@ -415,6 +419,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       handleAddTask,
       addNotification,
       updateTokenUsage,
+      aiSystemPrompt,
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
