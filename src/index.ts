@@ -41,4 +41,5 @@ export type {
 // Export utilities
 export { cn, deriveTaskStatus } from "./utils";
 export { TasksTimelineApp } from "./TasksTimelineApp";
+export type { TasksTimelineAppProps } from "./TasksTimelineApp";
 export * from "./index.css";
