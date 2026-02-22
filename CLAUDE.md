@@ -102,18 +102,37 @@ The project is a **dual-purpose repository**:
 
 #### 5. AI Integration Architecture
 
+Two layers work together:
+
+**Capabilities Layer** (`src/capabilities/`) — Framework-agnostic atomic capabilities:
+- `createCapabilities(ctx: CapabilityContext)` factory returns a `Capabilities` registry
+- **9 tools**: `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`
+- **6 resources**: `tasks://all`, `tasks://{taskId}`, `tasks://overdue`, `tasks://today`, `tasks://upcoming`, `tasks://stats`
+- **3 prompts**: `plan_my_day`, `weekly_review`, `task_triage`
+- Enhanced system prompt documenting all tools, RRULE recurrence, and `deriveTaskStatus()` logic
+- `CapabilityContext` interface injects data access (getTasks, addTask, etc.) — pure executors, no React dependency
+- All tool executors call `deriveTaskStatus()` after mutations (fixes prior bypass bug)
+- Recurring tasks use RRULE format (RFC 5545): `FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO,WE,FR`, etc.
+- Designed for both built-in `useAIAgent` and external consumers (host app MCP servers)
+
+**Provider Layer** (`src/providers/`) — AI provider implementations:
 - **Provider Strategy Pattern** with pluggable `IAIProvider` interface
 - Supports 4 provider types: Gemini, OpenAI, Anthropic, and OpenAI-compatible (DeepSeek, Ollama, etc.)
-- Tool definitions use standard **JSON Schema** format (`src/providers/tools.ts`)
 - Gemini provider converts JSON Schema → Gemini `Type` enum internally
 - OpenAI and Anthropic SDKs loaded via **dynamic import** (optional peer dependencies)
 - Provider factory: `createProvider(type, config)` returns the appropriate `IAIProvider`
-- Shared system prompt in `src/providers/system-prompt.ts`
 - Natural language parsing fallback via `parseTaskString()` (utils/parsing.ts)
 
 **Key files:**
+- `src/capabilities/types.ts` — `CapabilityContext`, `ToolSpec`, `ResourceSpec`, `PromptSpec`, `Capabilities`
+- `src/capabilities/registry.ts` — `createCapabilities()` factory assembling all capabilities
+- `src/capabilities/tools/` — 9 tool executors (one file each)
+- `src/capabilities/resources/` — 6 resource handlers
+- `src/capabilities/prompts/` — 3 prompt templates
+- `src/capabilities/system-prompt.ts` — Enhanced system prompt (single source of truth)
+- `src/capabilities/index.ts` — Barrel exports
 - `src/providers/types.ts` — `IAIProvider` interface, `ToolDefinition`, `ToolCall`, `ToolResult`
-- `src/providers/tools.ts` — JSON Schema tool definitions (create/query/update/delete tasks)
+- `src/providers/tools.ts` — Legacy 4-tool definitions (kept for backward compat)
 - `src/providers/gemini-provider.ts` — Gemini implementation (uses `@google/genai`)
 - `src/providers/openai-provider.ts` — OpenAI implementation (also serves `openai-compatible`)
 - `src/providers/anthropic-provider.ts` — Anthropic implementation
@@ -123,40 +142,65 @@ The project is a **dual-purpose repository**:
 
 ```
 src/
+├── capabilities/              # AI capabilities layer (framework-agnostic)
+│   ├── types.ts               # CapabilityContext, ToolSpec, ResourceSpec, PromptSpec, Capabilities
+│   ├── registry.ts            # createCapabilities() factory
+│   ├── system-prompt.ts       # Enhanced system prompt (single source of truth)
+│   ├── index.ts               # Barrel exports
+│   ├── tools/                 # 9 tool executors
+│   │   ├── create-task.ts
+│   │   ├── query-tasks.ts
+│   │   ├── update-task.ts
+│   │   ├── delete-task.ts
+│   │   ├── complete-task.ts
+│   │   ├── cancel-task.ts
+│   │   ├── batch-update-tasks.ts
+│   │   ├── get-task-stats.ts
+│   │   └── get-today-plan.ts
+│   ├── resources/             # 6 resource handlers
+│   │   ├── all-tasks.ts
+│   │   ├── task-by-id.ts
+│   │   ├── filtered-tasks.ts  # overdue, today, upcoming
+│   │   └── stats.ts
+│   ├── prompts/               # 3 prompt templates
+│   │   ├── plan-my-day.ts
+│   │   ├── weekly-review.ts
+│   │   └── task-triage.ts
+│   └── __tests__/             # 110 unit tests
 ├── components/
-│   ├── TodoList.tsx          # Main container with grouping logic
-│   ├── TaskItem.tsx          # Individual task display
-│   ├── InputBar.tsx          # Task creation with AI support
-│   ├── TaskEditModal.tsx     # Full task editor
-│   ├── DaySection.tsx        # Day-grouped tasks
-│   ├── YearSection.tsx       # Year-grouped tasks
-│   ├── BacklogSection.tsx    # Unscheduled tasks
-│   ├── settings/             # Settings UI components
-│   └── AppContext.tsx        # Shadow DOM context provider
+│   ├── TodoList.tsx           # Main container with grouping logic
+│   ├── TaskItem.tsx           # Individual task display
+│   ├── InputBar.tsx           # Task creation with AI support
+│   ├── TaskEditModal.tsx      # Full task editor
+│   ├── DaySection.tsx         # Day-grouped tasks
+│   ├── YearSection.tsx        # Year-grouped tasks
+│   ├── BacklogSection.tsx     # Unscheduled tasks
+│   ├── settings/              # Settings UI components
+│   └── AppContext.tsx         # Shadow DOM context provider
 ├── hooks/
-│   ├── useTaskFiltering.ts   # Filter/search logic
-│   ├── useTaskStats.ts       # Statistics calculation
-│   ├── useAIAgent.ts         # AI provider integration
-│   └── useDateHelpers.ts     # Timezone-safe date utilities hook
-├── providers/                # AI provider architecture
-│   ├── types.ts              # IAIProvider interface, ToolDefinition, ToolCall
-│   ├── tools.ts              # JSON Schema tool definitions
-│   ├── system-prompt.ts      # Shared system prompt for all providers
-│   ├── gemini-provider.ts    # Gemini implementation (@google/genai)
-│   ├── openai-provider.ts    # OpenAI implementation (also openai-compatible)
-│   ├── anthropic-provider.ts # Anthropic implementation (@anthropic-ai/sdk)
-│   └── index.ts              # Factory (createProvider), testProvider, exports
-├── utils/                    # Core utilities
-│   ├── task.ts               # deriveTaskStatus, groupTasksByYearAndDate
-│   ├── parsing.ts            # parseTaskString
-│   ├── date.ts               # Date formatting utilities
-│   ├── date-helpers.ts       # Timezone-safe date operations
-│   ├── voice-providers.ts    # Voice input provider implementations
-│   └── cn.ts                 # Tailwind class merge utility
-├── lib/utils.ts              # Shadcn re-export
-├── types.ts                  # All TypeScript definitions
-├── TasksTimelineApp.tsx      # Main app component
-└── index.ts                  # Library entry point
+│   ├── useTaskFiltering.ts    # Filter/search logic
+│   ├── useTaskStats.ts        # Statistics calculation
+│   ├── useAIAgent.ts          # AI agent orchestrator (uses capabilities layer)
+│   └── useDateHelpers.ts      # Timezone-safe date utilities hook
+├── providers/                 # AI provider implementations
+│   ├── types.ts               # IAIProvider interface, ToolDefinition, ToolCall
+│   ├── tools.ts               # Legacy tool definitions (backward compat)
+│   ├── system-prompt.ts       # Re-exports from capabilities/system-prompt
+│   ├── gemini-provider.ts     # Gemini implementation (@google/genai)
+│   ├── openai-provider.ts     # OpenAI implementation (also openai-compatible)
+│   ├── anthropic-provider.ts  # Anthropic implementation (@anthropic-ai/sdk)
+│   └── index.ts               # Factory (createProvider), testProvider, exports
+├── utils/                     # Core utilities
+│   ├── task.ts                # deriveTaskStatus, groupTasksByYearAndDate
+│   ├── parsing.ts             # parseTaskString
+│   ├── date.ts                # Date formatting utilities
+│   ├── date-helpers.ts        # Timezone-safe date operations
+│   ├── voice-providers.ts     # Voice input provider implementations
+│   └── cn.ts                  # Tailwind class merge utility
+├── lib/utils.ts               # Shadcn re-export
+├── types.ts                   # All TypeScript definitions
+├── TasksTimelineApp.tsx       # Main app component
+└── index.ts                   # Library entry point
 ```
 
 ### Type System
@@ -193,14 +237,41 @@ When modifying task status code, understand that status is **derived** from date
 - Setting `startAt` triggers `scheduled`/`doing` status
 - Only `done` and `cancelled` are "terminal" states
 
-### AI Tool Definitions
+### AI Capabilities Layer
 
-The library uses provider-agnostic JSON Schema tool definitions:
+The library exposes atomic AI capabilities via a unified registry:
 
-- Tool definitions in `getToolDefinitions()` (`src/providers/tools.ts`) use standard JSON Schema
-- Each provider converts JSON Schema to its native format internally (e.g., Gemini converts to `Type` enum)
-- 4 tools: `create_task`, `query_tasks`, `update_task`, `delete_task`
-- Fallback to regex-based parsing via `parseTaskString()` if AI unavailable
+```typescript
+import { createCapabilities } from '@tasks-timeline/components/capabilities';
+import type { CapabilityContext } from '@tasks-timeline/components/capabilities';
+
+const ctx: CapabilityContext = {
+  getTasks: () => loadTasks(),
+  getTask: (id) => findTask(id),
+  addTask: (task) => saveTask(task),
+  updateTask: (task) => updateTask(task),
+  deleteTask: (id) => removeTask(id),
+};
+
+const capabilities = createCapabilities(ctx);
+// capabilities.tools — 9 ToolSpec[] (name, description, schema, execute)
+// capabilities.resources — 6 ResourceSpec[] (name, uri, read)
+// capabilities.prompts — 3 PromptSpec[] (name, description, render)
+// capabilities.executeTool(name, args) — dispatch by name
+// capabilities.getSystemPrompt() — enhanced system prompt
+```
+
+**9 Tools:** `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`
+
+**6 Resources:** `tasks://all`, `tasks://{taskId}`, `tasks://overdue`, `tasks://today`, `tasks://upcoming`, `tasks://stats`
+
+**3 Prompts:** `plan_my_day` (optional `focusArea`), `weekly_review` (optional `weekStart`), `task_triage`
+
+**Recurring tasks** use RRULE format (RFC 5545): `FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO,WE,FR`, `FREQ=MONTHLY;BYMONTHDAY=1`. Completing a recurring task via `complete_task` marks the current instance done and creates the next occurrence.
+
+All tool executors call `deriveTaskStatus()` after mutations. The built-in `useAIAgent` hook consumes this layer internally. External consumers (e.g., host app MCP servers) can wire the same capabilities to any transport.
+
+Legacy `getToolDefinitions()` in `src/providers/tools.ts` is kept for backward compatibility but only has the original 4 tools. Prefer the capabilities layer for new integrations.
 
 ### Voice Input System
 
@@ -250,12 +321,13 @@ This is a pnpm workspace with `examples/app` as a sub-package:
 
 ## Build Output
 
-The library exports multiple entry points (package.json:13-34):
+The library exports multiple entry points (package.json exports):
 
 - `.` - Main entry (all exports)
 - `./components` - Components only
 - `./hooks` - Hooks only
 - `./types` - Types only
+- `./capabilities` - AI capabilities layer (`createCapabilities`, types, `getSystemPrompt`)
 - `./index.css` - Styles
 
 Build generates:
@@ -270,7 +342,8 @@ Build generates:
 - **Storybook** for component documentation and visual testing
 - **Vitest** with Playwright for browser-based tests
 - Stories in `src/stories/` serve as both docs and tests
-- No separate unit test files (tests via Storybook addon)
+- **Unit tests** for capabilities layer: 110 tests in `src/capabilities/__tests__/` (run via `pnpm test`)
+- Run capabilities tests only: `pnpm vitest run src/capabilities/`
 
 ## Timezone-Safe Date Handling (CRITICAL)
 
