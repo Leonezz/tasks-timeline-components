@@ -47,7 +47,11 @@
       "import": "./dist/types/index.js",
       "require": "./dist/types/index.umd.cjs"
     },
-    "./index.css": "./dist/index.css"
+    "./index.css": "./dist/index.css",
+    "./capabilities": {
+      "types": "./dist/capabilities/index.d.ts",
+      "import": "./dist/capabilities/index.js"
+    }
   },
   "files": [
     "dist",
