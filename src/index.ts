@@ -43,3 +43,16 @@ export { cn, deriveTaskStatus } from "./utils";
 export { TasksTimelineApp } from "./TasksTimelineApp";
 export type { TasksTimelineAppProps } from "./TasksTimelineApp";
 export * from "./index.css";
+
+// Capabilities layer
+export { createCapabilities } from "./capabilities";
+export type {
+  CapabilityContext,
+  Capabilities,
+  ToolSpec,
+  ResourceSpec,
+  PromptSpec,
+  PromptMessage,
+  PromptArgument,
+  ResourceContent,
+} from "./capabilities";
