@@ -16,19 +16,21 @@ export class OpenAIProvider implements IAIProvider {
   }
 
   private async getClient() {
+    let mod;
     try {
-      const { default: OpenAI } = await import("openai");
-      return new OpenAI({
-        apiKey: this.config.apiKey,
-        baseURL: this.config.baseUrl || undefined,
-        // Required for browser-based usage in this component library
-        dangerouslyAllowBrowser: true,
-      });
+      mod = await import("openai");
     } catch {
       throw new Error(
         "The 'openai' package is required. Install it with: pnpm add openai",
       );
     }
+    const OpenAI = mod.default;
+    return new OpenAI({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseUrl || undefined,
+      // Required for browser-based usage in this component library
+      dangerouslyAllowBrowser: true,
+    });
   }
 
   async chat(

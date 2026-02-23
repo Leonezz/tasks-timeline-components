@@ -16,18 +16,21 @@ export class AnthropicProvider implements IAIProvider {
   }
 
   private async getClient() {
+    let mod;
     try {
-      const mod = await import("@anthropic-ai/sdk");
-      const Anthropic = mod.default;
-      return new Anthropic({
-        apiKey: this.config.apiKey,
-        baseURL: this.config.baseUrl || undefined,
-      });
+      mod = await import("@anthropic-ai/sdk");
     } catch {
       throw new Error(
         "The '@anthropic-ai/sdk' package is required. Install it with: pnpm add @anthropic-ai/sdk",
       );
     }
+    const Anthropic = mod.default;
+    return new Anthropic({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseUrl || undefined,
+      // Required for browser-based usage in this component library
+      dangerouslyAllowBrowser: true,
+    });
   }
 
   async chat(
@@ -120,7 +123,7 @@ export class AnthropicProvider implements IAIProvider {
       messages: messages as unknown as Parameters<
         typeof client.messages.create
       >[0]["messages"],
-      tools: anthropicTools,
+      tools: anthropicTools.length > 0 ? anthropicTools : undefined,
     });
 
     const result: AIProviderResponse = {};
