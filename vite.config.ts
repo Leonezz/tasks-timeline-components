@@ -35,11 +35,14 @@ export default defineConfig({
       fileName: (format) => `index.${format === "es" ? "js" : "umd.cjs"}`,
     },
     rollupOptions: {
-      external: ["react", "react-dom"],
+      external: ["react", "react-dom", "@google/genai", "openai", "@anthropic-ai/sdk"],
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
+          "@google/genai": "GoogleGenAI",
+          openai: "OpenAI",
+          "@anthropic-ai/sdk": "Anthropic",
         },
       },
     },
