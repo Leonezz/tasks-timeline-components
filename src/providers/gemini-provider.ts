@@ -1,9 +1,3 @@
-import {
-  GoogleGenAI,
-  Type,
-  type FunctionDeclaration,
-  type Part,
-} from "@google/genai";
 import type {
   IAIProvider,
   AIProviderResponse,
@@ -15,9 +9,21 @@ import type {
 } from "./types";
 import type { ProviderConfig } from "../types";
 
+async function loadGeminiSDK() {
+  try {
+    return await import("@google/genai");
+  } catch {
+    throw new Error(
+      "The '@google/genai' package is required. Install it with: pnpm add @google/genai",
+    );
+  }
+}
+
 function mapJsonSchemaTypeToGemini(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Type: any,
   type: JSONSchemaProperty["type"],
-): (typeof Type)[keyof typeof Type] {
+) {
   switch (type) {
     case "string":
       return Type.STRING;
@@ -32,16 +38,23 @@ function mapJsonSchemaTypeToGemini(
   }
 }
 
-function convertProperty(prop: JSONSchemaProperty): Record<string, unknown> {
+function convertProperty(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Type: any,
+  prop: JSONSchemaProperty,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {
-    type: mapJsonSchemaTypeToGemini(prop.type),
+    type: mapJsonSchemaTypeToGemini(Type, prop.type),
   };
   if (prop.description) result.description = prop.description;
   if (prop.enum) result.enum = prop.enum;
-  if (prop.items) result.items = convertProperty(prop.items);
+  if (prop.items) result.items = convertProperty(Type, prop.items);
   if (prop.properties) {
     result.properties = Object.fromEntries(
-      Object.entries(prop.properties).map(([k, v]) => [k, convertProperty(v)]),
+      Object.entries(prop.properties).map(([k, v]) => [
+        k,
+        convertProperty(Type, v),
+      ]),
     );
   }
   if (prop.required) result.required = prop.required;
@@ -49,8 +62,10 @@ function convertProperty(prop: JSONSchemaProperty): Record<string, unknown> {
 }
 
 function toGeminiFunctionDeclarations(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Type: any,
   tools: ToolDefinition[],
-): FunctionDeclaration[] {
+) {
   return tools.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -59,7 +74,7 @@ function toGeminiFunctionDeclarations(
       properties: Object.fromEntries(
         Object.entries(tool.parameters.properties).map(([k, v]) => [
           k,
-          convertProperty(v),
+          convertProperty(Type, v),
         ]),
       ),
       required: tool.parameters.required,
@@ -81,11 +96,13 @@ export class GeminiProvider implements IAIProvider {
     toolResults?: ToolResult[],
     history?: ChatMessage[],
   ): Promise<AIProviderResponse> {
+    const { GoogleGenAI, Type } = await loadGeminiSDK();
     const ai = new GoogleGenAI({ apiKey: this.config.apiKey });
-    const geminiFunctions = toGeminiFunctionDeclarations(tools);
+    const geminiFunctions = toGeminiFunctionDeclarations(Type, tools);
 
     // Build Gemini history from ChatMessage[]
-    const geminiHistory: Array<{ role: string; parts: Part[] }> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geminiHistory: Array<{ role: string; parts: any[] }> = [];
     if (history) {
       for (const msg of history) {
         if (msg.role === "user") {
@@ -94,7 +111,8 @@ export class GeminiProvider implements IAIProvider {
             parts: [{ text: msg.content || "" }],
           });
         } else if (msg.role === "assistant") {
-          const parts: Part[] = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parts: any[] = [];
           if (msg.content) parts.push({ text: msg.content });
           if (msg.toolCalls) {
             for (const tc of msg.toolCalls) {
@@ -105,7 +123,7 @@ export class GeminiProvider implements IAIProvider {
           }
           geminiHistory.push({ role: "model", parts });
         } else if (msg.role === "tool" && msg.toolResults) {
-          const parts: Part[] = msg.toolResults.map((tr) => ({
+          const parts = msg.toolResults.map((tr) => ({
             functionResponse: {
               name: tr.name,
               response: { result: tr.result },
@@ -126,7 +144,8 @@ export class GeminiProvider implements IAIProvider {
     });
 
     // Determine what to send
-    let message: string | Part[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let message: string | any[];
     if (toolResults && toolResults.length > 0) {
       message = toolResults.map((tr) => ({
         functionResponse: {
@@ -147,7 +166,8 @@ export class GeminiProvider implements IAIProvider {
     }
 
     if (response.functionCalls && response.functionCalls.length > 0) {
-      result.toolCalls = response.functionCalls.map((fc) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      result.toolCalls = response.functionCalls.map((fc: any) => ({
         name: fc.name!,
         args: (fc.args as Record<string, unknown>) || {},
       }));
@@ -162,6 +182,7 @@ export class GeminiProvider implements IAIProvider {
 
   async test(): Promise<TestResult> {
     try {
+      const { GoogleGenAI } = await loadGeminiSDK();
       const ai = new GoogleGenAI({ apiKey: this.config.apiKey });
       const response = await ai.models.generateContent({
         model: this.config.model || "gemini-2.0-flash",
