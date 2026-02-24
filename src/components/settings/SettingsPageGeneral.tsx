@@ -4,12 +4,54 @@ import { TypographySection } from "./TypographySection";
 import { ViewSection } from "./ViewSection";
 import { DATE_FORMATS } from "./ViewSectionConstants";
 import { useState } from "react";
+import { cn } from "@/utils";
+import { MotionSpan } from "../Motion";
+import { Icon } from "../Icon";
 
 interface SettingsPageGeneralProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
   availableCategories: string[];
 }
+
+const INPUT_BAR_ITEMS = [
+  {
+    key: "settingButtonOnInputBar" as const,
+    label: "Settings Button",
+    description: "Show settings gear icon",
+    icon: "Settings" as const,
+  },
+  {
+    key: "tagsFilterOnInputBar" as const,
+    label: "Tags Filter",
+    description: "Show tags filter chips",
+    icon: "Tag" as const,
+  },
+  {
+    key: "categoriesFilterOnInputBar" as const,
+    label: "Categories Filter",
+    description: "Show categories filter chips",
+    icon: "Folder" as const,
+  },
+  {
+    key: "priorityFilterOnInputBar" as const,
+    label: "Priority Filter",
+    description: "Show priority filter chips",
+    icon: "Flag" as const,
+  },
+  {
+    key: "statusFilterOnInputBar" as const,
+    label: "Status Filter",
+    description: "Show status filter chips",
+    icon: "CircleDot" as const,
+  },
+  {
+    key: "sortOnInputBar" as const,
+    label: "Sort Control",
+    description: "Show sort options",
+    icon: "ArrowUpDown" as const,
+  },
+];
 
 export const SettingsPageGeneral = ({
   settings,
@@ -36,11 +78,28 @@ export const SettingsPageGeneral = ({
         ...settings,
         showProgressBar: !settings.showProgressBar,
       }),
+    toggleSound = () =>
+      onUpdateSettings({
+        ...settings,
+        soundEnabled: !settings.soundEnabled,
+      }),
     toggleDefaultFocus = () =>
       onUpdateSettings({
         ...settings,
         defaultFocusMode: !settings.defaultFocusMode,
       }),
+    toggleInputBarItem = (
+      key:
+        | "settingButtonOnInputBar"
+        | "tagsFilterOnInputBar"
+        | "categoriesFilterOnInputBar"
+        | "priorityFilterOnInputBar"
+        | "statusFilterOnInputBar"
+        | "sortOnInputBar",
+    ) => {
+      const current = settings[key] !== false;
+      onUpdateSettings({ ...settings, [key]: !current });
+    },
     toggleGroupingStrategy = (s: DateGroupBy) => {
       const current = settings.groupingStrategy,
         exists = current.includes(s);
@@ -87,6 +146,8 @@ export const SettingsPageGeneral = ({
             toggleRelativeDates={toggleRelativeDates}
             showProgressBar={settings.showProgressBar}
             toggleProgressBar={toggleProgressBar}
+            soundEnabled={settings.soundEnabled}
+            toggleSound={toggleSound}
             defaultFocusMode={settings.defaultFocusMode}
             toggleDefaultFocus={toggleDefaultFocus}
             dateFormat={settings.dateFormat}
@@ -99,6 +160,56 @@ export const SettingsPageGeneral = ({
             groupingStrategy={settings.groupingStrategy}
             toggleGroupingStrategy={toggleGroupingStrategy}
           />
+        </section>
+
+        {/* Input Bar */}
+        <section>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Icon name="PanelBottom" size={12} className="text-blue-500" />
+            Input Bar
+          </h3>
+          <div className="space-y-4">
+            {INPUT_BAR_ITEMS.map((item) => {
+              const isEnabled = settings[item.key] !== false;
+              return (
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon
+                      name={item.icon}
+                      size={14}
+                      className="text-slate-400"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-slate-700">
+                        {item.label}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {item.description}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleInputBarItem(item.key)}
+                    className={cn(
+                      "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                      isEnabled
+                        ? "bg-blue-500"
+                        : "bg-slate-200 dark:bg-slate-700",
+                    )}
+                  >
+                    <MotionSpan
+                      layout
+                      className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm block"
+                      animate={{ x: isEnabled ? 16 : 0 }}
+                    />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </section>
       </div>
     </>

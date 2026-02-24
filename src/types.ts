@@ -110,12 +110,12 @@ export interface AppSettings {
   totalTokenUsage: number;
   defaultCategory: string;
 
-  settingButtonOnInputBar?: false;
-  tagsFilterOnInputBar?: false;
-  categoriesFilterOnInputBar?: false;
-  priorityFilterOnInputBar?: false;
-  statusFilterOnInputBar?: false;
-  sortOnInputBar?: false;
+  settingButtonOnInputBar?: boolean;
+  tagsFilterOnInputBar?: boolean;
+  categoriesFilterOnInputBar?: boolean;
+  priorityFilterOnInputBar?: boolean;
+  statusFilterOnInputBar?: boolean;
+  sortOnInputBar?: boolean;
 
   filters: FilterState;
   sort: SortState;

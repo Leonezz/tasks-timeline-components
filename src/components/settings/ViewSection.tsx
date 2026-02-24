@@ -11,6 +11,8 @@ interface ViewSectionProps {
   toggleRelativeDates: () => void;
   showProgressBar: boolean;
   toggleProgressBar: () => void;
+  soundEnabled: boolean;
+  toggleSound: () => void;
   defaultFocusMode: boolean;
   toggleDefaultFocus: () => void;
   dateFormat: string;
@@ -31,6 +33,8 @@ export const ViewSection = ({
   toggleRelativeDates,
   showProgressBar,
   toggleProgressBar,
+  soundEnabled,
+  toggleSound,
   defaultFocusMode,
   toggleDefaultFocus,
   setDateFormat,
@@ -115,6 +119,26 @@ export const ViewSection = ({
             layout
             className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm block"
             animate={{ x: showProgressBar ? 16 : 0 }}
+          />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-700">Sound</span>
+          <span className="text-xs text-slate-400">Play sounds on actions</span>
+        </div>
+        <button
+          onClick={toggleSound}
+          className={cn(
+            "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+            soundEnabled ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
+          )}
+        >
+          <MotionSpan
+            layout
+            className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm block"
+            animate={{ x: soundEnabled ? 16 : 0 }}
           />
         </button>
       </div>
