@@ -35,7 +35,13 @@ export default defineConfig({
       fileName: (format) => `index.${format === "es" ? "js" : "umd.cjs"}`,
     },
     rollupOptions: {
-      external: ["react", "react-dom", "@google/genai", "openai", "@anthropic-ai/sdk"],
+      external: [
+        "react",
+        "react-dom",
+        "@google/genai",
+        "openai",
+        "@anthropic-ai/sdk",
+      ],
       output: {
         globals: {
           react: "React",
@@ -55,7 +61,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
-          include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+          include: [
+            "src/**/*.test.ts",
+            "src/**/*.test.tsx",
+            "eval/**/*.test.ts",
+          ],
           environment: "node",
         },
       },
