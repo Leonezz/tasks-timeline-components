@@ -152,6 +152,106 @@ export const SettingsPageAdvanced = ({
             </div>
           )}
         </h3>
+
+        {/* Token Usage Stats Table */}
+        {Object.keys(settings.tokenUsageByModel).length > 0 && (
+          <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <th className="text-left px-3 py-1.5 font-semibold">
+                    Provider
+                  </th>
+                  <th className="text-left px-3 py-1.5 font-semibold">Model</th>
+                  <th className="text-right px-3 py-1.5 font-semibold">
+                    Input
+                  </th>
+                  <th className="text-right px-3 py-1.5 font-semibold">
+                    Output
+                  </th>
+                  <th className="text-right px-3 py-1.5 font-semibold">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(settings.tokenUsageByModel).map(
+                  ([key, record]) => {
+                    const separatorIndex = key.indexOf(":");
+                    const provider =
+                      separatorIndex > -1 ? key.slice(0, separatorIndex) : key;
+                    const model =
+                      separatorIndex > -1 ? key.slice(separatorIndex + 1) : "";
+                    const capitalizedProvider =
+                      provider.charAt(0).toUpperCase() + provider.slice(1);
+                    return (
+                      <tr
+                        key={key}
+                        className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
+                      >
+                        <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
+                          {capitalizedProvider}
+                        </td>
+                        <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-mono">
+                          {model}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                          {record.inputTokens.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                          {record.outputTokens.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                          {record.totalTokens.toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+                {/* Grand Total Row */}
+                <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800">
+                  <td
+                    colSpan={2}
+                    className="px-3 py-1.5 text-slate-700 dark:text-slate-300 font-semibold"
+                  >
+                    Total
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                    {Object.values(settings.tokenUsageByModel)
+                      .reduce((sum, r) => sum + r.inputTokens, 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                    {Object.values(settings.tokenUsageByModel)
+                      .reduce((sum, r) => sum + r.outputTokens, 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                    {Object.values(settings.tokenUsageByModel)
+                      .reduce((sum, r) => sum + r.totalTokens, 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="flex justify-end px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() =>
+                  onUpdateSettings({
+                    ...settings,
+                    totalTokenUsage: 0,
+                    tokenUsageByModel: {},
+                  })
+                }
+                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Icon name="RotateCcw" size={10} />
+                Reset Stats
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ... AI Config Content ... */}
         <div className="space-y-6">
           {/* Enable AI */}
