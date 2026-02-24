@@ -3,7 +3,7 @@ import type { AIProvider, TokenUsageRecord, Task } from "../src/types";
 /** Matcher for flexible argument assertion */
 export type ArgMatcher =
   | { contains: string }
-  | { type: "date" | "string" | "number" | "boolean" }
+  | { type: "date" | "string" | "number" | "boolean" | "array" }
   | { equals: unknown }
   | { oneOf: unknown[] };
 

@@ -9,9 +9,7 @@ import type {
 /**
  * Type guards for ArgMatcher variants
  */
-function isContainsMatcher(
-  matcher: unknown,
-): matcher is { contains: string } {
+function isContainsMatcher(matcher: unknown): matcher is { contains: string } {
   return (
     typeof matcher === "object" &&
     matcher !== null &&
@@ -22,27 +20,25 @@ function isContainsMatcher(
 
 function isTypeMatcher(
   matcher: unknown,
-): matcher is { type: "date" | "string" | "number" | "boolean" } {
+): matcher is { type: "date" | "string" | "number" | "boolean" | "array" } {
   if (typeof matcher !== "object" || matcher === null || !("type" in matcher)) {
     return false;
   }
   const t = (matcher as { type: unknown }).type;
-  return t === "date" || t === "string" || t === "number" || t === "boolean";
-}
-
-function isEqualsMatcher(
-  matcher: unknown,
-): matcher is { equals: unknown } {
   return (
-    typeof matcher === "object" &&
-    matcher !== null &&
-    "equals" in matcher
+    t === "date" ||
+    t === "string" ||
+    t === "number" ||
+    t === "boolean" ||
+    t === "array"
   );
 }
 
-function isOneOfMatcher(
-  matcher: unknown,
-): matcher is { oneOf: unknown[] } {
+function isEqualsMatcher(matcher: unknown): matcher is { equals: unknown } {
+  return typeof matcher === "object" && matcher !== null && "equals" in matcher;
+}
+
+function isOneOfMatcher(matcher: unknown): matcher is { oneOf: unknown[] } {
   return (
     typeof matcher === "object" &&
     matcher !== null &&
@@ -79,7 +75,10 @@ export function matchValue(
     const pass = actual === matcher;
     return pass
       ? { pass: true }
-      : { pass: false, message: `Expected ${JSON.stringify(matcher)}, got ${JSON.stringify(actual)}` };
+      : {
+          pass: false,
+          message: `Expected ${JSON.stringify(matcher)}, got ${JSON.stringify(actual)}`,
+        };
   }
 
   // Not an object -- pass through for unrecognized primitive types (e.g. undefined)
@@ -93,7 +92,10 @@ export function matchValue(
     const pass = actualStr.includes(matcher.contains.toLowerCase());
     return pass
       ? { pass: true }
-      : { pass: false, message: `Expected "${actual}" to contain "${matcher.contains}"` };
+      : {
+          pass: false,
+          message: `Expected "${actual}" to contain "${matcher.contains}"`,
+        };
   }
 
   // Type matcher
@@ -103,13 +105,28 @@ export function matchValue(
         typeof actual === "string" && /^\d{4}-\d{2}-\d{2}/.test(actual);
       return pass
         ? { pass: true }
-        : { pass: false, message: `Expected a date string (YYYY-MM-DD...), got ${JSON.stringify(actual)}` };
+        : {
+            pass: false,
+            message: `Expected a date string (YYYY-MM-DD...), got ${JSON.stringify(actual)}`,
+          };
+    }
+    if (matcher.type === "array") {
+      const pass = Array.isArray(actual);
+      return pass
+        ? { pass: true }
+        : {
+            pass: false,
+            message: `Expected an array, got ${JSON.stringify(actual)}`,
+          };
     }
     // eslint-disable-next-line valid-typeof
     const pass = typeof actual === matcher.type;
     return pass
       ? { pass: true }
-      : { pass: false, message: `Expected type "${matcher.type}", got type "${typeof actual}"` };
+      : {
+          pass: false,
+          message: `Expected type "${matcher.type}", got type "${typeof actual}"`,
+        };
   }
 
   // Equals matcher (deep equality via JSON.stringify)
@@ -117,7 +134,10 @@ export function matchValue(
     const pass = JSON.stringify(actual) === JSON.stringify(matcher.equals);
     return pass
       ? { pass: true }
-      : { pass: false, message: `Expected ${JSON.stringify(matcher.equals)}, got ${JSON.stringify(actual)}` };
+      : {
+          pass: false,
+          message: `Expected ${JSON.stringify(matcher.equals)}, got ${JSON.stringify(actual)}`,
+        };
   }
 
   // OneOf matcher
@@ -125,7 +145,10 @@ export function matchValue(
     const pass = matcher.oneOf.includes(actual);
     return pass
       ? { pass: true }
-      : { pass: false, message: `Expected one of ${JSON.stringify(matcher.oneOf)}, got ${JSON.stringify(actual)}` };
+      : {
+          pass: false,
+          message: `Expected one of ${JSON.stringify(matcher.oneOf)}, got ${JSON.stringify(actual)}`,
+        };
   }
 
   // Unrecognized matcher shape -- pass through
@@ -141,8 +164,14 @@ function extractToolCalls(
 ): Array<{ name: string; args: Record<string, unknown> }> {
   return turns
     .filter(
-      (turn): turn is RecordingTurn & { toolCalls: NonNullable<RecordingTurn["toolCalls"]> } =>
-        turn.role === "assistant" && Array.isArray(turn.toolCalls) && turn.toolCalls.length > 0,
+      (
+        turn,
+      ): turn is RecordingTurn & {
+        toolCalls: NonNullable<RecordingTurn["toolCalls"]>;
+      } =>
+        turn.role === "assistant" &&
+        Array.isArray(turn.toolCalls) &&
+        turn.toolCalls.length > 0,
     )
     .flatMap((turn) => turn.toolCalls);
 }

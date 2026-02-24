@@ -87,16 +87,18 @@ export class OpenAIProvider implements IAIProvider {
       }
     }
 
-    // Add tool results or user prompt
+    // Add tool results or user prompt (skip when history already contains them)
     if (toolResults && toolResults.length > 0) {
-      for (const tr of toolResults) {
-        messages.push({
-          role: "tool",
-          content: JSON.stringify(tr.result),
-          tool_call_id: tr.id || `call_${tr.name}`,
-        });
+      if (!history) {
+        for (const tr of toolResults) {
+          messages.push({
+            role: "tool",
+            content: JSON.stringify(tr.result),
+            tool_call_id: tr.id || `call_${tr.name}`,
+          });
+        }
       }
-    } else {
+    } else if (!history) {
       messages.push({ role: "user", content: prompt });
     }
 

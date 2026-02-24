@@ -36,7 +36,7 @@
         "name": "create_task",
         "args": {
           "title": { "contains": "PR" },
-          "tags": { "type": "string" }
+          "tags": { "type": "array" }
         }
       }
     ]
@@ -51,6 +51,221 @@
         "args": {
           "title": { "contains": "water" },
           "recurrence": { "contains": "FREQ=" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-description",
+    "description": "Create a task with an explicit description",
+    "input": "Add a task called 'Deploy v2.0' with description: push the new release to production and verify all endpoints",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "Deploy" },
+          "description": { "contains": "production" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-category",
+    "description": "Create a task with a category specified",
+    "input": "Create a task to update npm dependencies, put it in the maintenance category",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "dependencies" },
+          "category": { "contains": "maintenance" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-start-date",
+    "description": "Create a task with a start date",
+    "input": "Add a task to start the database migration next Wednesday",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "migration" },
+          "startAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-date-range",
+    "description": "Create a task with both start and due dates",
+    "input": "Create a task to write the quarterly report, starting Monday and due by Friday",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "report" },
+          "startAt": { "type": "date" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-low-priority",
+    "description": "Create a task with explicit low priority",
+    "input": "When you get a chance, add a low priority task to clean up the old log files",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "log" },
+          "priority": { "equals": "low" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-multi-field",
+    "description": "Create a task with many fields specified at once",
+    "input": "Add a high priority task to prepare the client demo, due Thursday, tag it as presentation and client",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "demo" },
+          "priority": { "equals": "high" },
+          "dueAt": { "type": "date" },
+          "tags": { "type": "array" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-terse",
+    "description": "Very brief input that should create a task with a date",
+    "input": "dentist appointment Friday",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "dentist" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-conversational",
+    "description": "Long conversational input with implicit task and deadline",
+    "input": "Oh I just remembered, I need to send the invoice to the accounting department by end of this week",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "invoice" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-implicit-high-priority",
+    "description": "Urgent language should infer high priority",
+    "input": "Urgently fix the production database connection issue",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "database" },
+          "priority": { "equals": "high" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-specific-date",
+    "description": "Create a task with a specific calendar date",
+    "input": "Add task to submit the tax forms by April 15th",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "tax" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-daily-recurrence",
+    "description": "Create a daily recurring task",
+    "input": "Remind me to take my vitamins every day",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "vitamin" },
+          "recurrence": { "contains": "DAILY" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-monthly-recurrence",
+    "description": "Create a monthly recurring task",
+    "input": "Add a recurring task to pay rent on the 1st of every month",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "rent" },
+          "recurrence": { "contains": "MONTHLY" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-tags-and-category",
+    "description": "Create a task with both tags and category",
+    "input": "Add a task to set up CI/CD pipeline in the devops category, tag it as infrastructure and automation",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "CI" },
+          "category": { "contains": "devops" },
+          "tags": { "type": "array" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-complex-natural",
+    "description": "Complex multi-detail instruction in natural language",
+    "input": "I have a project kickoff meeting with the design team next Tuesday, it's high priority, tag it as meetings and design",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "kickoff" },
+          "priority": { "equals": "high" },
+          "dueAt": { "type": "date" },
+          "tags": { "type": "array" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-title-only",
+    "description": "Create a task with just a title, no extra details",
+    "input": "Add a task: review the architecture document",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "architecture" }
         }
       }
     ]

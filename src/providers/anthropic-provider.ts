@@ -93,15 +93,17 @@ export class AnthropicProvider implements IAIProvider {
       }
     }
 
-    // Add tool results or user prompt
+    // Add tool results or user prompt (skip when history already contains them)
     if (toolResults && toolResults.length > 0) {
-      const content = toolResults.map((tr) => ({
-        type: "tool_result",
-        tool_use_id: tr.id || `toolu_${tr.name}`,
-        content: JSON.stringify(tr.result),
-      }));
-      messages.push({ role: "user", content });
-    } else {
+      if (!history) {
+        const content = toolResults.map((tr) => ({
+          type: "tool_result",
+          tool_use_id: tr.id || `toolu_${tr.name}`,
+          content: JSON.stringify(tr.result),
+        }));
+        messages.push({ role: "user", content });
+      }
+    } else if (!history) {
       messages.push({ role: "user", content: prompt });
     }
 

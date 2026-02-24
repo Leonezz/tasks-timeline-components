@@ -19,9 +19,9 @@ export const EVAL_PROVIDERS: EvalProviderConfig[] = [
   },
   {
     provider: "openai-compatible",
-    model: "deepseek-chat",
-    apiKeyEnv: "EVAL_DEEPSEEK_API_KEY",
-    baseUrl: "https://api.deepseek.com/v1",
+    model: "qwen3.5-flash",
+    apiKeyEnv: "EVAL_ALI_API_KEY",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
   },
 ];
 
