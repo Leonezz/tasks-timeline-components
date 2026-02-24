@@ -1,0 +1,382 @@
+[
+  {
+    "id": "create-basic",
+    "description": "Create a basic task with a due date",
+    "input": "Add a task to buy groceries due tomorrow",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "groceries" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-priority",
+    "description": "Create a task with explicit high priority",
+    "input": "Create a high priority task to fix the login bug",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "login" },
+          "priority": { "equals": "high" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-tags",
+    "description": "Create a task with tags specified",
+    "input": "Add task: review PR #42, tag it as code-review and urgent",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "PR" },
+          "tags": { "type": "string" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "create-with-recurrence",
+    "description": "Create a recurring task with weekly schedule",
+    "input": "Add a recurring task to water plants every Monday and Friday",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "water" },
+          "recurrence": { "contains": "FREQ=" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "query-overdue",
+    "description": "Query for overdue tasks",
+    "input": "What tasks are overdue?",
+    "expectedTools": [
+      {
+        "name": "query_tasks",
+        "args": {
+          "status": { "oneOf": ["overdue"] }
+        }
+      }
+    ]
+  },
+  {
+    "id": "query-by-priority",
+    "description": "Query tasks filtered by priority",
+    "input": "Show me all high priority tasks",
+    "expectedTools": [
+      {
+        "name": "query_tasks",
+        "args": {
+          "priority": { "equals": "high" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "query-today",
+    "description": "Ask about today's tasks — should use get_today_plan",
+    "input": "What do I need to do today?",
+    "expectedTools": [
+      {
+        "name": "get_today_plan"
+      }
+    ]
+  },
+  {
+    "id": "update-priority",
+    "description": "Update a task's priority by name reference",
+    "input": "Change the priority of 'fix login bug' to high",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Fix login bug",
+        "priority": "medium",
+        "status": "todo",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "update_task",
+        "args": {
+          "priority": { "equals": "high" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "update-due-date",
+    "description": "Reschedule a task to a new date",
+    "input": "Move 'write report' to next Monday",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Write report",
+        "status": "todo",
+        "priority": "medium",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "update_task",
+        "args": {
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "delete-task",
+    "description": "Delete a specific task by name reference",
+    "input": "Delete the task about buying groceries",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Buy groceries",
+        "status": "todo",
+        "priority": "medium",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "delete_task",
+        "args": {
+          "id": { "equals": "t1" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "complete-task",
+    "description": "Mark a task as done by name reference",
+    "input": "Mark 'fix login bug' as done",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Fix login bug",
+        "status": "doing",
+        "priority": "medium",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "complete_task",
+        "args": {
+          "id": { "equals": "t1" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "cancel-task",
+    "description": "Cancel a task by name reference",
+    "input": "Cancel the meeting prep task",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Meeting prep",
+        "status": "todo",
+        "priority": "medium",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "cancel_task",
+        "args": {
+          "id": { "equals": "t1" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "batch-update",
+    "description": "Bulk update tasks matching a tag filter",
+    "input": "Set all my coding tasks to high priority",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Fix bug",
+        "tags": [{ "id": "1", "name": "coding" }],
+        "priority": "medium",
+        "status": "todo"
+      },
+      {
+        "id": "t2",
+        "title": "Refactor API",
+        "tags": [{ "id": "1", "name": "coding" }],
+        "priority": "low",
+        "status": "todo"
+      },
+      {
+        "id": "t3",
+        "title": "Buy lunch",
+        "tags": [],
+        "priority": "medium",
+        "status": "todo"
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "batch_update_tasks"
+      }
+    ]
+  },
+  {
+    "id": "stats-overview",
+    "description": "Request overall task statistics",
+    "input": "How am I doing on my tasks?",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Task A",
+        "status": "done",
+        "priority": "medium",
+        "tags": []
+      },
+      {
+        "id": "t2",
+        "title": "Task B",
+        "status": "todo",
+        "priority": "medium",
+        "tags": []
+      },
+      {
+        "id": "t3",
+        "title": "Task C",
+        "status": "doing",
+        "priority": "high",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "get_task_stats"
+      }
+    ]
+  },
+  {
+    "id": "today-plan",
+    "description": "Request a daily plan",
+    "input": "Plan my day",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Morning standup",
+        "status": "todo",
+        "priority": "high",
+        "dueAt": "2026-02-25",
+        "tags": []
+      },
+      {
+        "id": "t2",
+        "title": "Code review",
+        "status": "todo",
+        "priority": "medium",
+        "dueAt": "2026-02-25",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "get_today_plan"
+      }
+    ]
+  },
+  {
+    "id": "multi-create",
+    "description": "Create multiple tasks in a single request",
+    "input": "Add two tasks: buy groceries due tomorrow and clean the house this weekend",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "groceries" }
+        }
+      },
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "clean" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "multi-complete-create",
+    "description": "Complete one task and create another in sequence",
+    "input": "I finished the report. Now add a task to send it to the team",
+    "seedTasks": [
+      {
+        "id": "t1",
+        "title": "Write report",
+        "status": "doing",
+        "priority": "medium",
+        "tags": []
+      }
+    ],
+    "expectedTools": [
+      {
+        "name": "complete_task"
+      },
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "send" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "ambiguous-intent",
+    "description": "Minimal input that should still create a task",
+    "input": "groceries",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "groceries" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "natural-language",
+    "description": "Natural conversational input with implicit deadline",
+    "input": "I really need to remember to call the dentist before Friday",
+    "expectedTools": [
+      {
+        "name": "create_task",
+        "args": {
+          "title": { "contains": "dentist" },
+          "dueAt": { "type": "date" }
+        }
+      }
+    ]
+  },
+  {
+    "id": "query-by-search",
+    "description": "Search for tasks by keyword",
+    "input": "Find all tasks related to the API migration",
+    "expectedTools": [
+      {
+        "name": "query_tasks",
+        "args": {
+          "search": { "contains": "API" }
+        }
+      }
+    ]
+  }
+]
