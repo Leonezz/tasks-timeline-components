@@ -1,16 +1,12 @@
 import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { Task } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import { useLazyRender } from "../hooks/useLazyRender";
 import { computeDateValidation } from "../utils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 
 interface BacklogSectionProps {
   tasks: Task[];
@@ -50,41 +46,36 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
           </button>
         </CollapsibleTrigger>
 
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <CollapsibleContent forceMount asChild>
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div ref={containerRef} className="space-y-0.5">
-                  {isNearViewport ? (
-                    <div ref={contentRef}>
-                      {tasks.map((task) => (
-                        <TaskItem
-                          key={task.id}
-                          task={task}
-                          dateValidation={computeDateValidation(
-                            task,
-                            settings.groupingStrategy,
-                          )}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div
-                      style={{ height: placeholderHeight }}
-                      className="bg-slate-50/30 rounded"
-                    />
-                  )}
-                </div>
-              </motion.div>
-            </CollapsibleContent>
-          )}
-        </AnimatePresence>
+        <motion.div
+          initial={false}
+          animate={
+            isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }
+          }
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          <div ref={containerRef} className="space-y-0.5">
+            {isNearViewport ? (
+              <div ref={contentRef}>
+                {tasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    dateValidation={computeDateValidation(
+                      task,
+                      settings.groupingStrategy,
+                    )}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{ height: placeholderHeight }}
+                className="bg-slate-50/30 rounded"
+              />
+            )}
+          </div>
+        </motion.div>
       </Collapsible>
     </div>
   );

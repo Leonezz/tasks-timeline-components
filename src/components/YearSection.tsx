@@ -1,15 +1,11 @@
 import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { YearGroup } from "../types";
 import { DaySection } from "./DaySection";
 import { cn } from "../utils";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 
 interface YearSectionProps {
   group: YearGroup;
@@ -78,24 +74,19 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
           </button>
         </CollapsibleTrigger>
 
-        {/* Days with AnimatePresence */}
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <CollapsibleContent forceMount asChild>
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-                className="overflow-hidden"
-              >
-                {group.dayGroups.map((dayGroup) => (
-                  <DaySection key={dayGroup.date} group={dayGroup} />
-                ))}
-              </motion.div>
-            </CollapsibleContent>
-          )}
-        </AnimatePresence>
+        {/* Days */}
+        <motion.div
+          initial={false}
+          animate={
+            isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }
+          }
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          {group.dayGroups.map((dayGroup) => (
+            <DaySection key={dayGroup.date} group={dayGroup} />
+          ))}
+        </motion.div>
       </Collapsible>
     </div>
   );
