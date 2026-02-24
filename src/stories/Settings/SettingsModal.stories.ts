@@ -68,6 +68,7 @@ const settings: AppSettings = {
 
   defaultFocusMode: true,
   totalTokenUsage: 0,
+  tokenUsageByModel: {},
   defaultCategory: "",
   filters: {
     tags: { include: ["#"], exclude: [] },

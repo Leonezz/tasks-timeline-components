@@ -19,6 +19,7 @@ export const settingsBuilder = {
     groupingStrategy: ["dueAt"],
     defaultFocusMode: false,
     totalTokenUsage: 0,
+    tokenUsageByModel: {},
     defaultCategory: "General",
     aiConfig: {
       enabled: false,

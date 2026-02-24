@@ -87,6 +87,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   // New Features
   defaultFocusMode: false,
   totalTokenUsage: 0,
+  tokenUsageByModel: {},
   defaultCategory: "General",
 
   filters: {
