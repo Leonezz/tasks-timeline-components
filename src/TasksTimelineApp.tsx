@@ -89,7 +89,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   totalTokenUsage: 0,
   defaultCategory: "General",
 
-  settingButtonOnInputBar: undefined,
   filters: {
     tags: [],
     categories: [],

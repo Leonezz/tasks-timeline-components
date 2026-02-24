@@ -207,6 +207,15 @@ export const settingsBuilder = {
   }),
 
   /**
+   * Sound enabled
+   */
+  withSound: (overrides?: Partial<AppSettings>): AppSettings => ({
+    ...settingsBuilder.default(),
+    soundEnabled: true,
+    ...overrides,
+  }),
+
+  /**
    * Voice input enabled
    */
   withVoiceInput: (overrides?: Partial<AppSettings>): AppSettings => ({

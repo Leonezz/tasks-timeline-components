@@ -361,16 +361,68 @@ export const ToggleGroupingStrategy: Story = {
 };
 
 // ========================================
+// Sound Variants
+// ========================================
+
+export const SoundEnabled: Story = {
+  args: {
+    settings: settingsBuilder.withSound(),
+    onUpdateSettings: handleUpdateSettings,
+    availableCategories: ["Work", "Personal"],
+  },
+};
+
+export const SoundDisabled: Story = {
+  args: {
+    ...Default.args,
+    settings: {
+      ...settingsBuilder.default(),
+      soundEnabled: false,
+    },
+  },
+};
+
+// ========================================
+// Input Bar Variants
+// ========================================
+
+export const InputBarAllVisible: Story = {
+  args: {
+    ...Default.args,
+  },
+};
+
+export const InputBarAllHidden: Story = {
+  args: {
+    settings: settingsBuilder.minimalUI(),
+    onUpdateSettings: handleUpdateSettings,
+    availableCategories: ["Work", "Personal"],
+  },
+};
+
+export const InputBarPartiallyHidden: Story = {
+  args: {
+    settings: {
+      ...settingsBuilder.default(),
+      tagsFilterOnInputBar: false,
+      categoriesFilterOnInputBar: false,
+    },
+    onUpdateSettings: handleUpdateSettings,
+    availableCategories: ["Work", "Personal"],
+  },
+};
+
+// ========================================
 // Edge Cases
 // ========================================
 
 export const AllTogglesOff: Story = {
   args: {
     settings: {
-      ...settingsBuilder.default(),
+      ...settingsBuilder.minimalUI(),
       showCompleted: false,
-      showProgressBar: false,
       useRelativeDates: false,
+      soundEnabled: false,
       defaultFocusMode: false,
     },
     onUpdateSettings: handleUpdateSettings,
@@ -385,6 +437,7 @@ export const AllTogglesOn: Story = {
       showCompleted: true,
       showProgressBar: true,
       useRelativeDates: true,
+      soundEnabled: true,
       defaultFocusMode: true,
     },
     onUpdateSettings: handleUpdateSettings,
