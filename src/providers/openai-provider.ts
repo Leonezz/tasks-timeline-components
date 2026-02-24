@@ -141,6 +141,11 @@ export class OpenAIProvider implements IAIProvider {
 
     if (response.usage) {
       result.tokenCount = response.usage.total_tokens;
+      result.tokenUsage = {
+        inputTokens: response.usage.prompt_tokens || 0,
+        outputTokens: response.usage.completion_tokens || 0,
+        totalTokens: response.usage.total_tokens || 0,
+      };
     }
 
     return result;

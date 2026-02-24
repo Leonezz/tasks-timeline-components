@@ -144,6 +144,13 @@ export class AnthropicProvider implements IAIProvider {
     if (response.usage) {
       result.tokenCount =
         response.usage.input_tokens + response.usage.output_tokens;
+      result.tokenUsage = {
+        inputTokens: response.usage.input_tokens || 0,
+        outputTokens: response.usage.output_tokens || 0,
+        totalTokens:
+          (response.usage.input_tokens || 0) +
+          (response.usage.output_tokens || 0),
+      };
     }
 
     return result;

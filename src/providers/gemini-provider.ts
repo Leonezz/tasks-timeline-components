@@ -175,6 +175,11 @@ export class GeminiProvider implements IAIProvider {
 
     if (response.usageMetadata) {
       result.tokenCount = response.usageMetadata.totalTokenCount || 0;
+      result.tokenUsage = {
+        inputTokens: response.usageMetadata.promptTokenCount || 0,
+        outputTokens: response.usageMetadata.candidatesTokenCount || 0,
+        totalTokens: response.usageMetadata.totalTokenCount || 0,
+      };
     }
 
     return result;
