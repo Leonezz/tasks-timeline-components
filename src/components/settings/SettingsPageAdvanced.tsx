@@ -1,12 +1,5 @@
 import { useState } from "react";
-import type {
-  AIProvider,
-  AppSettings,
-  FilterState,
-  SortField,
-  SortState,
-  VoiceProvider,
-} from "@/types";
+import type { AIProvider, AppSettings, VoiceProvider } from "@/types";
 import { Icon } from "../Icon";
 import { cn } from "@/utils";
 import { testProvider } from "@/providers";
@@ -50,12 +43,10 @@ const AI_PROVIDER_PLACEHOLDERS: Record<
 interface SettingsPageAdvancedProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
-  availableTags: string[];
 }
 export const SettingsPageAdvanced = ({
   settings,
   onUpdateSettings,
-  availableTags,
 }: SettingsPageAdvancedProps) => {
   // Voice Input Handlers
   const toggleVoiceInput = () =>
@@ -108,16 +99,6 @@ export const SettingsPageAdvanced = ({
       onUpdateSettings({
         ...settings,
         aiConfig: { ...settings.aiConfig, activeProvider: p },
-      }),
-    setFilters = (f: FilterState) =>
-      onUpdateSettings({
-        ...settings,
-        filters: f,
-      }),
-    setSort = (s: SortState) =>
-      onUpdateSettings({
-        ...settings,
-        sort: s,
       }),
     updateProviderConfig = (
       provider: AIProvider,
@@ -393,363 +374,207 @@ export const SettingsPageAdvanced = ({
         </div>
       </section>
 
-      {/* Advanced Control Section */}
+      {/* Voice Input Section */}
       <section>
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Icon name="Filter" size={12} className="text-blue-500" />
-          Advanced Control
+          <Icon name="Mic" size={12} className="text-blue-500" />
+          Voice Input
         </h3>
 
-        <div className="space-y-6">
-          {/* Voice Input Control */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-slate-700">
-                  Voice Input
-                </span>
-                <span className="text-xs text-slate-400">
-                  Enable microphone input
-                </span>
-              </div>
-              <button
-                onClick={toggleVoiceInput}
-                className={cn(
-                  "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                  settings.voiceConfig.enabled
-                    ? "bg-emerald-500"
-                    : "bg-slate-200 dark:bg-slate-700",
-                )}
-              >
-                <MotionSpan
-                  layout
-                  className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow-sm block"
-                  animate={{ x: settings.voiceConfig.enabled ? 16 : 0 }}
-                />
-              </button>
-            </div>
-
-            {/* Voice Provider Config */}
-            {settings.voiceConfig.enabled && (
-              <div className="pt-2 space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
-                    Voice Provider
-                  </label>
-                  <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1">
-                    {(["browser", "openai", "gemini"] as VoiceProvider[]).map(
-                      (p) => (
-                        <button
-                          key={p}
-                          onClick={() => setVoiceProvider(p)}
-                          className={cn(
-                            "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
-                            settings.voiceConfig.activeProvider === p
-                              ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
-                          )}
-                        >
-                          {p === "openai"
-                            ? "OpenAI"
-                            : p === "gemini"
-                              ? "Gemini"
-                              : "Browser"}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1.5">
-                    {settings.voiceConfig.activeProvider === "browser" &&
-                      "Uses Web Speech API (free, requires internet in Chrome/Edge)"}
-                    {settings.voiceConfig.activeProvider === "openai" &&
-                      "OpenAI Whisper (requires API key, highly accurate)"}
-                    {settings.voiceConfig.activeProvider === "gemini" &&
-                      "Google Gemini (requires API key, supports audio transcription)"}
-                  </p>
-                </div>
-
-                {/* OpenAI Provider Config */}
-                {settings.voiceConfig.activeProvider === "openai" && (
-                  <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                        OpenAI API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={settings.voiceConfig.providers.openai.apiKey}
-                        onChange={(e) =>
-                          updateVoiceProviderConfig(
-                            "openai",
-                            "apiKey",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="sk-..."
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                        Model
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.voiceConfig.providers.openai.model}
-                        onChange={(e) =>
-                          updateVoiceProviderConfig(
-                            "openai",
-                            "model",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="whisper-1"
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                        Base URL (optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.voiceConfig.providers.openai.baseUrl}
-                        onChange={(e) =>
-                          updateVoiceProviderConfig(
-                            "openai",
-                            "baseUrl",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="https://api.openai.com/v1/audio/transcriptions"
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Gemini Provider Config */}
-                {settings.voiceConfig.activeProvider === "gemini" && (
-                  <div className="space-y-3 pl-3 border-l-2 border-purple-200 dark:border-purple-800">
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                        Gemini API Key
-                      </label>
-                      <input
-                        type="password"
-                        value={settings.voiceConfig.providers.gemini.apiKey}
-                        onChange={(e) =>
-                          updateVoiceProviderConfig(
-                            "gemini",
-                            "apiKey",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="AIza..."
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                        Model
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.voiceConfig.providers.gemini.model}
-                        onChange={(e) =>
-                          updateVoiceProviderConfig(
-                            "gemini",
-                            "model",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="gemini-1.5-flash"
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
-                    Voice Language
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.voiceConfig.language}
-                    onChange={(e) =>
-                      onUpdateSettings({
-                        ...settings,
-                        voiceConfig: {
-                          ...settings.voiceConfig,
-                          language: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="System default"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Leave empty for system language. Examples: en-US, zh-CN,
-                    ja-JP, es-ES
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Tags Filter */}
-          <div className="space-y-3 border-t border-slate-200/50 dark:border-slate-700/50 pt-4">
-            <span className="text-sm font-medium text-slate-700 block">
-              Tags Filter
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.length === 0 && (
-                <span className="text-xs text-slate-400 italic">
-                  No tags found.
-                </span>
-              )}
-              {availableTags.map((tag) => {
-                const isActive = settings.filters.tags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => {
-                      const newTags = isActive
-                        ? settings.filters.tags.filter((t) => t !== tag)
-                        : [...settings.filters.tags, tag];
-                      setFilters({ ...settings.filters, tags: newTags });
-                    }}
-                    className={cn(
-                      "px-2 py-1 text-xs rounded-md border transition-all",
-                      isActive
-                        ? "bg-blue-100 border-blue-200 text-blue-700"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50",
-                    )}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Filtering Logic */}
-          <div className="space-y-3 border-t border-slate-200/50 dark:border-slate-700/50 pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 block">
-                Script Filter
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-slate-700">
+                Voice Input
               </span>
-              <button
-                onClick={() =>
-                  setFilters({
-                    ...settings.filters,
-                    enableScript: !settings.filters.enableScript,
-                  })
-                }
-                className={cn(
-                  "relative w-7 h-4 rounded-full transition-colors focus:outline-none",
-                  settings.filters.enableScript
-                    ? "bg-purple-500"
-                    : "bg-slate-200 dark:bg-slate-700",
-                )}
-              >
-                <MotionSpan
-                  layout
-                  className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm block"
-                  animate={{ x: settings.filters.enableScript ? 12 : 0 }}
+              <span className="text-xs text-slate-400">
+                Enable microphone input
+              </span>
+            </div>
+            <button
+              onClick={toggleVoiceInput}
+              className={cn(
+                "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                settings.voiceConfig.enabled
+                  ? "bg-emerald-500"
+                  : "bg-slate-200 dark:bg-slate-700",
+              )}
+            >
+              <MotionSpan
+                layout
+                className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow-sm block"
+                animate={{ x: settings.voiceConfig.enabled ? 16 : 0 }}
+              />
+            </button>
+          </div>
+
+          {/* Voice Provider Config */}
+          {settings.voiceConfig.enabled && (
+            <div className="pt-2 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
+                  Voice Provider
+                </label>
+                <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1">
+                  {(["browser", "openai", "gemini"] as VoiceProvider[]).map(
+                    (p) => (
+                      <button
+                        key={p}
+                        onClick={() => setVoiceProvider(p)}
+                        className={cn(
+                          "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
+                          settings.voiceConfig.activeProvider === p
+                            ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
+                        )}
+                      >
+                        {p === "openai"
+                          ? "OpenAI"
+                          : p === "gemini"
+                            ? "Gemini"
+                            : "Browser"}
+                      </button>
+                    ),
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">
+                  {settings.voiceConfig.activeProvider === "browser" &&
+                    "Uses Web Speech API (free, requires internet in Chrome/Edge)"}
+                  {settings.voiceConfig.activeProvider === "openai" &&
+                    "OpenAI Whisper (requires API key, highly accurate)"}
+                  {settings.voiceConfig.activeProvider === "gemini" &&
+                    "Google Gemini (requires API key, supports audio transcription)"}
+                </p>
+              </div>
+
+              {/* OpenAI Provider Config */}
+              {settings.voiceConfig.activeProvider === "openai" && (
+                <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      OpenAI API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={settings.voiceConfig.providers.openai.apiKey}
+                      onChange={(e) =>
+                        updateVoiceProviderConfig(
+                          "openai",
+                          "apiKey",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="sk-..."
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.voiceConfig.providers.openai.model}
+                      onChange={(e) =>
+                        updateVoiceProviderConfig(
+                          "openai",
+                          "model",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="whisper-1"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Base URL (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.voiceConfig.providers.openai.baseUrl}
+                      onChange={(e) =>
+                        updateVoiceProviderConfig(
+                          "openai",
+                          "baseUrl",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="https://api.openai.com/v1/audio/transcriptions"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Gemini Provider Config */}
+              {settings.voiceConfig.activeProvider === "gemini" && (
+                <div className="space-y-3 pl-3 border-l-2 border-purple-200 dark:border-purple-800">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Gemini API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={settings.voiceConfig.providers.gemini.apiKey}
+                      onChange={(e) =>
+                        updateVoiceProviderConfig(
+                          "gemini",
+                          "apiKey",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="AIza..."
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.voiceConfig.providers.gemini.model}
+                      onChange={(e) =>
+                        updateVoiceProviderConfig(
+                          "gemini",
+                          "model",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="gemini-1.5-flash"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
+                  Voice Language
+                </label>
+                <input
+                  type="text"
+                  value={settings.voiceConfig.language}
+                  onChange={(e) =>
+                    onUpdateSettings({
+                      ...settings,
+                      voiceConfig: {
+                        ...settings.voiceConfig,
+                        language: e.target.value,
+                      },
+                    })
+                  }
+                  placeholder="System default"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
                 />
-              </button>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Leave empty for system language. Examples: en-US, zh-CN,
+                  ja-JP, es-ES
+                </p>
+              </div>
             </div>
-
-            <AnimatePresence>
-              {settings.filters.enableScript && (
-                <MotionDiv
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <textarea
-                    value={settings.filters.script}
-                    onChange={(e) =>
-                      setFilters({
-                        ...settings.filters,
-                        script: e.target.value,
-                      })
-                    }
-                    className="w-full h-28 p-3 bg-[#1e1e1e] text-purple-300 font-mono text-xs rounded-lg border border-slate-700 outline-none resize-none focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all shadow-inner leading-relaxed"
-                    placeholder="return task.priority === 'high';"
-                    spellCheck={false}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Var: <code>task</code>. Use JS logic to return true/false.
-                  </p>
-                </MotionDiv>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Sorting Logic */}
-          <div className="space-y-3 border-t border-slate-200/50 dark:border-slate-700/50 pt-4">
-            <span className="text-sm font-medium text-slate-700 block">
-              Default Sorting
-            </span>
-            <div className="flex gap-2">
-              <select
-                value={settings.sort.field}
-                onChange={(e) =>
-                  setSort({
-                    ...settings.sort,
-                    field: e.target.value as SortField,
-                  })
-                }
-                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="dueAt">Due Date</option>
-                <option value="createdAt">Created Date</option>
-                <option value="priority">Priority</option>
-                <option value="title">Title</option>
-                <option value="custom">Custom Script</option>
-              </select>
-              <button
-                onClick={() =>
-                  setSort({
-                    ...settings.sort,
-                    direction:
-                      settings.sort.direction === "asc" ? "desc" : "asc",
-                  })
-                }
-                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                {settings.sort.direction === "asc" ? "ASC" : "DESC"}
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {settings.sort.field === "custom" && (
-                <MotionDiv
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <textarea
-                    value={settings.sort.script}
-                    onChange={(e) =>
-                      setSort({ ...settings.sort, script: e.target.value })
-                    }
-                    className="w-full h-28 p-3 bg-[#1e1e1e] text-emerald-400 font-mono text-xs rounded-lg border border-slate-700 outline-none resize-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all shadow-inner leading-relaxed"
-                    placeholder="return a.title.localeCompare(b.title);"
-                    spellCheck={false}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Vars: <code>a</code>, <code>b</code>. Return -1, 0, 1.
-                  </p>
-                </MotionDiv>
-              )}
-            </AnimatePresence>
-          </div>
+          )}
         </div>
       </section>
     </div>

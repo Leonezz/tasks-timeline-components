@@ -4,6 +4,7 @@ import type { AppSettings, CustomSettingsTab } from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAdvanced } from "./SettingsPageAdvanced";
+import { SettingsPageFilters } from "./SettingsPageFilters";
 import { Documentation } from "./Documentation";
 import root from "react-shadow";
 import styles from "../../index.css?inline";
@@ -11,7 +12,7 @@ import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
 import { logger } from "@/utils/logger.ts";
 
-const RESERVED_TAB_IDS = ["general", "advanced", "docs", "about"] as const;
+const RESERVED_TAB_IDS = ["general", "filters", "ai", "docs", "about"] as const;
 
 interface SettingsPageProps {
   settings: AppSettings;
@@ -26,7 +27,7 @@ interface SettingsPageProps {
   customTabs?: CustomSettingsTab[];
 }
 
-type BuiltInTab = "general" | "advanced" | "docs" | "about";
+type BuiltInTab = "general" | "filters" | "ai" | "docs" | "about";
 
 export const SettingsPage = ({
   settings,
@@ -93,15 +94,26 @@ export const SettingsPage = ({
               General
             </button>
             <button
-              onClick={() => setActiveTab("advanced")}
+              onClick={() => setActiveTab("filters")}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
-                activeTab === "advanced"
+                activeTab === "filters"
                   ? "bg-white shadow-sm text-blue-600"
                   : "text-slate-500 hover:text-slate-700",
               )}
             >
-              Advanced
+              Filters & Sorting
+            </button>
+            <button
+              onClick={() => setActiveTab("ai")}
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                activeTab === "ai"
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-500 hover:text-slate-700",
+              )}
+            >
+              AI
             </button>
             <button
               onClick={() => setActiveTab("docs")}
@@ -161,11 +173,18 @@ export const SettingsPage = ({
             availableCategories={availableCategories}
           />
         )}
-        {activeTab === "advanced" && (
-          <SettingsPageAdvanced
+        {activeTab === "filters" && (
+          <SettingsPageFilters
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             availableTags={availableTags}
+            availableCategories={availableCategories}
+          />
+        )}
+        {activeTab === "ai" && (
+          <SettingsPageAdvanced
+            settings={settings}
+            onUpdateSettings={onUpdateSettings}
           />
         )}
         {activeTab === "docs" && <Documentation />}

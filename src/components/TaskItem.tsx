@@ -259,7 +259,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
         "group relative flex items-stretch gap-1 min-[400px]:gap-1.5 sm:gap-2 pb-1.5 pt-0.5 px-0.5 sm:px-1 transition-all rounded-lg",
         (isDone || isCancelled) && "opacity-60",
         isUrgent
-          ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50"
+          ? "bg-rose-50/60 border border-rose-100 shadow-sm shadow-rose-100/50 hover:bg-rose-100/50 mb-1"
           : "hover:bg-slate-50 border border-transparent",
       )}
     >
@@ -282,7 +282,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
         {/* Tail Line */}
         <div
           className={cn(
-            "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2 group-last:hidden",
+            "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2",
             getLineColor(task.status),
           )}
         />
@@ -365,7 +365,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, dateValidation }) => {
       <div
         className={cn(
           "flex-1 min-w-0 pt-0.5",
-          displayTime ? "pr-12 sm:pr-16" : "pr-6 sm:pr-8",
+          displayTime ? "pr-16 sm:pr-20" : "pr-6 sm:pr-8",
         )}
       >
         <div className="flex items-center gap-1.5 sm:gap-2 min-h-5.5 mb-0.5">
