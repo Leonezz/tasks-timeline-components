@@ -30,7 +30,7 @@ export function useLazyRender(
   options: UseLazyRenderOptions = {},
 ): UseLazyRenderResult {
   const { rootMargin = "500px 0px", enabled = true } = options,
-    [isNearViewport, setIsNearViewport] = useState(!enabled),
+    [isNearViewport, setIsNearViewport] = useState(true),
     [measuredHeight, setMeasuredHeight] = useState<number | null>(null),
     containerElRef = useRef<HTMLDivElement | null>(null),
     contentElRef = useRef<HTMLDivElement | null>(null),

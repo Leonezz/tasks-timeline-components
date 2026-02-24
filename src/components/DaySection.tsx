@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { DateTime } from "luxon";
 import type { DayGroup } from "../types";
 import { TaskItem } from "./TaskItem";
@@ -9,11 +9,7 @@ import { useVoiceInput } from "../hooks/useVoiceInput";
 import { useLazyRender } from "../hooks/useLazyRender";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 
 interface DaySectionProps {
   group: DayGroup;
@@ -27,7 +23,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
 }) => {
   const { containerRef, contentRef, isNearViewport, placeholderHeight } =
       useLazyRender(group.tasks.length, { enabled: lazy }),
-    { onAddTask, onAICommand } = useTasksContext(),
+    { onAddTask, onAICommand, availableCategories } = useTasksContext(),
     { settings, isAiMode, onVoiceError } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true),
     [isAdding, setIsAdding] = useState(false),
@@ -213,173 +209,157 @@ export const DaySection: React.FC<DaySectionProps> = ({
         </CollapsibleTrigger>
 
         {/* Tasks List */}
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <CollapsibleContent forceMount asChild>
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="overflow-hidden"
+        <motion.div
+          initial={false}
+          animate={
+            isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }
+          }
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div ref={containerRef} className="space-y-0.5 relative pb-2">
+            {isNearViewport ? (
+              <div ref={contentRef}>
+                {group.tasks.map((task) => (
+                  <TaskItem key={task.id} task={task} />
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{ height: placeholderHeight }}
+                className="bg-slate-50/30 rounded"
+              />
+            )}
+
+            {/* Add Item Row - Aligned with TaskItem grid */}
+            <div className="group relative flex items-stretch gap-2 py-1.5 px-1 transition-all rounded-lg">
+              {/* 1. Left Spacing Column (Matches Timeline Column Width of TaskItem) */}
+              <div
+                className={cn(
+                  "relative flex flex-col items-center shrink-0 w-6",
+                  iconTopSpacing,
+                )}
               >
-                <div ref={containerRef} className="space-y-0.5 relative pb-2">
-                  {isNearViewport ? (
-                    <div ref={contentRef}>
-                      {group.tasks.map((task) => (
-                        <TaskItem key={task.id} task={task} />
-                      ))}
+                {/* Line coming from top (connects to previous tasks) */}
+                {group.tasks.length > 0 && (
+                  <div className="absolute -top-1 h-4 w-px left-1/2 -translate-x-1/2 bg-slate-200" />
+                )}
+
+                {/* The Dot / Action Icon */}
+                <button
+                  onClick={() => setIsAdding(true)}
+                  className={cn(
+                    "relative z-10 w-6 h-6 flex items-center justify-center rounded-full transition-all outline-none",
+                    isAdding
+                      ? isAiMode
+                        ? "bg-purple-100 text-purple-600"
+                        : "bg-blue-100 text-blue-600"
+                      : "bg-white hover:bg-slate-100 text-slate-300 hover:text-blue-500",
+                  )}
+                >
+                  {isLoading ? (
+                    <div className="animate-spin">
+                      <Icon name="Loader2" size={12} />
                     </div>
                   ) : (
-                    <div
-                      style={{ height: placeholderHeight }}
-                      className="bg-slate-50/30 rounded"
-                    />
+                    <Icon name={isAiMode ? "Sparkles" : "Plus"} size={14} />
                   )}
+                </button>
+              </div>
 
-                  {/* Add Item Row - Aligned with TaskItem grid */}
-                  <div className="group relative flex items-stretch gap-2 py-1.5 px-1 transition-all rounded-lg">
-                    {/* 1. Left Spacing Column (Matches Timeline Column Width of TaskItem) */}
-                    <div
+              {/* 2. Input Content Area */}
+              <div className="flex-1 min-w-0 pt-0.5">
+                {isAdding ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      // Delay blur to allow clicking the category input or mic
+                      onBlur={(e) => {
+                        if (
+                          !e.relatedTarget ||
+                          !e.relatedTarget.closest(".add-row-actions")
+                        ) {
+                          if (!newTaskTitle) {
+                            setIsAdding(false);
+                          }
+                        }
+                      }}
+                      placeholder={
+                        isListening
+                          ? "Listening..."
+                          : isAiMode
+                            ? "Describe task for this day..."
+                            : "Type a new task..."
+                      }
                       className={cn(
-                        "relative flex flex-col items-center shrink-0 w-6",
-                        iconTopSpacing,
+                        "flex-1 bg-transparent border-b focus:outline-none text-sm py-0.5 transition-colors",
+                        isAiMode
+                          ? "border-purple-300 focus:border-purple-500 placeholder:text-purple-300 text-purple-900"
+                          : "border-blue-300 focus:border-blue-500",
                       )}
-                    >
-                      {/* Line coming from top (connects to previous tasks) */}
-                      {group.tasks.length > 0 && (
-                        <div className="absolute -top-1 h-4 w-px left-1/2 -translate-x-1/2 bg-slate-200" />
-                      )}
+                      disabled={isLoading || isListening}
+                    />
 
-                      {/* The Dot / Action Icon */}
-                      <button
-                        onClick={() => setIsAdding(true)}
-                        className={cn(
-                          "relative z-10 w-6 h-6 flex items-center justify-center rounded-full transition-all outline-none",
-                          isAdding
-                            ? isAiMode
-                              ? "bg-purple-100 text-purple-600"
-                              : "bg-blue-100 text-blue-600"
-                            : "bg-white hover:bg-slate-100 text-slate-300 hover:text-blue-500",
-                        )}
-                      >
-                        {isLoading ? (
-                          <div className="animate-spin">
-                            <Icon name="Loader2" size={12} />
-                          </div>
-                        ) : (
+                    {/* Inline Actions (Category & Mic) */}
+                    <div className="flex items-center gap-1 add-row-actions">
+                      {/* Category Picker */}
+                      <div className="relative group/cat">
+                        <input
+                          list={`cat-list-${group.date}`}
+                          className="w-20 text-[10px] bg-slate-100 hover:bg-slate-200 border-none rounded px-1.5 py-0.5 text-slate-600 focus:bg-white focus:ring-1 focus:ring-blue-300 outline-none transition-all placeholder:text-slate-400 truncate"
+                          placeholder="Category"
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          onFocus={() => {}}
+                          title="Task Category"
+                        />
+                        <datalist id={`cat-list-${group.date}`}>
+                          {availableCategories.map((cat) => (
+                            <option key={cat} value={cat} />
+                          ))}
+                        </datalist>
+                      </div>
+
+                      {settings.voiceConfig.enabled && (
+                        <button
+                          onClick={isListening ? stopVoice : startVoice}
+                          className={cn(
+                            "p-1 rounded hover:bg-slate-100 transition-colors",
+                            isListening && "text-rose-500 animate-pulse",
+                          )}
+                          tabIndex={-1}
+                          title={
+                            isListening ? "Stop Recording" : "Start Voice Input"
+                          }
+                        >
                           <Icon
-                            name={isAiMode ? "Sparkles" : "Plus"}
+                            name={isListening ? "Square" : "Mic"}
                             size={14}
                           />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* 2. Input Content Area */}
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      {isAdding ? (
-                        <motion.div
-                          initial={{ opacity: 0, x: -5 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center gap-2"
-                        >
-                          <input
-                            ref={inputRef}
-                            type="text"
-                            value={newTaskTitle}
-                            onChange={(e) => setNewTaskTitle(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            // Delay blur to allow clicking the category input or mic
-                            onBlur={(e) => {
-                              if (
-                                !e.relatedTarget ||
-                                !e.relatedTarget.closest(".add-row-actions")
-                              ) {
-                                if (!newTaskTitle) {
-                                  setIsAdding(false);
-                                }
-                              }
-                            }}
-                            placeholder={
-                              isListening
-                                ? "Listening..."
-                                : isAiMode
-                                  ? "Describe task for this day..."
-                                  : "Type a new task..."
-                            }
-                            className={cn(
-                              "flex-1 bg-transparent border-b focus:outline-none text-sm py-0.5 transition-colors",
-                              isAiMode
-                                ? "border-purple-300 focus:border-purple-500 placeholder:text-purple-300 text-purple-900"
-                                : "border-blue-300 focus:border-blue-500",
-                            )}
-                            disabled={isLoading || isListening}
-                          />
-
-                          {/* Inline Actions (Category & Mic) */}
-                          <div className="flex items-center gap-1 add-row-actions">
-                            {/* Category Picker */}
-                            <div className="relative group/cat">
-                              <input
-                                list={`cat-list-${group.date}`}
-                                className="w-20 text-[10px] bg-slate-100 hover:bg-slate-200 border-none rounded px-1.5 py-0.5 text-slate-600 focus:bg-white focus:ring-1 focus:ring-blue-300 outline-none transition-all placeholder:text-slate-400 truncate"
-                                placeholder="Category"
-                                value={selectedCategory}
-                                onChange={(e) =>
-                                  setSelectedCategory(e.target.value)
-                                }
-                                onFocus={() => {}}
-                                title="Task Category"
-                              />
-                              <datalist id={`cat-list-${group.date}`}>
-                                {/* We rely on the parent or context for available categories, simplified here by assuming common defaults + user typed ones */}
-                                <option value="Work" />
-                                <option value="Personal" />
-                                <option value="Home" />
-                                <option value="Health" />
-                                <option value="Finance" />
-                                <option value="Urgent" />
-                              </datalist>
-                            </div>
-
-                            {settings.voiceConfig.enabled && (
-                              <button
-                                onClick={isListening ? stopVoice : startVoice}
-                                className={cn(
-                                  "p-1 rounded hover:bg-slate-100 transition-colors",
-                                  isListening && "text-rose-500 animate-pulse",
-                                )}
-                                tabIndex={-1}
-                                title={
-                                  isListening
-                                    ? "Stop Recording"
-                                    : "Start Voice Input"
-                                }
-                              >
-                                <Icon
-                                  name={isListening ? "Square" : "Mic"}
-                                  size={14}
-                                />
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <button
-                          onClick={() => setIsAdding(true)}
-                          className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors h-5.5 flex items-end font-medium"
-                        >
-                          Add task...
                         </button>
                       )}
                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            </CollapsibleContent>
-          )}
-        </AnimatePresence>
+                  </motion.div>
+                ) : (
+                  <button
+                    onClick={() => setIsAdding(true)}
+                    className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors h-5.5 flex items-end font-medium"
+                  >
+                    Add task...
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </Collapsible>
     </div>
   );
