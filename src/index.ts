@@ -28,6 +28,7 @@ export type {
   ProviderConfig,
   AIConfig,
   AppSettings,
+  FilterRule,
   FilterState,
   SortField,
   SortDirection,

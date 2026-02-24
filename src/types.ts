@@ -121,11 +121,16 @@ export interface AppSettings {
   sort: SortState;
 }
 
+export interface FilterRule<T = string> {
+  include: T[];
+  exclude: T[];
+}
+
 export interface FilterState {
-  tags: string[];
-  categories: string[];
-  priorities: Priority[];
-  statuses: TaskStatus[];
+  tags: FilterRule;
+  categories: FilterRule;
+  priorities: FilterRule<Priority>;
+  statuses: FilterRule<TaskStatus>;
   enableScript: boolean;
   script: string;
 }
@@ -153,7 +158,7 @@ export type LucideIconName = keyof typeof import("lucide-react");
  * Allows host applications to inject custom tabs into the Settings page
  */
 export interface CustomSettingsTab {
-  /** Unique identifier for the tab. Avoid using reserved IDs: 'general', 'advanced', 'docs', 'about' */
+  /** Unique identifier for the tab. Avoid using reserved IDs: 'general', 'filters', 'ai', 'docs', 'about' */
   id: string;
   /** Display label shown in the tab bar */
   label: string;

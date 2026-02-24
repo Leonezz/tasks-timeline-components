@@ -90,10 +90,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultCategory: "General",
 
   filters: {
-    tags: [],
-    categories: [],
-    priorities: [],
-    statuses: [],
+    tags: { include: [], exclude: [] },
+    categories: { include: [], exclude: [] },
+    priorities: { include: [], exclude: [] },
+    statuses: { include: [], exclude: [] },
     enableScript: false,
     script: "",
   },
@@ -223,6 +223,36 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             },
           };
 
+          // Migrate old flat-array filter format to FilterRule
+          if (mergedSettings.filters) {
+            const f = mergedSettings.filters;
+            if (
+              Array.isArray(f.tags) &&
+              (f.tags.length === 0 || typeof f.tags[0] === "string")
+            ) {
+              mergedSettings.filters = {
+                tags: {
+                  include: f.tags as unknown as string[],
+                  exclude: [],
+                },
+                categories: {
+                  include: f.categories as unknown as string[],
+                  exclude: [],
+                },
+                priorities: {
+                  include: f.priorities as unknown as Priority[],
+                  exclude: [],
+                },
+                statuses: {
+                  include: f.statuses as unknown as TaskStatus[],
+                  exclude: [],
+                },
+                enableScript: f.enableScript ?? false,
+                script: f.script ?? "",
+              };
+            }
+          }
+
           // Override API key from prop if present, even if settings exist
           const finalSettings = apiKey
             ? {
@@ -293,6 +323,14 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     [sort, setSort] = useState<SortState>(settings.sort),
     // Defer filter updates to keep UI responsive during rapid filter changes
     deferredFilters = useDeferredValue(filters);
+
+  // Sync local filter/sort state when settings change (e.g. from settings page)
+  useEffect(() => {
+    if (isSettingsLoaded) {
+      setFilters(settings.filters);
+      setSort(settings.sort);
+    }
+  }, [settings.filters, settings.sort, isSettingsLoaded]);
 
   // Compute effective theme
   const effectiveTheme =
@@ -422,13 +460,19 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
-        statuses.every((s) => filters.statuses.includes(s)) &&
-        filters.statuses.length === statuses.length;
-      setFilters((prev) => ({ ...prev, statuses: isSelected ? [] : statuses }));
+        statuses.every((s) => filters.statuses.include.includes(s)) &&
+        filters.statuses.include.length === statuses.length;
+      setFilters((prev) => ({
+        ...prev,
+        statuses: {
+          ...prev.statuses,
+          include: isSelected ? [] : statuses,
+        },
+      }));
     },
     isFilterActive = (statuses: TaskStatus[]) =>
-      statuses.every((s) => filters.statuses.includes(s)) &&
-      filters.statuses.length === statuses.length,
+      statuses.every((s) => filters.statuses.include.includes(s)) &&
+      filters.statuses.include.length === statuses.length,
     handleVoiceError = (msg: string) => {
       addNotification("error", "Voice Input Error", msg);
       logger.error("Voice", msg);
@@ -625,10 +669,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   onReset={() => {
                     // Reset filters to safe defaults
                     setFilters({
-                      tags: [],
-                      categories: [],
-                      priorities: [],
-                      statuses: [],
+                      tags: { include: [], exclude: [] },
+                      categories: { include: [], exclude: [] },
+                      priorities: { include: [], exclude: [] },
+                      statuses: { include: [], exclude: [] },
                       script: "",
                       enableScript: false,
                     });

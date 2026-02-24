@@ -1,13 +1,7 @@
 import React, { useState } from "react";
 import * as Lucide from "lucide-react";
 import { Icon } from "./Icon";
-import type {
-  FilterState,
-  Priority,
-  SortField,
-  SortState,
-  TaskStatus,
-} from "../types";
+import type { Priority, SortField, SortState, TaskStatus } from "../types";
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { MotionButton, MotionDiv } from "./Motion";
@@ -65,30 +59,31 @@ export const InputBar: React.FC<InputBarProps> = () => {
         handleSubmit();
       }
     },
-    toggleFilter = (key: keyof FilterState, value: string) => {
-      const currentList = filters[key];
-      if (Array.isArray(currentList)) {
-        // Safe cast because we only call this with values appropriate for the key (Tags, Cats, etc.)
-        const list = currentList as string[],
-          newList = list.includes(value)
-            ? list.filter((item) => item !== value)
-            : [...list, value];
-        // Dynamic key assignment requires partial cast or specific handling, partial cast is cleanest here for brevity
-        onFilterChange({ ...filters, [key]: newList });
-      }
+    toggleFilter = (
+      key: "tags" | "categories" | "priorities" | "statuses",
+      value: string,
+    ) => {
+      const rule = filters[key];
+      const list = rule.include as string[];
+      const newList = list.includes(value)
+        ? list.filter((item) => item !== value)
+        : [...list, value];
+      onFilterChange({
+        ...filters,
+        [key]: { ...rule, include: newList },
+      });
     },
-    clearFilterKey = (key: keyof FilterState) => {
-      onFilterChange({ ...filters, [key]: [] });
+    clearFilterKey = (
+      key: "tags" | "categories" | "priorities" | "statuses",
+    ) => {
+      onFilterChange({
+        ...filters,
+        [key]: { include: [], exclude: [] },
+      });
     },
-    isActive = (key: keyof FilterState) => {
-      const val = filters[key];
-      if (Array.isArray(val)) {
-        return val.length > 0;
-      }
-      if (typeof val === "string") {
-        return val.length > 0;
-      }
-      return false;
+    isActive = (key: "tags" | "categories" | "priorities" | "statuses") => {
+      const rule = filters[key];
+      return rule.include.length > 0 || rule.exclude.length > 0;
     },
     getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
       switch (status) {
@@ -259,7 +254,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <FilterPopover
                 label="Tags"
                 isActive={isActive("tags")}
-                count={filters.tags.length}
+                count={filters.tags.include.length}
                 onClear={() => clearFilterKey("tags")}
               >
                 <div className="space-y-0.5">
@@ -275,7 +270,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={filters.tags.includes(tag)}
+                        checked={filters.tags.include.includes(tag)}
                         onChange={() => toggleFilter("tags", tag)}
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -297,7 +292,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <FilterPopover
                 label="Categories"
                 isActive={isActive("categories")}
-                count={filters.categories.length}
+                count={filters.categories.include.length}
                 onClear={() => clearFilterKey("categories")}
               >
                 <div className="space-y-0.5">
@@ -313,7 +308,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={filters.categories.includes(cat)}
+                        checked={filters.categories.include.includes(cat)}
                         onChange={() => toggleFilter("categories", cat)}
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -334,7 +329,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <FilterPopover
                 label="Priority"
                 isActive={isActive("priorities")}
-                count={filters.priorities.length}
+                count={filters.priorities.include.length}
                 onClear={() => clearFilterKey("priorities")}
               >
                 <div className="space-y-0.5">
@@ -345,7 +340,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={filters.priorities.includes(p)}
+                        checked={filters.priorities.include.includes(p)}
                         onChange={() => toggleFilter("priorities", p)}
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -367,7 +362,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <FilterPopover
                 label="Status"
                 isActive={isActive("statuses")}
-                count={filters.statuses.length}
+                count={filters.statuses.include.length}
                 onClear={() => clearFilterKey("statuses")}
               >
                 <div className="space-y-0.5">
@@ -389,7 +384,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={filters.statuses.includes(s)}
+                        checked={filters.statuses.include.includes(s)}
                         onChange={() => toggleFilter("statuses", s)}
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
