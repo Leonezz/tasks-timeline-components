@@ -175,7 +175,12 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Focus Mode State
     [isFocusMode, setIsFocusMode] = useState(DEFAULT_SETTINGS.defaultFocusMode),
     // Global AI Mode State (Synced across inputs)
-    [isAiMode, setIsAiMode] = useState(false);
+    [isAiMode, setIsAiMode] = useState(false),
+    // Filter & Sort State (synced from settings on load and settings page changes)
+    [filters, setFilters] = useState<FilterState>(settings.filters),
+    [sort, setSort] = useState<SortState>(settings.sort),
+    // Defer filter updates to keep UI responsive during rapid filter changes
+    deferredFilters = useDeferredValue(filters);
 
   // Load settings from repository
   useEffect(() => {
@@ -278,6 +283,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             finalSettings.aiConfig.enabled &&
               finalSettings.aiConfig.defaultMode,
           );
+          setFilters(finalSettings.filters);
+          setSort(finalSettings.sort);
         } else {
           // Use defaults
           setIsAiMode(
@@ -318,19 +325,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         ...prev,
         totalTokenUsage: prev.totalTokenUsage + newTokens,
       }));
-    },
-    [filters, setFilters] = useState<FilterState>(settings.filters),
-    [sort, setSort] = useState<SortState>(settings.sort),
-    // Defer filter updates to keep UI responsive during rapid filter changes
-    deferredFilters = useDeferredValue(filters);
-
-  // Sync local filter/sort state when settings change (e.g. from settings page)
-  useEffect(() => {
-    if (isSettingsLoaded) {
-      setFilters(settings.filters);
-      setSort(settings.sort);
-    }
-  }, [settings.filters, settings.sort, isSettingsLoaded]);
+    };
 
   // Compute effective theme
   const effectiveTheme =
@@ -504,8 +499,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
           <SettingsProvider
             value={{
               settings,
-              updateSettings: (partial) =>
-                setSettings((prev) => ({ ...prev, ...partial })),
+              updateSettings: (partial) => {
+                setSettings((prev) => ({ ...prev, ...partial }));
+                if (partial.filters) setFilters(partial.filters);
+                if (partial.sort) setSort(partial.sort);
+              },
               isFocusMode,
               toggleFocusMode: () => setIsFocusMode(!isFocusMode),
               isAiMode,
@@ -703,7 +701,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
                 settings={settings}
-                onUpdateSettings={setSettings}
+                onUpdateSettings={(newSettings) => {
+                  setSettings(newSettings);
+                  setFilters(newSettings.filters);
+                  setSort(newSettings.sort);
+                }}
                 availableTags={uniqueTags}
                 availableCategories={uniqueCategories}
                 customTabs={customSettingsTabs}
