@@ -144,9 +144,19 @@ export class GeminiProvider implements IAIProvider {
     });
 
     // Determine what to send
+    // When history already contains tool results, strip them from geminiHistory
+    // and send via sendMessage instead (avoids duplication)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let message: string | any[];
     if (toolResults && toolResults.length > 0) {
+      // Remove trailing function response from history if present (it will be sent as the message)
+      if (
+        history &&
+        geminiHistory.length > 0 &&
+        geminiHistory[geminiHistory.length - 1].role === "function"
+      ) {
+        geminiHistory.pop();
+      }
       message = toolResults.map((tr) => ({
         functionResponse: {
           name: tr.name,
@@ -175,6 +185,11 @@ export class GeminiProvider implements IAIProvider {
 
     if (response.usageMetadata) {
       result.tokenCount = response.usageMetadata.totalTokenCount || 0;
+      result.tokenUsage = {
+        inputTokens: response.usageMetadata.promptTokenCount || 0,
+        outputTokens: response.usageMetadata.candidatesTokenCount || 0,
+        totalTokens: response.usageMetadata.totalTokenCount || 0,
+      };
     }
 
     return result;

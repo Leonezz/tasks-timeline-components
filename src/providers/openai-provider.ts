@@ -87,16 +87,18 @@ export class OpenAIProvider implements IAIProvider {
       }
     }
 
-    // Add tool results or user prompt
+    // Add tool results or user prompt (skip when history already contains them)
     if (toolResults && toolResults.length > 0) {
-      for (const tr of toolResults) {
-        messages.push({
-          role: "tool",
-          content: JSON.stringify(tr.result),
-          tool_call_id: tr.id || `call_${tr.name}`,
-        });
+      if (!history) {
+        for (const tr of toolResults) {
+          messages.push({
+            role: "tool",
+            content: JSON.stringify(tr.result),
+            tool_call_id: tr.id || `call_${tr.name}`,
+          });
+        }
       }
-    } else {
+    } else if (!history) {
       messages.push({ role: "user", content: prompt });
     }
 
@@ -141,6 +143,11 @@ export class OpenAIProvider implements IAIProvider {
 
     if (response.usage) {
       result.tokenCount = response.usage.total_tokens;
+      result.tokenUsage = {
+        inputTokens: response.usage.prompt_tokens || 0,
+        outputTokens: response.usage.completion_tokens || 0,
+        totalTokens: response.usage.total_tokens || 0,
+      };
     }
 
     return result;

@@ -16,6 +16,7 @@ import type {
   SortState,
   Task,
   TaskStatus,
+  TokenUsageRecord,
 } from "./types";
 import { cn, deriveTaskStatus } from "./utils";
 import { logger } from "./utils/logger";
@@ -87,6 +88,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   // New Features
   defaultFocusMode: false,
   totalTokenUsage: 0,
+  tokenUsageByModel: {},
   defaultCategory: "General",
 
   filters: {
@@ -320,11 +322,33 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     removeNotification = (id: string) => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     },
-    updateTokenUsage = (newTokens: number) => {
-      setSettings((prev) => ({
-        ...prev,
-        totalTokenUsage: prev.totalTokenUsage + newTokens,
-      }));
+    updateTokenUsage = (update: {
+      provider: string;
+      model: string;
+      tokenUsage: TokenUsageRecord;
+      totalTokens: number;
+    }) => {
+      setSettings((prev) => {
+        const key = `${update.provider}:${update.model}`;
+        const existing = prev.tokenUsageByModel[key] || {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+        };
+        return {
+          ...prev,
+          totalTokenUsage: prev.totalTokenUsage + update.totalTokens,
+          tokenUsageByModel: {
+            ...prev.tokenUsageByModel,
+            [key]: {
+              inputTokens: existing.inputTokens + update.tokenUsage.inputTokens,
+              outputTokens:
+                existing.outputTokens + update.tokenUsage.outputTokens,
+              totalTokens: existing.totalTokens + update.tokenUsage.totalTokens,
+            },
+          },
+        };
+      });
     };
 
   // Compute effective theme

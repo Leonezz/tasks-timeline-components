@@ -1,10 +1,17 @@
 import { useEffect, useRef } from "react";
-import type { AppSettings, Task } from "../types";
+import type { AppSettings, Task, TokenUsageRecord } from "../types";
 import { createProvider } from "../providers";
 import type { ChatMessage, ToolResult } from "../providers/types";
 import { createCapabilities } from "../capabilities";
 import type { CapabilityContext } from "../capabilities";
 import { logger } from "../utils/logger";
+
+interface TokenUsageUpdate {
+  provider: string;
+  model: string;
+  tokenUsage: TokenUsageRecord;
+  totalTokens: number;
+}
 
 export const useAIAgent = (
   tasks: Task[],
@@ -18,7 +25,7 @@ export const useAIAgent = (
     title: string,
     desc?: string,
   ) => void,
-  onTokenUsageUpdate?: (tokens: number) => void,
+  onTokenUsageUpdate?: (update: TokenUsageUpdate) => void,
   aiSystemPrompt?: string,
 ) => {
   const tasksRef = useRef(tasks);
@@ -81,9 +88,19 @@ export const useAIAgent = (
       let response = await provider.chat(systemPrompt, input, tools);
 
       // Track Tokens
-      if (response.tokenCount && onTokenUsageUpdate) {
-        onTokenUsageUpdate(response.tokenCount);
-        logger.debug("AI", "Token Usage", { tokens: response.tokenCount });
+      if (onTokenUsageUpdate && (response.tokenUsage || response.tokenCount)) {
+        const tokenUsage = response.tokenUsage || {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: response.tokenCount || 0,
+        };
+        onTokenUsageUpdate({
+          provider: activeProvider,
+          model: config.model,
+          tokenUsage,
+          totalTokens: tokenUsage.totalTokens,
+        });
+        logger.debug("AI", "Token Usage", { tokenUsage });
       }
 
       let loopCount = 0;
@@ -134,8 +151,21 @@ export const useAIAgent = (
         );
 
         // Track Tokens for follow-up turns
-        if (response.tokenCount && onTokenUsageUpdate) {
-          onTokenUsageUpdate(response.tokenCount);
+        if (
+          onTokenUsageUpdate &&
+          (response.tokenUsage || response.tokenCount)
+        ) {
+          const tokenUsage = response.tokenUsage || {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: response.tokenCount || 0,
+          };
+          onTokenUsageUpdate({
+            provider: activeProvider,
+            model: config.model,
+            tokenUsage,
+            totalTokens: tokenUsage.totalTokens,
+          });
         }
       }
     } catch (e) {

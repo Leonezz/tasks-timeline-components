@@ -108,6 +108,7 @@ export interface AppSettings {
   // New Features
   defaultFocusMode: boolean;
   totalTokenUsage: number;
+  tokenUsageByModel: Record<string, TokenUsageRecord>;
   defaultCategory: string;
 
   settingButtonOnInputBar?: boolean;
@@ -119,6 +120,12 @@ export interface AppSettings {
 
   filters: FilterState;
   sort: SortState;
+}
+
+export interface TokenUsageRecord {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
 }
 
 export interface FilterRule<T = string> {

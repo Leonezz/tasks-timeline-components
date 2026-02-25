@@ -1,3 +1,5 @@
+import type { TokenUsageRecord } from "../types";
+
 export interface JSONSchemaProperty {
   type: "string" | "number" | "boolean" | "array" | "object";
   description?: string;
@@ -40,6 +42,7 @@ export interface AIProviderResponse {
   text?: string;
   toolCalls?: ToolCall[];
   tokenCount?: number;
+  tokenUsage?: TokenUsageRecord;
 }
 
 export interface TestResult {

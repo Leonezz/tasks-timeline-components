@@ -27,6 +27,10 @@ dist-ssr
 storybook-static
 
 # AI Assistant Files
+.agents/
+.agent/
+.claude/
+skills/
 .serena/
 .playwright-mcp/
 claude/
@@ -36,3 +40,7 @@ prd/
 .github/ISSUE_TEMPLATE/
 .github/WORKFLOW_SETUP.md
 .github/pull_request_template.md
+
+# Eval outputs
+eval/recordings/
+eval/results/

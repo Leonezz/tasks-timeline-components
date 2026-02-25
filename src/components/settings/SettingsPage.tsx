@@ -3,7 +3,7 @@ import { Icon } from "../Icon";
 import type { AppSettings, CustomSettingsTab } from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
-import { SettingsPageAdvanced } from "./SettingsPageAdvanced";
+import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
 import { Documentation } from "./Documentation";
 import root from "react-shadow";
@@ -182,7 +182,7 @@ export const SettingsPage = ({
           />
         )}
         {activeTab === "ai" && (
-          <SettingsPageAdvanced
+          <SettingsPageAI
             settings={settings}
             onUpdateSettings={onUpdateSettings}
           />

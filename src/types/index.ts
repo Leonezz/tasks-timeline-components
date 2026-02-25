@@ -22,6 +22,7 @@ export type {
   ProviderConfig,
   AIConfig,
   AppSettings,
+  TokenUsageRecord,
   FilterRule,
   FilterState,
   SortField,
