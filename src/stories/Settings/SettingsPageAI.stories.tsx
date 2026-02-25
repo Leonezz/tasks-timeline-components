@@ -1,12 +1,12 @@
-import { SettingsPageAdvanced } from "../../components/settings/SettingsPageAdvanced";
+import { SettingsPageAI } from "../../components/settings/SettingsPageAI";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AppSettings } from "../../types";
 import { expect, within } from "storybook/test";
 import { settingsBuilder } from "../fixtures";
 
-const meta: Meta<typeof SettingsPageAdvanced> = {
-  title: "Settings/SettingsPageAdvanced",
-  component: SettingsPageAdvanced,
+const meta: Meta<typeof SettingsPageAI> = {
+  title: "Settings/SettingsPageAI",
+  component: SettingsPageAI,
   tags: ["autodocs"],
   parameters: {
     layout: "padded",

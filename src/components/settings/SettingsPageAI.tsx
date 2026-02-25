@@ -40,14 +40,14 @@ const AI_PROVIDER_PLACEHOLDERS: Record<
   },
 };
 
-interface SettingsPageAdvancedProps {
+interface SettingsPageAIProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
 }
-export const SettingsPageAdvanced = ({
+export const SettingsPageAI = ({
   settings,
   onUpdateSettings,
-}: SettingsPageAdvancedProps) => {
+}: SettingsPageAIProps) => {
   // Voice Input Handlers
   const toggleVoiceInput = () =>
       onUpdateSettings({
