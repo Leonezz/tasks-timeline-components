@@ -18,7 +18,6 @@ Tasks have these fields:
 - category (string): Organizational category
 - tags (array of strings): Tag labels
 - recurrence (string): RRULE format for recurring tasks (RFC 5545)
-- isRecurring (boolean): Whether the task repeats
 
 ## Status Rules
 
