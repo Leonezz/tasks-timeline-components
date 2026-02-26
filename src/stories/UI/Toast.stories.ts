@@ -343,3 +343,38 @@ export const CollapsedWithDetail: Story = {
     onToggleExpand: (id: string) => console.log("Toggle expand:", id),
   },
 };
+
+export const WithPrompt: Story = {
+  args: {
+    toast: {
+      id: "prompt-1",
+      variant: "info",
+      title: "What should we name this category?",
+      interaction: {
+        kind: "prompt",
+        onSubmit: (text: string) => console.log("Submitted:", text),
+        onCancel: () => console.log("Cancelled"),
+        placeholder: "Enter category name...",
+      },
+      timeout: null,
+    } as ToastMessage,
+    onDismiss: handleDismiss,
+  },
+};
+
+export const WithPromptNoPlaceholder: Story = {
+  args: {
+    toast: {
+      id: "prompt-2",
+      variant: "info",
+      title: "What priority should this task have?",
+      interaction: {
+        kind: "prompt",
+        onSubmit: (text: string) => console.log("Submitted:", text),
+        onCancel: () => console.log("Cancelled"),
+      },
+      timeout: null,
+    } as ToastMessage,
+    onDismiss: handleDismiss,
+  },
+};
