@@ -1,15 +1,24 @@
 import React, { useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Icon } from "./Icon";
 import { cn } from "../utils";
 import { MotionDiv } from "./Motion";
+import { DetailBlockRenderer } from "./toast/DetailBlockRenderer";
 import type { ToastMessage } from "../types";
 
 interface ToastProps {
   toast: ToastMessage;
   onDismiss: (id: string) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: (id: string) => void;
 }
 
-export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
+export const Toast: React.FC<ToastProps> = ({
+  toast,
+  onDismiss,
+  isExpanded,
+  onToggleExpand,
+}) => {
   useEffect(() => {
     if (toast.timeout === null || toast.timeout <= 0) {
       return;
@@ -81,7 +90,8 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 20, scale: 0.9 }}
       className={cn(
-        "flex items-start gap-3 p-4 rounded-lg max-w-sm w-full pointer-events-auto text-slate-800 [.chronos-app[data-theme='dark']_&]:text-slate-100",
+        "flex items-start gap-3 p-4 rounded-lg w-full pointer-events-auto text-slate-800 [.chronos-app[data-theme='dark']_&]:text-slate-100",
+        isExpanded ? "max-w-[350px]" : "max-w-sm",
         getStyles(),
       )}
     >
@@ -94,6 +104,88 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
           <p className="text-xs opacity-80 mt-1 leading-snug font-medium text-slate-500 [.chronos-app[data-theme='dark']_&]:text-slate-400">
             {toast.description}
           </p>
+        )}
+        {toast.body && (
+          <p className="text-xs mt-2 leading-relaxed text-slate-600 [.chronos-app[data-theme='dark']_&]:text-slate-300 whitespace-pre-wrap">
+            {toast.body}
+          </p>
+        )}
+        {toast.interaction.kind === "confirm" && (
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() =>
+                toast.interaction.kind === "confirm" &&
+                toast.interaction.onConfirm()
+              }
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            >
+              {toast.interaction.kind === "confirm" &&
+                (toast.interaction.confirmLabel || "Yes")}
+            </button>
+            <button
+              onClick={() => {
+                if (toast.interaction.kind === "confirm") {
+                  toast.interaction.onCancel?.();
+                }
+              }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-300"
+            >
+              {toast.interaction.kind === "confirm" &&
+                (toast.interaction.cancelLabel || "No")}
+            </button>
+          </div>
+        )}
+        {toast.interaction.kind === "select" && (
+          <div className="flex flex-col gap-1.5 mt-3">
+            {toast.interaction.options.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() =>
+                  toast.interaction.kind === "select" &&
+                  toast.interaction.onSelect(opt.value)
+                }
+                className="text-left px-3 py-1.5 text-xs font-medium rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:border-slate-600 [.chronos-app[data-theme='dark']_&]:hover:bg-slate-600"
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              onClick={() =>
+                toast.interaction.kind === "select" &&
+                toast.interaction.onCancel?.()
+              }
+              className="text-center px-3 py-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+        {toast.detail && toast.detail.length > 0 && (
+          <div className="mt-2">
+            <button
+              onClick={() => onToggleExpand?.(toast.id)}
+              className="text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors"
+            >
+              <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={12} />
+              {isExpanded ? "Hide details" : "Show details"}
+            </button>
+            <AnimatePresence>
+              {isExpanded && (
+                <MotionDiv
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2 space-y-2 max-h-[40vh] overflow-y-auto">
+                    {toast.detail.map((block, i) => (
+                      <DetailBlockRenderer key={i} block={block} />
+                    ))}
+                  </div>
+                </MotionDiv>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </div>
       <button
