@@ -413,6 +413,32 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       },
       [addToast, removeToast],
     ),
+    promptToast = useCallback(
+      (question: string): Promise<string | null> => {
+        return new Promise((resolve) => {
+          const id = addToast({
+            variant: "info",
+            title: question,
+            interaction: {
+              kind: "prompt",
+              onSubmit: (text) => {
+                resolve(text);
+                removeToast(id);
+              },
+              onCancel: () => {
+                resolve(null);
+                removeToast(id);
+              },
+            },
+            timeout: null,
+          });
+          toastResolversRef.current.set(id, {
+            resolve: resolve as (v: unknown) => void,
+          });
+        });
+      },
+      [addToast, removeToast],
+    ),
     toggleExpandToast = useCallback((id: string) => {
       setExpandedToastId((prev) => (prev === id ? null : id));
     }, []),
@@ -573,6 +599,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       showToast,
       confirmToast,
       selectToast,
+      promptToast,
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =

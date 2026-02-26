@@ -38,6 +38,7 @@ export const useAIAgent = (
     title: string,
     options: { label: string; value: string }[],
   ) => Promise<string | null>,
+  onPrompt?: (question: string) => Promise<string | null>,
 ) => {
   const tasksRef = useRef(tasks);
 
@@ -81,6 +82,7 @@ export const useAIAgent = (
         : undefined,
       confirm: onConfirm,
       select: onSelect,
+      prompt: onPrompt,
     };
 
     const capabilities = createCapabilities(ctx);

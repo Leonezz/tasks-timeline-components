@@ -1,10 +1,57 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Icon } from "./Icon";
 import { cn } from "../utils";
 import { MotionDiv } from "./Motion";
 import { DetailBlockRenderer } from "./toast/DetailBlockRenderer";
 import type { ToastMessage } from "../types";
+
+const PromptInput: React.FC<{
+  placeholder?: string;
+  onSubmit: (text: string) => void;
+  onCancel: () => void;
+}> = ({ placeholder, onSubmit, onCancel }) => {
+  const [value, setValue] = useState("");
+
+  const handleSubmit = () => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      onSubmit(trimmed);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col gap-2">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder={placeholder ?? "Type your answer..."}
+        autoFocus
+        className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:border-slate-600 [.chronos-app[data-theme='dark']_&]:text-slate-100"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={handleSubmit}
+          disabled={!value.trim()}
+          className="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Submit
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-300"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface ToastProps {
   toast: ToastMessage;
@@ -158,6 +205,26 @@ export const Toast: React.FC<ToastProps> = ({
             >
               Cancel
             </button>
+          </div>
+        )}
+        {toast.interaction.kind === "prompt" && (
+          <div className="flex gap-2 mt-3">
+            <PromptInput
+              placeholder={
+                toast.interaction.kind === "prompt"
+                  ? toast.interaction.placeholder
+                  : undefined
+              }
+              onSubmit={(text) =>
+                toast.interaction.kind === "prompt" &&
+                toast.interaction.onSubmit(text)
+              }
+              onCancel={() => {
+                if (toast.interaction.kind === "prompt") {
+                  toast.interaction.onCancel?.();
+                }
+              }}
+            />
           </div>
         )}
         {toast.detail && toast.detail.length > 0 && (

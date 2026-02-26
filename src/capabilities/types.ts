@@ -25,6 +25,7 @@ export interface CapabilityContext {
     title: string,
     options: { label: string; value: string }[],
   ): Promise<string | null>;
+  prompt?(question: string): Promise<string | null>;
 }
 
 export interface ToolSpec {

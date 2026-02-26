@@ -209,6 +209,12 @@ export type ToastInteraction =
       options: { label: string; value: string }[];
       onSelect: (value: string) => void;
       onCancel?: () => void;
+    }
+  | {
+      kind: "prompt";
+      onSubmit: (text: string) => void;
+      onCancel?: () => void;
+      placeholder?: string;
     };
 
 export interface ToastMessage {
