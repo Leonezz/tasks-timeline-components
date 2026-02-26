@@ -15,6 +15,7 @@ import { createCancelTaskTool } from "./tools/cancel-task";
 import { createBatchUpdateTasksTool } from "./tools/batch-update-tasks";
 import { createGetTaskStatsTool } from "./tools/get-task-stats";
 import { createGetTodayPlanTool } from "./tools/get-today-plan";
+import { createNotifyUserTool } from "./tools/notify-user";
 import { createAllTasksResource } from "./resources/all-tasks";
 import { createTaskByIdResource } from "./resources/task-by-id";
 import { createFilteredTasksResources } from "./resources/filtered-tasks";
@@ -35,6 +36,7 @@ export function createCapabilities(ctx: CapabilityContext): Capabilities {
     createBatchUpdateTasksTool(ctx),
     createGetTaskStatsTool(ctx),
     createGetTodayPlanTool(ctx),
+    createNotifyUserTool(ctx),
   ];
 
   const resources: ResourceSpec[] = [
