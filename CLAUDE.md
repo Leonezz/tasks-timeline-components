@@ -106,11 +106,11 @@ Two layers work together:
 
 **Capabilities Layer** (`src/capabilities/`) — Framework-agnostic atomic capabilities:
 - `createCapabilities(ctx: CapabilityContext)` factory returns a `Capabilities` registry
-- **9 tools**: `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`
+- **11 tools**: `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`, `notify_user`, `ask_user`
 - **6 resources**: `tasks://all`, `tasks://{taskId}`, `tasks://overdue`, `tasks://today`, `tasks://upcoming`, `tasks://stats`
 - **3 prompts**: `plan_my_day`, `weekly_review`, `task_triage`
 - Enhanced system prompt documenting all tools, RRULE recurrence, and `deriveTaskStatus()` logic
-- `CapabilityContext` interface injects data access (getTasks, addTask, etc.) — pure executors, no React dependency
+- `CapabilityContext` interface injects data access (getTasks, addTask, etc.) and optional UI interaction callbacks (`showToast`, `confirm`, `select`, `prompt`) — pure executors, no React dependency
 - All tool executors call `deriveTaskStatus()` after mutations (fixes prior bypass bug)
 - Recurring tasks use RRULE format (RFC 5545): `FREQ=DAILY`, `FREQ=WEEKLY;BYDAY=MO,WE,FR`, etc.
 - Designed for both built-in `useAIAgent` and external consumers (host app MCP servers)
@@ -126,7 +126,7 @@ Two layers work together:
 **Key files:**
 - `src/capabilities/types.ts` — `CapabilityContext`, `ToolSpec`, `ResourceSpec`, `PromptSpec`, `Capabilities`
 - `src/capabilities/registry.ts` — `createCapabilities()` factory assembling all capabilities
-- `src/capabilities/tools/` — 9 tool executors (one file each)
+- `src/capabilities/tools/` — 11 tool executors (one file each)
 - `src/capabilities/resources/` — 6 resource handlers
 - `src/capabilities/prompts/` — 3 prompt templates
 - `src/capabilities/system-prompt.ts` — Enhanced system prompt (single source of truth)
@@ -147,7 +147,7 @@ src/
 │   ├── registry.ts            # createCapabilities() factory
 │   ├── system-prompt.ts       # Enhanced system prompt (single source of truth)
 │   ├── index.ts               # Barrel exports
-│   ├── tools/                 # 9 tool executors
+│   ├── tools/                 # 11 tool executors
 │   │   ├── create-task.ts
 │   │   ├── query-tasks.ts
 │   │   ├── update-task.ts
@@ -156,7 +156,9 @@ src/
 │   │   ├── cancel-task.ts
 │   │   ├── batch-update-tasks.ts
 │   │   ├── get-task-stats.ts
-│   │   └── get-today-plan.ts
+│   │   ├── get-today-plan.ts
+│   │   ├── notify-user.ts
+│   │   └── ask-user.ts
 │   ├── resources/             # 6 resource handlers
 │   │   ├── all-tasks.ts
 │   │   ├── task-by-id.ts
@@ -166,7 +168,7 @@ src/
 │   │   ├── plan-my-day.ts
 │   │   ├── weekly-review.ts
 │   │   └── task-triage.ts
-│   └── __tests__/             # 110 unit tests
+│   └── __tests__/             # 135 unit tests
 ├── components/
 │   ├── TodoList.tsx           # Main container with grouping logic
 │   ├── TaskItem.tsx           # Individual task display
@@ -175,6 +177,7 @@ src/
 │   ├── DaySection.tsx         # Day-grouped tasks
 │   ├── YearSection.tsx        # Year-grouped tasks
 │   ├── BacklogSection.tsx     # Unscheduled tasks
+│   ├── Toast.tsx              # Rich toast with interactions (dismiss/confirm/select/prompt)
 │   ├── settings/              # Settings UI components
 │   └── AppContext.tsx         # Shadow DOM context provider
 ├── hooks/
@@ -211,6 +214,8 @@ Key types defined in `types.ts`:
 - `AppSettings`: Application configuration including AI config
 - `FilterState` & `SortState`: Task filtering/sorting state
 - `TaskRepository` & `SettingsRepository`: Persistence interfaces
+- `ToastMessage` & `ToastInteraction`: Rich toast with dismiss/confirm/select/prompt interactions
+- `DetailBlock`: Expandable detail blocks (text, task-list, stats, key-value)
 
 ### Styling
 
@@ -254,14 +259,14 @@ const ctx: CapabilityContext = {
 };
 
 const capabilities = createCapabilities(ctx);
-// capabilities.tools — 9 ToolSpec[] (name, description, schema, execute)
+// capabilities.tools — 11 ToolSpec[] (name, description, schema, execute)
 // capabilities.resources — 6 ResourceSpec[] (name, uri, read)
 // capabilities.prompts — 3 PromptSpec[] (name, description, render)
 // capabilities.executeTool(name, args) — dispatch by name
 // capabilities.getSystemPrompt() — enhanced system prompt
 ```
 
-**9 Tools:** `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`
+**11 Tools:** `create_task`, `query_tasks`, `update_task`, `delete_task`, `complete_task`, `cancel_task`, `batch_update_tasks`, `get_task_stats`, `get_today_plan`, `notify_user`, `ask_user`
 
 **6 Resources:** `tasks://all`, `tasks://{taskId}`, `tasks://overdue`, `tasks://today`, `tasks://upcoming`, `tasks://stats`
 
@@ -306,6 +311,51 @@ All providers implement `IVoiceProvider` with methods: `start()`, `isAvailable()
 
 See `docs/VOICE_INPUT.md` for detailed documentation.
 
+### AI-User Interaction Tools
+
+Two capability tools allow the AI agent to proactively communicate with users:
+
+**`notify_user`** — Fire-and-forget rich toast notification:
+- Schema: `{ variant, title, description?, body?, timeout? }`
+- Calls `ctx.showToast?.()`, returns `{ success: true }`
+- Default timeout 8000ms, `null` for persistent
+
+**`ask_user`** — Blocking question with three modes:
+- **Free text**: `{ question }` → renders prompt input, returns `{ question, answer: "text" }`
+- **Select**: `{ question, options: [{label, value}] }` → renders option list, returns `{ question, answer: "value" }`
+- **Confirm**: `{ question, confirm: true }` → renders Yes/No buttons, returns `{ question, answer: "yes"|"no" }`
+- All modes echo the question back in the return value (industry standard pattern)
+- Returns `{ question, answer: null, error }` when UI callbacks not available
+
+**Key files:**
+- `src/capabilities/tools/notify-user.ts` — notify_user tool executor
+- `src/capabilities/tools/ask-user.ts` — ask_user tool executor
+- `src/capabilities/__tests__/tools/notify-user.test.ts` — 4 tests
+- `src/capabilities/__tests__/tools/ask-user.test.ts` — 10 tests
+
+### Enriched Toast System
+
+The toast system supports rich content and interactive modes (from PR #34):
+
+**Toast Interactions** (`ToastInteraction` union in `types.ts`):
+- `dismiss` — Simple dismissable toast
+- `confirm` — Yes/No buttons with optional custom labels
+- `select` — Clickable option list with cancel
+- `prompt` — Text input field with Submit/Cancel
+
+**Toast Content:**
+- `title` + optional `description` + optional `body` (longer text)
+- Optional `detail: DetailBlock[]` — expandable rich content blocks:
+  - `text` — Formatted text paragraph
+  - `task-list` — List of tasks with status/priority
+  - `stats` — Task statistics (by status, by priority)
+  - `key-value` — Key-value pairs table
+
+**Key files:**
+- `src/components/Toast.tsx` — Toast component with all interaction modes
+- `src/types.ts` — `ToastMessage`, `ToastInteraction`, `DetailBlock` types
+- `src/TasksTimelineApp.tsx` — `promptToast()`, `confirmToast()`, `selectToast()` Promise-based helpers
+
 ### Shadow DOM Considerations
 
 - Modals/popovers need `portalContainer` from `useAppContext()`
@@ -342,7 +392,7 @@ Build generates:
 - **Storybook** for component documentation and visual testing
 - **Vitest** with Playwright for browser-based tests
 - Stories in `src/stories/` serve as both docs and tests
-- **Unit tests** for capabilities layer: 110 tests in `src/capabilities/__tests__/` (run via `pnpm test`)
+- **Unit tests** for capabilities layer: 135 tests in `src/capabilities/__tests__/` (run via `pnpm test`)
 - Run capabilities tests only: `pnpm vitest run src/capabilities/`
 
 ## Timezone-Safe Date Handling (CRITICAL)
