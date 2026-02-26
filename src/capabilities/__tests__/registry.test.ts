@@ -21,9 +21,9 @@ describe("createCapabilities", () => {
     expect(caps.prompts).toBeInstanceOf(Array);
   });
 
-  it("has 10 tools", () => {
+  it("has 11 tools", () => {
     const caps = createCapabilities(makeContext());
-    expect(caps.tools).toHaveLength(10);
+    expect(caps.tools).toHaveLength(11);
     const names = caps.tools.map((t) => t.name);
     expect(names).toContain("create_task");
     expect(names).toContain("query_tasks");
@@ -35,6 +35,7 @@ describe("createCapabilities", () => {
     expect(names).toContain("get_task_stats");
     expect(names).toContain("get_today_plan");
     expect(names).toContain("notify_user");
+    expect(names).toContain("ask_user");
   });
 
   it("has 6 resources", () => {
