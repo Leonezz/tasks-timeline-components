@@ -109,7 +109,7 @@ describe("get_today_plan tool", () => {
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -314,7 +314,7 @@ describe("get_today_plan tool", () => {
           isRecurring: false,
         },
       ]),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
 
     const tool = createGetTodayPlanTool(ctx);

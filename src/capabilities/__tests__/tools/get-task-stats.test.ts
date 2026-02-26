@@ -74,7 +74,7 @@ describe("get_task_stats tool", () => {
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -259,7 +259,7 @@ describe("get_task_stats tool", () => {
 
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(tasks),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
 
     const tool = createGetTaskStatsTool(ctx);

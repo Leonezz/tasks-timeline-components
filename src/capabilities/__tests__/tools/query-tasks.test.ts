@@ -78,7 +78,7 @@ describe("query_tasks tool", () => {
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -397,7 +397,7 @@ describe("query_tasks tool", () => {
   it("does not call showToast when no results found", async () => {
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
-      showToast: mockShowToast,
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
 
     const tool = createQueryTasksTool(ctx);

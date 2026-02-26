@@ -71,8 +71,8 @@ describe("batch_update_tasks tool", () => {
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue([...SAMPLE_TASKS]),
-      confirm: mockConfirm,
-      showToast: mockShowToast,
+      confirm: mockConfirm as CapabilityContext["confirm"],
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 

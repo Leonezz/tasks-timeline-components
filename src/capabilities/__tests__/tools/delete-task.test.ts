@@ -36,8 +36,8 @@ describe("delete_task tool", () => {
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
-      confirm: mockConfirm,
-      showToast: mockShowToast,
+      confirm: mockConfirm as CapabilityContext["confirm"],
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -75,8 +75,8 @@ describe("delete_task tool", () => {
   it("returns error for non-existent task and does not call deleteTask", async () => {
     const ctxNotFound = makeContext({
       getTask: vi.fn().mockResolvedValue(null),
-      confirm: mockConfirm,
-      showToast: mockShowToast,
+      confirm: mockConfirm as CapabilityContext["confirm"],
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
 
     const tool = createDeleteTaskTool(ctxNotFound);
