@@ -2,15 +2,7 @@ import React, { useEffect } from "react";
 import { Icon } from "./Icon";
 import { cn } from "../utils";
 import { MotionDiv } from "./Motion";
-
-export type ToastType = "success" | "error" | "info";
-
-export interface ToastMessage {
-  id: string;
-  type: ToastType;
-  title: string;
-  description?: string;
-}
+import type { ToastMessage } from "../types";
 
 interface ToastProps {
   toast: ToastMessage;
@@ -18,21 +10,28 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
+  const timeout = toast.timeout ?? 4000;
+
   useEffect(() => {
+    if (timeout === null || timeout <= 0) {
+      return;
+    }
     const timer = setTimeout(() => {
       onDismiss(toast.id);
-    }, 4000); // Auto dismiss after 4 seconds
+    }, timeout);
     return () => clearTimeout(timer);
-  }, [toast.id, onDismiss]);
+  }, [toast.id, onDismiss, timeout]);
 
   const getIcon = () => {
-      switch (toast.type) {
+      switch (toast.variant) {
         case "success":
           return "CheckCircle2";
         case "error":
           return "AlertCircle";
         case "info":
           return "Info";
+        case "warning":
+          return "AlertTriangle";
       }
     },
     getStyles = () => {
@@ -41,7 +40,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
         "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.chronos-app[data-theme='dark']_&]:bg-slate-800/95 [.chronos-app[data-theme='dark']_&]:shadow-black/20 [.chronos-app[data-theme='dark']_&]:border-slate-700/50";
 
       // Semantic Borders (Subtle)
-      switch (toast.type) {
+      switch (toast.variant) {
         case "success":
           return cn(
             base,
@@ -57,16 +56,23 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
             base,
             "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.chronos-app[data-theme='dark']_&]:border-y-blue-500/20 [.chronos-app[data-theme='dark']_&]:border-r-blue-500/20",
           );
+        case "warning":
+          return cn(
+            base,
+            "border-l-4 border-l-amber-500 border-y-amber-100/50 border-r-amber-100/50 [.chronos-app[data-theme='dark']_&]:border-y-amber-500/20 [.chronos-app[data-theme='dark']_&]:border-r-amber-500/20",
+          );
       }
     },
     getIconColor = () => {
-      switch (toast.type) {
+      switch (toast.variant) {
         case "success":
           return "text-emerald-500 [.chronos-app[data-theme='dark']_&]:text-emerald-400";
         case "error":
           return "text-rose-500 [.chronos-app[data-theme='dark']_&]:text-rose-400";
         case "info":
           return "text-blue-500 [.chronos-app[data-theme='dark']_&]:text-blue-400";
+        case "warning":
+          return "text-amber-500 [.chronos-app[data-theme='dark']_&]:text-amber-400";
       }
     };
 

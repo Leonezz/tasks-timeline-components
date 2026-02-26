@@ -5,7 +5,7 @@ import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/settings/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
-import { Toast, type ToastMessage, type ToastType } from "./components/Toast";
+import { Toast } from "./components/Toast";
 import type {
   AIProvider,
   AppSettings,
@@ -16,6 +16,8 @@ import type {
   SortState,
   Task,
   TaskStatus,
+  ToastMessage,
+  ToastVariant,
   TokenUsageRecord,
 } from "./types";
 import { cn, deriveTaskStatus } from "./utils";
@@ -311,12 +313,22 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   }, [settings, settingsRepo, isSettingsLoaded]);
 
   const addNotification = (
-      type: ToastType,
+      type: ToastVariant,
       title: string,
       description?: string,
     ) => {
       const id = Math.random().toString(36).slice(2, 11);
-      setToasts((prev) => [...prev, { id, type, title, description }]);
+      setToasts((prev) => [
+        ...prev,
+        {
+          id,
+          variant: type,
+          title,
+          description,
+          interaction: { kind: "dismiss" as const },
+          timeout: 4000,
+        },
+      ]);
       logger.info("Notification", title, { type, description });
     },
     removeNotification = (id: string) => {

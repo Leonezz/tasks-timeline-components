@@ -21,6 +21,11 @@ export { HelpModal } from "./HelpModal";
 
 // UI Components
 export { Toast } from "./Toast";
-export type { ToastMessage, ToastType } from "./Toast";
+export type {
+  ToastMessage,
+  ToastVariant,
+  ToastInteraction,
+  DetailBlock,
+} from "../types";
 export { Icon } from "./Icon";
 export type { IconProps } from "./Icon";
