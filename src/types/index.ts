@@ -28,4 +28,8 @@ export type {
   SortField,
   SortDirection,
   SortState,
+  ToastVariant,
+  ToastMessage,
+  ToastInteraction,
+  DetailBlock,
 } from "../types";

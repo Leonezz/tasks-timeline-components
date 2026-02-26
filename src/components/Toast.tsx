@@ -10,17 +10,15 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
-  const timeout = toast.timeout ?? 4000;
-
   useEffect(() => {
-    if (timeout === null || timeout <= 0) {
+    if (toast.timeout === null || toast.timeout <= 0) {
       return;
     }
     const timer = setTimeout(() => {
       onDismiss(toast.id);
-    }, timeout);
+    }, toast.timeout);
     return () => clearTimeout(timer);
-  }, [toast.id, onDismiss, timeout]);
+  }, [toast.id, onDismiss, toast.timeout]);
 
   const getIcon = () => {
       switch (toast.variant) {
