@@ -63,10 +63,16 @@ const SAMPLE_TASKS: Task[] = [
 
 describe("batch_update_tasks tool", () => {
   let ctx: CapabilityContext;
+  let mockConfirm: ReturnType<typeof vi.fn>;
+  let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockConfirm = vi.fn().mockResolvedValue(true);
+    mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue([...SAMPLE_TASKS]),
+      confirm: mockConfirm as CapabilityContext["confirm"],
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -332,6 +338,73 @@ describe("batch_update_tasks tool", () => {
     expect(ctx.notify).toHaveBeenCalledWith(
       "success",
       expect.stringContaining("2"),
+    );
+  });
+
+  it("updates tasks when user confirms batch update", async () => {
+    mockConfirm.mockResolvedValue(true);
+    const tool = createBatchUpdateTasksTool(ctx);
+    const result = await tool.execute({
+      filter: { status: "todo" },
+      update: { status: "done" },
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.stringContaining("2"),
+      expect.any(String),
+    );
+    expect(result.result).toMatchObject({
+      success: true,
+      updatedCount: 2,
+    });
+    expect(ctx.updateTask).toHaveBeenCalledTimes(2);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "success",
+        detail: expect.arrayContaining([
+          expect.objectContaining({ type: "task-list" }),
+        ]),
+      }),
+    );
+  });
+
+  it("cancels batch update when user declines", async () => {
+    mockConfirm.mockResolvedValue(false);
+    const tool = createBatchUpdateTasksTool(ctx);
+    const result = await tool.execute({
+      filter: { status: "todo" },
+      update: { status: "done" },
+    });
+
+    expect(mockConfirm).toHaveBeenCalled();
+    expect(result.result).toMatchObject({
+      success: false,
+      message: "Cancelled by user",
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
+  it("calls showToast with updated task list after successful batch update", async () => {
+    mockConfirm.mockResolvedValue(true);
+    const tool = createBatchUpdateTasksTool(ctx);
+    await tool.execute({
+      filter: { category: "work" },
+      update: { priority: "high" },
+    });
+
+    expect(mockShowToast).toHaveBeenCalledOnce();
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "success",
+        title: expect.stringContaining("2"),
+        detail: [
+          expect.objectContaining({
+            type: "task-list",
+            label: "Updated Tasks",
+          }),
+        ],
+        timeout: 6000,
+      }),
     );
   });
 });

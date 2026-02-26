@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import type { AppSettings, Task, TokenUsageRecord } from "../types";
+import type {
+  AppSettings,
+  Task,
+  ToastMessage,
+  TokenUsageRecord,
+} from "../types";
 import { createProvider } from "../providers";
 import type { ChatMessage, ToolResult } from "../providers/types";
 import { createCapabilities } from "../capabilities";
@@ -21,12 +26,19 @@ export const useAIAgent = (
   settings: AppSettings,
   _onManualAdd: (t: Partial<Task>) => void,
   onNotify: (
-    type: "success" | "error" | "info",
+    type: "success" | "error" | "info" | "warning",
     title: string,
     desc?: string,
   ) => void,
   onTokenUsageUpdate?: (update: TokenUsageUpdate) => void,
   aiSystemPrompt?: string,
+  onShowToast?: (toast: Omit<ToastMessage, "id">) => void,
+  onConfirm?: (title: string, description?: string) => Promise<boolean>,
+  onSelect?: (
+    title: string,
+    options: { label: string; value: string }[],
+  ) => Promise<string | null>,
+  onPrompt?: (question: string) => Promise<string | null>,
 ) => {
   const tasksRef = useRef(tasks);
 
@@ -60,6 +72,17 @@ export const useAIAgent = (
       },
       getSettings: () => settings,
       notify: (type, message) => onNotify(type, message),
+      showToast: onShowToast
+        ? (toast) =>
+            onShowToast({
+              ...toast,
+              interaction: { kind: "dismiss" },
+              timeout: toast.timeout ?? 8000,
+            })
+        : undefined,
+      confirm: onConfirm,
+      select: onSelect,
+      prompt: onPrompt,
     };
 
     const capabilities = createCapabilities(ctx);

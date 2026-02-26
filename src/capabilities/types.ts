@@ -1,4 +1,4 @@
-import type { Task, AppSettings } from "../types";
+import type { Task, AppSettings, DetailBlock } from "../types";
 import type { ToolResult, JSONSchemaProperty } from "../providers/types";
 
 export interface CapabilityContext {
@@ -8,7 +8,24 @@ export interface CapabilityContext {
   updateTask(task: Task): Promise<void>;
   deleteTask(id: string): Promise<void>;
   getSettings?(): AppSettings | null;
-  notify?(type: "success" | "error" | "info", message: string): void;
+  notify?(
+    type: "success" | "error" | "info" | "warning",
+    message: string,
+  ): void;
+  showToast?(toast: {
+    variant: "success" | "error" | "info" | "warning";
+    title: string;
+    description?: string;
+    body?: string;
+    detail?: DetailBlock[];
+    timeout?: number | null;
+  }): void;
+  confirm?(title: string, description?: string): Promise<boolean>;
+  select?(
+    title: string,
+    options: { label: string; value: string }[],
+  ): Promise<string | null>;
+  prompt?(question: string): Promise<string | null>;
 }
 
 export interface ToolSpec {

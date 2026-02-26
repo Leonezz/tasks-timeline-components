@@ -178,6 +178,56 @@ export interface CustomSettingsTab {
   content: React.ReactNode;
 }
 
+// --- Enriched Toast Types ---
+
+export type ToastVariant = "success" | "error" | "info" | "warning";
+
+export type DetailBlock =
+  | { type: "text"; content: string }
+  | { type: "task-list"; tasks: Task[]; label?: string }
+  | {
+      type: "stats";
+      data: {
+        total: number;
+        byStatus: Record<string, number>;
+        byPriority: Record<string, number>;
+      };
+    }
+  | { type: "key-value"; entries: { key: string; value: string }[] };
+
+export type ToastInteraction =
+  | { kind: "dismiss" }
+  | {
+      kind: "confirm";
+      onConfirm: () => void;
+      onCancel?: () => void;
+      confirmLabel?: string;
+      cancelLabel?: string;
+    }
+  | {
+      kind: "select";
+      options: { label: string; value: string }[];
+      onSelect: (value: string) => void;
+      onCancel?: () => void;
+    }
+  | {
+      kind: "prompt";
+      onSubmit: (text: string) => void;
+      onCancel?: () => void;
+      placeholder?: string;
+    };
+
+export interface ToastMessage {
+  id: string;
+  variant: ToastVariant;
+  title: string;
+  description?: string;
+  body?: string;
+  detail?: DetailBlock[];
+  interaction: ToastInteraction;
+  timeout: number | null;
+}
+
 /**
  * Persistence Abstraction
  */

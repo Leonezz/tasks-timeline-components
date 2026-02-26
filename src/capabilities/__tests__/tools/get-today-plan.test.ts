@@ -103,10 +103,13 @@ const SAMPLE_TASKS: Task[] = [
 
 describe("get_today_plan tool", () => {
   let ctx: CapabilityContext;
+  let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
+      showToast: mockShowToast as CapabilityContext["showToast"],
     });
   });
 
@@ -269,5 +272,54 @@ describe("get_today_plan tool", () => {
 
     expect(task1?.isRecurring).toBe(false);
     expect(task2?.isRecurring).toBe(true);
+  });
+
+  it("calls showToast with task-list detail blocks for today and overdue tasks", async () => {
+    const tool = createGetTodayPlanTool(ctx);
+    await tool.execute({});
+
+    expect(mockShowToast).toHaveBeenCalledOnce();
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "warning",
+        title: "Today's Plan",
+        description: expect.stringContaining("2 due today"),
+        detail: expect.arrayContaining([
+          expect.objectContaining({
+            type: "task-list",
+            label: "Today",
+          }),
+          expect.objectContaining({
+            type: "task-list",
+            label: "Overdue",
+          }),
+        ]),
+        timeout: 10000,
+      }),
+    );
+  });
+
+  it("does not call showToast when no today or overdue tasks exist", async () => {
+    ctx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([
+        {
+          id: "task-future",
+          title: "Future task",
+          status: "scheduled",
+          priority: "high",
+          category: "work",
+          tags: [{ id: "t7", name: "future" }],
+          dueAt: "2026-03-01",
+          createdAt: "2026-02-10",
+          isRecurring: false,
+        },
+      ]),
+      showToast: mockShowToast as CapabilityContext["showToast"],
+    });
+
+    const tool = createGetTodayPlanTool(ctx);
+    await tool.execute({});
+
+    expect(mockShowToast).not.toHaveBeenCalled();
   });
 });

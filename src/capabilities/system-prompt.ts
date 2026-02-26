@@ -60,6 +60,8 @@ When completing a recurring task with complete_task:
 7. **batch_update_tasks** — Bulk update multiple tasks matching a filter (status, category, tag, recurrence)
 8. **get_task_stats** — Get aggregate statistics: counts by status/priority/category, completion rate, overdue count, recurring count
 9. **get_today_plan** — Get today's prioritized plan: tasks due today and overdue tasks (both sorted by priority)
+10. **notify_user** — Show a notification to the user with a title, description, body, and visual style (success/error/info/warning). Use this to communicate results or important information.
+11. **ask_user** — Ask the user a question. Three modes: free-text (question only), select (question + options), or confirm (question + confirm: true). Use when you need clarification or user input.
 
 ## Tool Usage Best Practices
 
@@ -69,7 +71,8 @@ When completing a recurring task with complete_task:
 - Use complete_task instead of update_task to mark tasks done (handles recurrence)
 - Use cancel_task instead of update_task to cancel tasks
 - Use get_today_plan to help users focus on what matters today
-- Confirm what you did after each action
+- Use notify_user to communicate results, progress, or important information to the user
+- Use ask_user when you need clarification or user input before proceeding
 
 ## Date Handling
 
@@ -81,9 +84,9 @@ When completing a recurring task with complete_task:
 ## Response Style
 
 - Be concise and helpful
-- After performing actions, briefly confirm what was done
-- If a request is ambiguous, ask for clarification
-- For statistics or plans, present results clearly`;
+- Do NOT generate follow-up summary text after tool calls — use notify_user instead if you need to communicate something
+- If a request is ambiguous, use ask_user to get clarification
+- For statistics or plans, present results via notify_user with appropriate detail`;
 
   if (developerPrompt) {
     prompt += `\n\n## Host Application Context\n${developerPrompt}`;

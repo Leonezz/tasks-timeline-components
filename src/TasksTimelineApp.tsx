@@ -1,11 +1,18 @@
-import React, { useEffect, useMemo, useState, useDeferredValue } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useDeferredValue,
+} from "react";
 import { AnimatePresence } from "framer-motion";
 import { ErrorBoundary } from "react-error-boundary";
 import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/settings/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
-import { Toast, type ToastMessage, type ToastType } from "./components/Toast";
+import { Toast } from "./components/Toast";
 import type {
   AIProvider,
   AppSettings,
@@ -16,6 +23,8 @@ import type {
   SortState,
   Task,
   TaskStatus,
+  ToastMessage,
+  ToastVariant,
   TokenUsageRecord,
 } from "./types";
 import { cn, deriveTaskStatus } from "./utils";
@@ -149,8 +158,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
       null,
     ),
-    // Notification State
+    // Toast State
     [toasts, setToasts] = useState<ToastMessage[]>([]),
+    [expandedToastId, setExpandedToastId] = useState<string | null>(null),
     // Initialize settings repository (use prop or fallback to browser storage)
     settingsRepo = useMemo(
       () => settingsRepository || new BrowserSettingsRepository(),
@@ -310,18 +320,128 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }
   }, [settings, settingsRepo, isSettingsLoaded]);
 
-  const addNotification = (
-      type: ToastType,
-      title: string,
-      description?: string,
-    ) => {
+  const toastResolversRef = useRef<
+      Map<string, { resolve: (v: unknown) => void }>
+    >(new Map()),
+    addToast = useCallback((toast: Omit<ToastMessage, "id">): string => {
       const id = Math.random().toString(36).slice(2, 11);
-      setToasts((prev) => [...prev, { id, type, title, description }]);
-      logger.info("Notification", title, { type, description });
-    },
-    removeNotification = (id: string) => {
+      setToasts((prev) => [...prev, { ...toast, id }]);
+      return id;
+    }, []),
+    removeToast = useCallback((id: string) => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    },
+      const resolver = toastResolversRef.current.get(id);
+      if (resolver) {
+        resolver.resolve(false);
+        toastResolversRef.current.delete(id);
+      }
+      setExpandedToastId((prev) => (prev === id ? null : prev));
+    }, []),
+    addNotification = useCallback(
+      (type: ToastVariant, title: string, description?: string) => {
+        addToast({
+          variant: type,
+          title,
+          description,
+          interaction: { kind: "dismiss" },
+          timeout: 4000,
+        });
+        logger.info("Notification", title, { type, description });
+      },
+      [addToast],
+    ),
+    showToast = useCallback(
+      (toast: Omit<ToastMessage, "id">) => {
+        addToast(toast);
+      },
+      [addToast],
+    ),
+    confirmToast = useCallback(
+      (title: string, description?: string): Promise<boolean> => {
+        return new Promise((resolve) => {
+          const id = addToast({
+            variant: "info",
+            title,
+            description,
+            interaction: {
+              kind: "confirm",
+              onConfirm: () => {
+                resolve(true);
+                removeToast(id);
+              },
+              onCancel: () => {
+                resolve(false);
+                removeToast(id);
+              },
+            },
+            timeout: null,
+          });
+          toastResolversRef.current.set(id, {
+            resolve: resolve as (v: unknown) => void,
+          });
+        });
+      },
+      [addToast, removeToast],
+    ),
+    selectToast = useCallback(
+      (
+        title: string,
+        options: { label: string; value: string }[],
+      ): Promise<string | null> => {
+        return new Promise((resolve) => {
+          const id = addToast({
+            variant: "info",
+            title,
+            interaction: {
+              kind: "select",
+              options,
+              onSelect: (value) => {
+                resolve(value);
+                removeToast(id);
+              },
+              onCancel: () => {
+                resolve(null);
+                removeToast(id);
+              },
+            },
+            timeout: null,
+          });
+          toastResolversRef.current.set(id, {
+            resolve: resolve as (v: unknown) => void,
+          });
+        });
+      },
+      [addToast, removeToast],
+    ),
+    promptToast = useCallback(
+      (question: string): Promise<string | null> => {
+        return new Promise((resolve) => {
+          const id = addToast({
+            variant: "info",
+            title: question,
+            interaction: {
+              kind: "prompt",
+              onSubmit: (text) => {
+                resolve(text);
+                removeToast(id);
+              },
+              onCancel: () => {
+                resolve(null);
+                removeToast(id);
+              },
+            },
+            timeout: null,
+          });
+          toastResolversRef.current.set(id, {
+            resolve: resolve as (v: unknown) => void,
+          });
+        });
+      },
+      [addToast, removeToast],
+    ),
+    toggleExpandToast = useCallback((id: string) => {
+      setExpandedToastId((prev) => (prev === id ? null : id));
+    }, []),
     updateTokenUsage = (update: {
       provider: string;
       model: string;
@@ -476,6 +596,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       addNotification,
       updateTokenUsage,
       aiSystemPrompt,
+      showToast,
+      confirmToast,
+      selectToast,
+      promptToast,
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
@@ -709,13 +833,15 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               </footer>
 
               {/* Toast Container */}
-              <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+              <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 pointer-events-none">
                 <AnimatePresence>
                   {toasts.map((toast) => (
                     <Toast
                       key={toast.id}
                       toast={toast}
-                      onDismiss={removeNotification}
+                      onDismiss={removeToast}
+                      isExpanded={expandedToastId === toast.id}
+                      onToggleExpand={toggleExpandToast}
                     />
                   ))}
                 </AnimatePresence>
