@@ -97,7 +97,6 @@
     "react-error-boundary": "^6.0.3",
     "react-shadow": "^20.6.0",
     "rrule": "2.8.1",
-    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0"
   },
   "peerDependencies": {
