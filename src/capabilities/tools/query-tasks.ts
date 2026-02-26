@@ -169,6 +169,17 @@ export function createQueryTasksTool(ctx: CapabilityContext): ToolSpec {
       const limited = sorted.slice(0, limit);
       const summaries = limited.map(toSummary);
 
+      if (filtered.length > 0) {
+        ctx.showToast?.({
+          variant: "info",
+          title: `Found ${filtered.length} task${filtered.length === 1 ? "" : "s"}`,
+          detail: [
+            { type: "task-list", tasks: filtered, label: "Search Results" },
+          ],
+          timeout: 8000,
+        });
+      }
+
       return {
         name: "query_tasks",
         result: { tasks: summaries, count: summaries.length },

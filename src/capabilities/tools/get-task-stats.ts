@@ -65,6 +65,23 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
         stats.completionRate = Math.round(rate * 100) / 100;
       }
 
+      ctx.showToast?.({
+        variant: "info",
+        title: "Task Statistics",
+        description: `${stats.total} total tasks`,
+        detail: [
+          {
+            type: "stats",
+            data: {
+              total: stats.total,
+              byStatus: stats.byStatus,
+              byPriority: stats.byPriority,
+            },
+          },
+        ],
+        timeout: 8000,
+      });
+
       return {
         name: "get_task_stats",
         result: stats,

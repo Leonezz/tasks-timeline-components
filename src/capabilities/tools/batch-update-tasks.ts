@@ -113,7 +113,25 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
         return true;
       });
 
+      if (filtered.length > 0) {
+        const confirmed = await ctx.confirm?.(
+          `Update ${filtered.length} task${filtered.length === 1 ? "" : "s"}?`,
+          "This will apply changes to all matching tasks.",
+        );
+        if (confirmed === false) {
+          return {
+            name: "batch_update_tasks",
+            result: {
+              success: false,
+              message: "Cancelled by user",
+              updated: 0,
+            },
+          };
+        }
+      }
+
       const updatedIds: string[] = [];
+      const updated: Task[] = [];
 
       // Update each matched task immutably
       for (const task of filtered) {
@@ -153,6 +171,18 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
 
         await ctx.updateTask(finalTask);
         updatedIds.push(task.id);
+        updated.push(finalTask);
+      }
+
+      if (updated.length > 0) {
+        ctx.showToast?.({
+          variant: "success",
+          title: `Updated ${updated.length} task${updated.length === 1 ? "" : "s"}`,
+          detail: [
+            { type: "task-list", tasks: updated, label: "Updated Tasks" },
+          ],
+          timeout: 6000,
+        });
       }
 
       ctx.notify?.(

@@ -1,4 +1,4 @@
-import type { Priority } from "../../types";
+import type { Priority, Task, DetailBlock } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
 
@@ -46,6 +46,8 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
 
       const todayTasks: TaskSummary[] = [];
       const overdueTasks: TaskSummary[] = [];
+      const todayFullTasks: Task[] = [];
+      const overdueFullTasks: Task[] = [];
 
       for (const task of tasks) {
         // Create summary object
@@ -68,11 +70,13 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
           task.status !== "cancelled"
         ) {
           todayTasks.push(summary);
+          todayFullTasks.push(task);
         }
 
         // Overdue tasks: status === "overdue"
         if (task.status === "overdue") {
           overdueTasks.push(summary);
+          overdueFullTasks.push(task);
         }
       }
 
@@ -87,6 +91,31 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
         overdueTasks,
         overdueCount: overdueTasks.length,
       };
+
+      const detailBlocks: DetailBlock[] = [];
+      if (todayFullTasks.length > 0) {
+        detailBlocks.push({
+          type: "task-list",
+          tasks: todayFullTasks,
+          label: "Today",
+        });
+      }
+      if (overdueFullTasks.length > 0) {
+        detailBlocks.push({
+          type: "task-list",
+          tasks: overdueFullTasks,
+          label: "Overdue",
+        });
+      }
+      if (detailBlocks.length > 0) {
+        ctx.showToast?.({
+          variant: overdueFullTasks.length > 0 ? "warning" : "info",
+          title: "Today's Plan",
+          description: `${plan.todayCount} due today, ${plan.overdueCount} overdue`,
+          detail: detailBlocks,
+          timeout: 10000,
+        });
+      }
 
       return {
         name: "get_today_plan",

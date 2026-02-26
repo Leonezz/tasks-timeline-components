@@ -26,6 +26,17 @@ export function createDeleteTaskTool(ctx: CapabilityContext): ToolSpec {
         };
       }
 
+      const confirmed = await ctx.confirm?.(
+        `Delete "${existingTask.title}"?`,
+        "This action cannot be undone.",
+      );
+      if (confirmed === false) {
+        return {
+          name: "delete_task",
+          result: { success: false, message: "Cancelled by user" },
+        };
+      }
+
       await ctx.deleteTask(id);
       ctx.notify?.("info", `Deleted task: ${existingTask.title}`);
 
