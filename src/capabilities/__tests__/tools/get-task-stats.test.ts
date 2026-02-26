@@ -68,10 +68,13 @@ const SAMPLE_TASKS: Task[] = [
 
 describe("get_task_stats tool", () => {
   let ctx: CapabilityContext;
+  let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
+      showToast: mockShowToast,
     });
   });
 
@@ -256,6 +259,7 @@ describe("get_task_stats tool", () => {
 
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(tasks),
+      showToast: mockShowToast,
     });
 
     const tool = createGetTaskStatsTool(ctx);
@@ -263,5 +267,39 @@ describe("get_task_stats tool", () => {
     const stats = result.result as Record<string, unknown>;
 
     expect(stats.recurring).toBe(2);
+  });
+
+  it("calls showToast with stats detail block", async () => {
+    const tool = createGetTaskStatsTool(ctx);
+    await tool.execute({});
+
+    expect(mockShowToast).toHaveBeenCalledOnce();
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "info",
+        title: "Task Statistics",
+        description: expect.stringContaining("4"),
+        detail: [
+          expect.objectContaining({
+            type: "stats",
+            data: expect.objectContaining({
+              total: 4,
+              byStatus: expect.objectContaining({
+                todo: 1,
+                doing: 1,
+                overdue: 1,
+                done: 1,
+              }),
+              byPriority: expect.objectContaining({
+                high: 2,
+                medium: 1,
+                low: 1,
+              }),
+            }),
+          }),
+        ],
+        timeout: 8000,
+      }),
+    );
   });
 });

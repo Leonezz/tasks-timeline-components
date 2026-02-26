@@ -28,10 +28,16 @@ const EXISTING_TASK: Task = {
 
 describe("delete_task tool", () => {
   let ctx: CapabilityContext;
+  let mockConfirm: ReturnType<typeof vi.fn>;
+  let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockConfirm = vi.fn().mockResolvedValue(true);
+    mockShowToast = vi.fn();
     ctx = makeContext({
       getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
+      confirm: mockConfirm,
+      showToast: mockShowToast,
     });
   });
 
@@ -69,6 +75,8 @@ describe("delete_task tool", () => {
   it("returns error for non-existent task and does not call deleteTask", async () => {
     const ctxNotFound = makeContext({
       getTask: vi.fn().mockResolvedValue(null),
+      confirm: mockConfirm,
+      showToast: mockShowToast,
     });
 
     const tool = createDeleteTaskTool(ctxNotFound);
@@ -83,5 +91,51 @@ describe("delete_task tool", () => {
     expect(ctxNotFound.getTask).toHaveBeenCalledWith("nonexistent");
     expect(ctxNotFound.deleteTask).not.toHaveBeenCalled();
     expect(ctxNotFound.notify).not.toHaveBeenCalled();
+  });
+
+  it("deletes task when user confirms", async () => {
+    mockConfirm.mockResolvedValue(true);
+    const tool = createDeleteTaskTool(ctx);
+    const result = await tool.execute({ id: "task-1" });
+
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.stringContaining("Task to delete"),
+      expect.any(String),
+    );
+    expect(result.result).toMatchObject({
+      success: true,
+      id: "task-1",
+      title: "Task to delete",
+    });
+    expect(ctx.deleteTask).toHaveBeenCalledWith("task-1");
+  });
+
+  it("cancels deletion when user declines", async () => {
+    mockConfirm.mockResolvedValue(false);
+    const tool = createDeleteTaskTool(ctx);
+    const result = await tool.execute({ id: "task-1" });
+
+    expect(mockConfirm).toHaveBeenCalled();
+    expect(result.result).toMatchObject({
+      success: false,
+      message: "Cancelled by user",
+    });
+    expect(ctx.deleteTask).not.toHaveBeenCalled();
+  });
+
+  it("proceeds with deletion when confirm is not provided", async () => {
+    const ctxNoConfirm = makeContext({
+      getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
+    });
+
+    const tool = createDeleteTaskTool(ctxNoConfirm);
+    const result = await tool.execute({ id: "task-1" });
+
+    expect(result.result).toMatchObject({
+      success: true,
+      id: "task-1",
+      title: "Task to delete",
+    });
+    expect(ctxNoConfirm.deleteTask).toHaveBeenCalledWith("task-1");
   });
 });

@@ -72,10 +72,13 @@ const SAMPLE_TASKS: Task[] = [
 
 describe("query_tasks tool", () => {
   let ctx: CapabilityContext;
+  let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
+      showToast: mockShowToast,
     });
   });
 
@@ -369,5 +372,37 @@ describe("query_tasks tool", () => {
     };
     expect(data.count).toBe(1);
     expect(data.tasks[0].id).toBe("task-2");
+  });
+
+  it("calls showToast with task-list detail when results found", async () => {
+    const tool = createQueryTasksTool(ctx);
+    await tool.execute({});
+
+    expect(mockShowToast).toHaveBeenCalledOnce();
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "info",
+        title: expect.stringContaining("4"),
+        detail: [
+          expect.objectContaining({
+            type: "task-list",
+            label: "Search Results",
+          }),
+        ],
+        timeout: 8000,
+      }),
+    );
+  });
+
+  it("does not call showToast when no results found", async () => {
+    ctx = makeContext({
+      getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
+      showToast: mockShowToast,
+    });
+
+    const tool = createQueryTasksTool(ctx);
+    await tool.execute({ status: "cancelled" });
+
+    expect(mockShowToast).not.toHaveBeenCalled();
   });
 });
