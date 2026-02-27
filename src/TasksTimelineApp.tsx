@@ -357,7 +357,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       [addToast],
     ),
     confirmToast = useCallback(
-      (title: string, description?: string): Promise<boolean> => {
+      (title: string, description?: string): Promise<boolean | null> => {
         return new Promise((resolve) => {
           const id = addToast({
             variant: "info",
@@ -370,7 +370,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 removeToast(id);
               },
               onCancel: () => {
-                resolve(false);
+                resolve(null);
                 removeToast(id);
               },
             },

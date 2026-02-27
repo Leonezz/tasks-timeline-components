@@ -20,7 +20,7 @@ export interface CapabilityContext {
     detail?: DetailBlock[];
     timeout?: number | null;
   }): void;
-  confirm?(title: string, description?: string): Promise<boolean>;
+  confirm?(title: string, description?: string): Promise<boolean | null>;
   select?(
     title: string,
     options: { label: string; value: string }[],

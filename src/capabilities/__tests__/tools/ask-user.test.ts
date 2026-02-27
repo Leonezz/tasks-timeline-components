@@ -78,6 +78,25 @@ describe("ask_user tool", () => {
     });
   });
 
+  it("uses confirm mode when confirm=true, returns dismissed when cancelled", async () => {
+    mockConfirm.mockResolvedValue(null);
+    const ctx = makeContext({
+      confirm: mockConfirm as CapabilityContext["confirm"],
+    });
+
+    const tool = createAskUserTool(ctx);
+    const result = await tool.execute({
+      question: "Delete this task?",
+      confirm: true,
+    });
+
+    expect(result.result).toEqual({
+      question: "Delete this task?",
+      answer: null,
+      dismissed: true,
+    });
+  });
+
   // --- Select mode ---
 
   it("uses select mode when options provided, returns selected value", async () => {
@@ -120,6 +139,7 @@ describe("ask_user tool", () => {
     expect(result.result).toEqual({
       question: "Which database?",
       answer: null,
+      dismissed: true,
     });
   });
 
@@ -159,6 +179,7 @@ describe("ask_user tool", () => {
     expect(result.result).toEqual({
       question: "What name?",
       answer: null,
+      dismissed: true,
     });
   });
 

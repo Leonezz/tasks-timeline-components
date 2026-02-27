@@ -59,6 +59,12 @@ export function createAskUserTool(ctx: CapabilityContext): ToolSpec {
         }
         const description = args.description as string | undefined;
         const confirmed = await ctx.confirm(question, description);
+        if (confirmed === null) {
+          return {
+            name: "ask_user",
+            result: { question, answer: null, dismissed: true },
+          };
+        }
         return {
           name: "ask_user",
           result: {
@@ -74,6 +80,12 @@ export function createAskUserTool(ctx: CapabilityContext): ToolSpec {
           return { name: "ask_user", result: unavailable };
         }
         const selected = await ctx.select(question, options);
+        if (selected === null) {
+          return {
+            name: "ask_user",
+            result: { question, answer: null, dismissed: true },
+          };
+        }
         return {
           name: "ask_user",
           result: {
@@ -88,6 +100,12 @@ export function createAskUserTool(ctx: CapabilityContext): ToolSpec {
         return { name: "ask_user", result: unavailable };
       }
       const answer = await ctx.prompt(question);
+      if (answer === null) {
+        return {
+          name: "ask_user",
+          result: { question, answer: null, dismissed: true },
+        };
+      }
       return {
         name: "ask_user",
         result: {

@@ -84,9 +84,12 @@ When completing a recurring task with complete_task:
 ## Response Style
 
 - Be concise and helpful
-- Do NOT generate follow-up summary text after tool calls — use notify_user instead if you need to communicate something
+- You can communicate results in two ways:
+  1. **notify_user** — for rich formatted output (with body text, styling, detail blocks)
+  2. **Text response** — for simple messages (shown as a notification to the user)
+  Choose one per response — do not use both
 - If a request is ambiguous, use ask_user to get clarification
-- For statistics or plans, present results via notify_user with appropriate detail`;
+- If ask_user returns dismissed: true, the user chose to cancel. Do NOT retry the same question. Either proceed with a reasonable default or explain briefly why you cannot continue.`;
 
   if (developerPrompt) {
     prompt += `\n\n## Host Application Context\n${developerPrompt}`;
