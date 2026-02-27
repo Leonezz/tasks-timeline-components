@@ -169,7 +169,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
           <input
             type="text"
             className={cn(
-              "w-full bg-white pl-8 min-[400px]:pl-10 pr-20 min-[400px]:pr-24 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
+              "w-full bg-white pl-8 min-[400px]:pl-10 pr-24 min-[400px]:pr-28 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
                 : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
