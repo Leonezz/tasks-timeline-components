@@ -118,7 +118,7 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
           `Update ${filtered.length} task${filtered.length === 1 ? "" : "s"}?`,
           "This will apply changes to all matching tasks.",
         );
-        if (confirmed === false) {
+        if (confirmed === false || confirmed === null) {
           return {
             name: "batch_update_tasks",
             result: {

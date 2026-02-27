@@ -33,7 +33,7 @@ export const useAIAgent = (
   onTokenUsageUpdate?: (update: TokenUsageUpdate) => void,
   aiSystemPrompt?: string,
   onShowToast?: (toast: Omit<ToastMessage, "id">) => void,
-  onConfirm?: (title: string, description?: string) => Promise<boolean>,
+  onConfirm?: (title: string, description?: string) => Promise<boolean | null>,
   onSelect?: (
     title: string,
     options: { label: string; value: string }[],
@@ -190,6 +190,11 @@ export const useAIAgent = (
             totalTokens: tokenUsage.totalTokens,
           });
         }
+      }
+
+      // Show the model's final text response to the user
+      if (response.text?.trim()) {
+        onNotify("info", "AI", response.text.trim());
       }
     } catch (e) {
       logger.error("AI", "Agent processing failed", e);
