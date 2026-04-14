@@ -54,9 +54,23 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
           transition={{ duration: 0.3 }}
           className="overflow-hidden"
         >
-          <div ref={containerRef} className="space-y-0.5">
+          <div
+            ref={containerRef}
+            className="space-y-0.5"
+            style={{
+              contentVisibility: lazy ? "auto" : undefined,
+              containIntrinsicSize: lazy
+                ? `auto ${placeholderHeight}px`
+                : undefined,
+            }}
+          >
             {isNearViewport ? (
-              <div ref={contentRef}>
+              <motion.div
+                ref={contentRef}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+              >
                 {tasks.map((task) => (
                   <TaskItem
                     key={task.id}
@@ -67,7 +81,7 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
                     )}
                   />
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <div
                 style={{ height: placeholderHeight }}

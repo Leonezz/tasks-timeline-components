@@ -217,13 +217,27 @@ export const DaySection: React.FC<DaySectionProps> = ({
           transition={{ duration: 0.3, ease: "easeInOut" }}
           className="overflow-hidden"
         >
-          <div ref={containerRef} className="space-y-0.5 relative pb-2">
+          <div
+            ref={containerRef}
+            className="space-y-0.5 relative pb-2"
+            style={{
+              contentVisibility: lazy ? "auto" : undefined,
+              containIntrinsicSize: lazy
+                ? `auto ${placeholderHeight}px`
+                : undefined,
+            }}
+          >
             {isNearViewport ? (
-              <div ref={contentRef}>
+              <motion.div
+                ref={contentRef}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+              >
                 {group.tasks.map((task) => (
                   <TaskItem key={task.id} task={task} />
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <div
                 style={{ height: placeholderHeight }}
