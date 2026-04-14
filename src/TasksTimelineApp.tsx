@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useTransition,
   useDeferredValue,
 } from "react";
 import { AnimatePresence } from "framer-motion";
@@ -185,6 +186,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }),
     [isSettingsLoaded, setIsSettingsLoaded] = useState(false),
     // Focus Mode State
+    [, startFocusTransition] = useTransition(),
     [isFocusMode, setIsFocusMode] = useState(DEFAULT_SETTINGS.defaultFocusMode),
     // Global AI Mode State (Synced across inputs)
     [isAiMode, setIsAiMode] = useState(false),
@@ -694,7 +696,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   <div className="flex items-center gap-2">
                     {/* Focus Mode Toggle with Fixed Width */}
                     <button
-                      onClick={() => setIsFocusMode(!isFocusMode)}
+                      onClick={() => {
+                        startFocusTransition(() =>
+                          setIsFocusMode(!isFocusMode),
+                        );
+                      }}
                       className={cn(
                         "rounded-lg p-2 flex flex-col items-center justify-center border w-20 shrink-0 transition-all",
                         isFocusMode
