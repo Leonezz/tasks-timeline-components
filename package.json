@@ -2,7 +2,7 @@
   "name": "@tasks-timeline/components",
   "description": "A comprehensive React component library for task management and timeline visualization",
   "private": false,
-  "version": "0.4.3",
+  "version": "0.4.4",
   "type": "module",
   "license": "MIT",
   "author": "Leonezz <zhwuenqa@outlook.com>",
@@ -80,16 +80,19 @@
     "examples/app"
   ],
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.84",
+    "@ai-sdk/google": "^3.0.82",
+    "@ai-sdk/openai": "^3.0.71",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-portal": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "ai": "^6.0.204",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "expr-eval": "^2.0.2",
     "framer-motion": "12.23.26",
     "lucide-react": "^0.330.0",
     "luxon": "3.4.4",
@@ -100,21 +103,16 @@
     "tailwind-merge": "^3.4.0"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": ">=0.30.0",
-    "@google/genai": ">=1.0.0",
-    "openai": ">=4.0.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
-  "peerDependenciesMeta": {
-    "@google/genai": {
-      "optional": true
-    },
-    "openai": {
-      "optional": true
-    },
-    "@anthropic-ai/sdk": {
-      "optional": true
+  "pnpm": {
+    "overrides": {
+      "@protobufjs/utf8": "1.1.1",
+      "brace-expansion": "5.0.6",
+      "minimatch": "9.0.7",
+      "protobufjs": "7.6.4",
+      "ws": "8.21.0"
     }
   },
   "devDependencies": {

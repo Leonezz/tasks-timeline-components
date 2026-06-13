@@ -1,9 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { formatSmartDate } from "./date";
 
 describe("formatSmartDate", () => {
-  // Note: Tests use real dates relative to Feb 1, 2026 (current date)
-  // to avoid mocking DateTime.now() which is difficult with Luxon
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-01T12:00:00Z"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
 
   describe("urgency-based relative dates (bug fix for issue #14)", () => {
     it("shows 'in 2 days' for Feb 3 (within 5-day threshold)", () => {

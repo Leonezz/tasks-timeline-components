@@ -5,10 +5,10 @@ import type {
   ToastMessage,
   TokenUsageRecord,
 } from "../types";
-import { createProvider } from "../providers";
-import type { ChatMessage, ToolResult } from "../providers/types";
+import { createProvider as createDefaultProvider } from "../providers";
+import type { ChatMessage, IAIProvider, ToolResult } from "../providers/types";
 import { createCapabilities } from "../capabilities";
-import type { CapabilityContext } from "../capabilities";
+import type { Capabilities, CapabilityContext } from "../capabilities";
 import { logger } from "../utils/logger";
 
 interface TokenUsageUpdate {
@@ -16,6 +16,17 @@ interface TokenUsageUpdate {
   model: string;
   tokenUsage: TokenUsageRecord;
   totalTokens: number;
+}
+
+export type AIProviderFactory = (
+  provider: AppSettings["aiConfig"]["activeProvider"],
+  config: AppSettings["aiConfig"]["providers"][AppSettings["aiConfig"]["activeProvider"]],
+) => Promise<IAIProvider>;
+
+export interface UseAIAgentOptions {
+  providerFactory?: AIProviderFactory;
+  capabilities?: Capabilities;
+  capabilityContext?: CapabilityContext;
 }
 
 export const useAIAgent = (
@@ -39,6 +50,7 @@ export const useAIAgent = (
     options: { label: string; value: string }[],
   ) => Promise<string | null>,
   onPrompt?: (question: string) => Promise<string | null>,
+  options?: UseAIAgentOptions,
 ) => {
   const tasksRef = useRef(tasks);
 
@@ -85,7 +97,9 @@ export const useAIAgent = (
       prompt: onPrompt,
     };
 
-    const capabilities = createCapabilities(ctx);
+    const capabilities =
+      options?.capabilities ??
+      createCapabilities(options?.capabilityContext ?? ctx);
 
     // Convert ToolSpec[] to ToolDefinition[] for the provider
     const tools = capabilities.tools.map((t) => ({
@@ -100,7 +114,8 @@ export const useAIAgent = (
     );
 
     try {
-      const provider = await createProvider(activeProvider, config);
+      const providerFactory = options?.providerFactory ?? createDefaultProvider;
+      const provider = await providerFactory(activeProvider, config);
 
       logger.info("AI", `Sending prompt to ${activeProvider}`, {
         input,

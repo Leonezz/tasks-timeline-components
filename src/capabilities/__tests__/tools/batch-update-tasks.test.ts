@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CapabilityContext } from "../../types";
 import type { Task } from "../../../types";
 import { createBatchUpdateTasksTool } from "../../tools/batch-update-tasks";
@@ -67,6 +67,8 @@ describe("batch_update_tasks tool", () => {
   let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-22T12:00:00Z"));
     mockConfirm = vi.fn().mockResolvedValue(true);
     mockShowToast = vi.fn();
     ctx = makeContext({
@@ -74,6 +76,10 @@ describe("batch_update_tasks tool", () => {
       confirm: mockConfirm as CapabilityContext["confirm"],
       showToast: mockShowToast as CapabilityContext["showToast"],
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("has correct name and schema", () => {

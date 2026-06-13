@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Parser } from "expr-eval";
 import type { FilterState, Priority, SortState, Task } from "../types";
 import { logger } from "../utils/logger";
+import { compileSafeExpression } from "../utils/safe-expression";
 
 /** Extract unique tags and categories from a task list. */
 export function deriveFilterOptions(tasks: Task[]) {
@@ -70,12 +70,10 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
   // Script Filtering
   if (filters.enableScript && filters.script.trim()) {
     try {
-      const parser = new Parser(),
-        expression = parser.parse(filters.script);
+      const expression = compileSafeExpression(filters.script);
       result = result.filter((t) => {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return Boolean(expression.evaluate({ task: t as any }));
+          return Boolean(expression({ task: t }));
         } catch (e) {
           logger.error(
             "TaskFiltering",
@@ -96,17 +94,27 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
 /** Sort a task list by the given sort state. */
 export function sortTasks(tasks: Task[], sort: SortState): Task[] {
   const result = [...tasks];
+  let customSortExpression:
+    | ((
+        scope: Record<string, unknown>,
+      ) => string | number | boolean | null | undefined)
+    | null = null;
+
+  if (sort.field === "custom" && sort.script.trim()) {
+    try {
+      customSortExpression = compileSafeExpression(sort.script);
+    } catch (e) {
+      logger.error("TaskFiltering", "Custom sort script parsing failed", e);
+    }
+  }
 
   result.sort((a, b) => {
     if (sort.field === "custom") {
-      if (!sort.script.trim()) {
+      if (!customSortExpression) {
         return 0;
       }
       try {
-        const parser = new Parser(),
-          expression = parser.parse(sort.script),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          res = expression.evaluate({ a: a as any, b: b as any });
+        const res = customSortExpression({ a, b });
         return typeof res === "number" ? res : 0;
       } catch (e) {
         logger.error("TaskFiltering", "Custom sort script failed", e);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CapabilityContext } from "../../types";
 import type { Task } from "../../../types";
 import { createGetTaskStatsTool } from "../../tools/get-task-stats";
@@ -71,11 +71,17 @@ describe("get_task_stats tool", () => {
   let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-22T12:00:00Z"));
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
       showToast: mockShowToast as CapabilityContext["showToast"],
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("has correct name and no required schema parameters", () => {

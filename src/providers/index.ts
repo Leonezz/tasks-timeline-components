@@ -1,7 +1,7 @@
 import type { AIProvider, ProviderConfig } from "../types";
 import type { IAIProvider, TestResult } from "./types";
 import { GeminiProvider } from "./gemini-provider";
-import { OpenAIProvider } from "./openai-provider";
+import { OpenAICompatibleProvider, OpenAIProvider } from "./openai-provider";
 import { AnthropicProvider } from "./anthropic-provider";
 
 export { getToolDefinitions } from "./tools";
@@ -32,11 +32,11 @@ export async function createProvider(
     case "anthropic":
       return new AnthropicProvider({
         ...config,
-        baseUrl: config.baseUrl || "https://api.anthropic.com",
+        baseUrl: config.baseUrl || "https://api.anthropic.com/v1",
         model: config.model || "claude-sonnet-4-20250514",
       });
     case "openai-compatible":
-      return new OpenAIProvider(config);
+      return new OpenAICompatibleProvider(config);
   }
 }
 

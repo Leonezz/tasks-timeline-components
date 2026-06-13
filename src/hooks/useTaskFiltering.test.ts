@@ -346,6 +346,36 @@ describe("filterTasks — script filter", () => {
     // Script parsing fails → original result preserved
     expect(result).toHaveLength(5);
   });
+
+  it("supports boolean operators and parentheses", () => {
+    const filters: FilterState = {
+      ...EMPTY_FILTER,
+      enableScript: true,
+      script: "task.priority == 'high' && (task.category == 'work')",
+    };
+    const result = filterTasks(TASKS, filters);
+    expect(result.map((t) => t.id)).toEqual(["t3"]);
+  });
+
+  it("rejects function calls", () => {
+    const filters: FilterState = {
+      ...EMPTY_FILTER,
+      enableScript: true,
+      script: "task.title.includes('bug')",
+    };
+    const result = filterTasks(TASKS, filters);
+    expect(result).toHaveLength(5);
+  });
+
+  it("rejects prototype-path access", () => {
+    const filters: FilterState = {
+      ...EMPTY_FILTER,
+      enableScript: true,
+      script: "task.__proto__ == null",
+    };
+    const result = filterTasks(TASKS, filters);
+    expect(result).toHaveLength(5);
+  });
 });
 
 // -- sortTasks --
@@ -423,7 +453,7 @@ describe("sortTasks", () => {
   });
 
   it("handles custom sort script", () => {
-    // Sort by priority numeric value (expr-eval syntax)
+    // Sort by priority numeric value using the safe expression syntax.
     const result = sortTasks(TASKS, {
       field: "custom",
       direction: "asc",

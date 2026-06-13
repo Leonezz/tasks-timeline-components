@@ -30,7 +30,7 @@ const AI_PROVIDER_PLACEHOLDERS: Record<
   },
   anthropic: {
     apiKey: "sk-ant-...",
-    baseUrl: "https://api.anthropic.com",
+    baseUrl: "https://api.anthropic.com/v1",
     model: "claude-sonnet-4-20250514",
   },
   "openai-compatible": {

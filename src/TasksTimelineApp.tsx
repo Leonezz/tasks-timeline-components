@@ -34,6 +34,8 @@ import { BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
 import { AppProvider } from "./components/AppContext";
 import { SettingsProvider, TasksProvider } from "./contexts";
+import type { Capabilities, CapabilityContext } from "./capabilities";
+import type { AIProviderFactory } from "./hooks/useAIAgent";
 import {
   AIErrorFallback,
   TaskListErrorFallback,
@@ -136,6 +138,12 @@ export interface TasksTimelineAppProps {
   renderTitle?: (title: string) => React.ReactNode;
   /** Additional system prompt injected by the host application */
   aiSystemPrompt?: string;
+  /** Host-provided AI provider factory. Defaults to the built-in provider adapters. */
+  aiProviderFactory?: AIProviderFactory;
+  /** Host-provided capability context for the built-in AI agent. */
+  aiCapabilityContext?: CapabilityContext;
+  /** Fully constructed host capabilities for the built-in AI agent. */
+  aiCapabilities?: Capabilities;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -151,6 +159,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   customSettingsTabs,
   renderTitle,
   aiSystemPrompt,
+  aiProviderFactory,
+  aiCapabilityContext,
+  aiCapabilities,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
@@ -602,6 +613,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       confirmToast,
       selectToast,
       promptToast,
+      {
+        providerFactory: aiProviderFactory,
+        capabilityContext: aiCapabilityContext,
+        capabilities: aiCapabilities,
+      },
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
