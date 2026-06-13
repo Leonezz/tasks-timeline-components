@@ -11,7 +11,8 @@
    - Background/foreground pairs for each semantic color
    ============================================================================ */
 
-:root {
+:root,
+.tasks-timeline-app {
   /* ===== LIGHT THEME (DEFAULT) ===== */
 
   /* Base colors */
