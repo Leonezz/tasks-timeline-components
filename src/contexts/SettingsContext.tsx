@@ -18,6 +18,7 @@ export interface SettingsContextType {
   voiceRuntime?: VoiceRuntime;
   hasAgentSession?: boolean;
   isAgentPanelOpen?: boolean;
+  isAgentConversationActive?: boolean;
   agentPanelUnreadCount?: number;
   onOpenAgentPanel?: () => void;
   onOpenSettings?: () => void;

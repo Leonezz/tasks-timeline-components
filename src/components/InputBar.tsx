@@ -27,6 +27,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
       voiceRuntime,
       hasAgentSession,
       isAgentPanelOpen,
+      isAgentConversationActive,
       agentPanelUnreadCount,
       onOpenAgentPanel,
       onOpenSettings,
@@ -184,7 +185,9 @@ export const InputBar: React.FC<InputBarProps> = () => {
               isListening
                 ? "Listening..."
                 : effectiveAiActive
-                  ? "Describe tasks using natural language..."
+                  ? isAgentConversationActive
+                    ? "Reply to agent..."
+                    : "Describe tasks using natural language..."
                   : window.innerWidth < 530
                     ? "Quick add task..."
                     : "Quick add (e.g., 'Meeting due:tomorrow p:high')"

@@ -29,6 +29,28 @@ export interface UseAIAgentOptions {
   capabilities?: Capabilities;
   capabilityContext?: CapabilityContext;
   onAgentEvent?: (event: AgentEvent) => void;
+  shouldNotifyAgentResponse?: () => boolean;
+}
+
+export interface AICommandOptions {
+  sessionId?: string | null;
+}
+
+export function createAgentTurnHistory(
+  previousHistory: ChatMessage[] | undefined,
+  input: string,
+): ChatMessage[] {
+  return [...(previousHistory ?? []), { role: "user", content: input }];
+}
+
+export function appendAssistantMessageToHistory(
+  history: ChatMessage[],
+  text: string,
+): ChatMessage[] {
+  const trimmed = text.trim();
+  return trimmed
+    ? [...history, { role: "assistant", content: trimmed }]
+    : history;
 }
 
 export const useAIAgent = (
@@ -54,32 +76,51 @@ export const useAIAgent = (
   onPrompt?: (question: string) => Promise<string | null>,
   options?: UseAIAgentOptions,
 ) => {
-  const tasksRef = useRef(tasks);
+  const tasksRef = useRef(tasks),
+    historiesRef = useRef<Map<string, ChatMessage[]>>(new Map());
 
   // Update ref when tasks change to access latest state in async callbacks
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  const handleAICommand = async (input: string) => {
+  const handleAICommand = async (
+    input: string,
+    commandOptions?: AICommandOptions,
+  ) => {
     const activeProvider = settings.aiConfig.activeProvider;
     const config = settings.aiConfig.providers[activeProvider];
-    const sessionId = `agent-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`,
+    const requestedSessionId = commandOptions?.sessionId ?? null,
+      previousHistory = requestedSessionId
+        ? historiesRef.current.get(requestedSessionId)
+        : undefined,
+      isContinuation = Boolean(requestedSessionId && previousHistory),
+      sessionId =
+        isContinuation && requestedSessionId
+          ? requestedSessionId
+          : `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp = () => new Date().toISOString(),
       emitAgentEvent = (event: AgentEvent) => {
         options?.onAgentEvent?.(event);
       };
 
-    emitAgentEvent({
-      kind: "session-start",
-      sessionId,
-      timestamp: timestamp(),
-      prompt: input,
-      provider: activeProvider,
-      model: config.model,
-    });
+    if (isContinuation) {
+      emitAgentEvent({
+        kind: "user-message",
+        sessionId,
+        timestamp: timestamp(),
+        text: input,
+      });
+    } else {
+      emitAgentEvent({
+        kind: "session-start",
+        sessionId,
+        timestamp: timestamp(),
+        prompt: input,
+        provider: activeProvider,
+        model: config.model,
+      });
+    }
 
     // Build capability context from React callbacks
     const ctx: CapabilityContext = {
@@ -130,6 +171,8 @@ export const useAIAgent = (
       aiSystemPrompt,
       settings.aiConfig.systemPrompt,
     );
+    let history = createAgentTurnHistory(previousHistory, input);
+    historiesRef.current.set(sessionId, history);
 
     try {
       const providerFactory = options?.providerFactory ?? createDefaultProvider;
@@ -153,7 +196,13 @@ export const useAIAgent = (
         timestamp: timestamp(),
         message: "Thinking",
       });
-      let response = await provider.chat(systemPrompt, input, tools);
+      let response = await provider.chat(
+        systemPrompt,
+        input,
+        tools,
+        undefined,
+        history,
+      );
 
       // Track Tokens
       if (onTokenUsageUpdate && (response.tokenUsage || response.tokenCount)) {
@@ -173,8 +222,6 @@ export const useAIAgent = (
 
       let loopCount = 0;
       const maxLoops = 5;
-      const history: ChatMessage[] = [{ role: "user", content: input }];
-
       // Process tool calls in a loop
       while (
         response.toolCalls &&
@@ -261,22 +308,25 @@ export const useAIAgent = (
 
       // Show the model's final text response to the user
       if (response.text?.trim()) {
+        const responseText = response.text.trim();
         emitAgentEvent({
           kind: "assistant-message",
           sessionId,
           timestamp: timestamp(),
-          text: response.text.trim(),
+          text: responseText,
         });
-        if (options?.onAgentEvent) {
+        history = appendAssistantMessageToHistory(history, responseText);
+        if (options?.onAgentEvent && options.shouldNotifyAgentResponse?.()) {
           onNotify(
             "success",
-            "Agent finished",
+            "Agent replied",
             "Response added to the agent conversation.",
           );
-        } else {
-          onNotify("info", "AI", response.text.trim());
+        } else if (!options?.onAgentEvent) {
+          onNotify("info", "AI", responseText);
         }
       }
+      historiesRef.current.set(sessionId, history);
       emitAgentEvent({
         kind: "session-complete",
         sessionId,

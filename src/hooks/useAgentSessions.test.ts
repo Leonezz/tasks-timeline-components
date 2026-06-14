@@ -105,4 +105,50 @@ describe("reduceAgentSessions", () => {
       body: "Provider unavailable",
     });
   });
+
+  it("appends follow-up user messages and reopens a completed session", () => {
+    const sessions = applyEvents([
+      {
+        kind: "session-start",
+        sessionId: "session-1",
+        timestamp: "2026-06-14T00:00:00.000Z",
+        prompt: "Plan my day",
+        provider: "openai",
+        model: "gpt-4o",
+      },
+      {
+        kind: "assistant-message",
+        sessionId: "session-1",
+        timestamp: "2026-06-14T00:00:01.000Z",
+        text: "Start with the overdue task.",
+      },
+      {
+        kind: "session-complete",
+        sessionId: "session-1",
+        timestamp: "2026-06-14T00:00:02.000Z",
+      },
+      {
+        kind: "user-message",
+        sessionId: "session-1",
+        timestamp: "2026-06-14T00:00:03.000Z",
+        text: "What should I do after that?",
+      },
+    ]);
+
+    expect(sessions[0]).toMatchObject({
+      id: "session-1",
+      status: "running",
+      updatedAt: "2026-06-14T00:00:03.000Z",
+    });
+    expect(sessions[0].entries.map((entry) => entry.kind)).toEqual([
+      "user",
+      "status",
+      "assistant",
+      "user",
+    ]);
+    expect(sessions[0].entries.at(-1)).toMatchObject({
+      title: "You",
+      body: "What should I do after that?",
+    });
+  });
 });

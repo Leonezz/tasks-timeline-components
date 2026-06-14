@@ -235,6 +235,12 @@ export type AgentEvent =
       text: string;
     }
   | {
+      kind: "user-message";
+      sessionId: string;
+      timestamp: ISO8601String;
+      text: string;
+    }
+  | {
       kind: "tool-call";
       sessionId: string;
       timestamp: ISO8601String;

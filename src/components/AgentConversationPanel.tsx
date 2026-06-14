@@ -10,6 +10,7 @@ interface AgentConversationPanelProps {
   sessions: AgentSession[];
   activeSessionId: string | null;
   onSelectSession: (sessionId: string) => void;
+  onStartNewSession: () => void;
   onClose: () => void;
   onClear: () => void;
 }
@@ -117,13 +118,13 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
   sessions,
   activeSessionId,
   onSelectSession,
+  onStartNewSession,
   onClose,
   onClear,
 }) => {
-  const activeSession =
-    sessions.find((session) => session.id === activeSessionId) ??
-    sessions[sessions.length - 1] ??
-    null;
+  const activeSession = activeSessionId
+    ? sessions.find((session) => session.id === activeSessionId) ?? null
+    : null;
 
   return (
     <AnimatePresence>
@@ -158,6 +159,17 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {sessions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onStartNewSession}
+                  className="rounded-md p-2 text-slate-400 transition-colors hover:bg-white hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  aria-label="Start new agent conversation"
+                  title="Start new agent conversation"
+                >
+                  <Icon name="Plus" size={15} />
+                </button>
+              )}
               {sessions.length > 0 && (
                 <button
                   type="button"
@@ -242,8 +254,8 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                   No agent conversation yet
                 </p>
                 <p className="mt-1 max-w-64 text-xs leading-relaxed">
-                  Turn on AI mode and send a prompt from the input bar to start
-                  an agent session.
+                  Send your next AI prompt from the input bar to start a new
+                  agent conversation.
                 </p>
               </div>
             )}

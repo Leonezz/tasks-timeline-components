@@ -144,6 +144,7 @@ type AgentPanelAction =
   | { type: "close" }
   | { type: "clear" }
   | { type: "select"; sessionId: string }
+  | { type: "new-session" }
   | { type: "event"; event: AgentEvent };
 
 const DEFAULT_AGENT_PANEL_STATE: AgentPanelState = {
@@ -165,6 +166,8 @@ function agentPanelReducer(
       return { ...state, activeSessionId: null, unreadCount: 0 };
     case "select":
       return { ...state, activeSessionId: action.sessionId, unreadCount: 0 };
+    case "new-session":
+      return { ...state, isOpen: true, activeSessionId: null, unreadCount: 0 };
     case "event":
       if (action.event.kind === "session-start") {
         return {
@@ -296,6 +299,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }, [clearAgentSessions]),
     selectAgentSession = useCallback((sessionId: string) => {
       dispatchAgentPanel({ type: "select", sessionId });
+    }, []),
+    startNewAgentSession = useCallback(() => {
+      dispatchAgentPanel({ type: "new-session" });
     }, []),
     handleAgentEvent = useCallback(
       (event: AgentEvent) => {
@@ -716,8 +722,14 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
         onAgentEvent: handleAgentEvent,
+        shouldNotifyAgentResponse: () => !agentPanelState.isOpen,
       },
     ),
+    handleInputAICommand = async (input: string) => {
+      await handleAICommand(input, {
+        sessionId: agentPanelState.activeSessionId,
+      });
+    },
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
       const isSelected =
         statuses.every((s) => filters.statuses.include.includes(s)) &&
@@ -756,7 +768,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             onDeleteTask: handleDeleteTask,
             onAddTask: handleAddTask,
             onEditTask: setEditingTask,
-            onAICommand: handleAICommand,
+            onAICommand: handleInputAICommand,
             onItemClick,
             renderTitle,
           }}
@@ -781,6 +793,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               voiceRuntime,
               hasAgentSession: agentSessions.length > 0,
               isAgentPanelOpen: agentPanelState.isOpen,
+              isAgentConversationActive:
+                agentPanelState.activeSessionId !== null,
               agentPanelUnreadCount: agentPanelState.unreadCount,
               onOpenAgentPanel: openAgentPanel,
               onOpenSettings:
@@ -930,6 +944,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   sessions={agentSessions}
                   activeSessionId={agentPanelState.activeSessionId}
                   onSelectSession={selectAgentSession}
+                  onStartNewSession={startNewAgentSession}
                   onClose={closeAgentPanel}
                   onClear={clearAgentPanel}
                 />

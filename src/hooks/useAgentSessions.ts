@@ -93,6 +93,14 @@ export function reduceAgentSessions(
             createEntry(event, "assistant", "Agent", event.text),
           ],
         };
+      case "user-message":
+        return {
+          ...updateSessionStatus(session, "running", event.timestamp),
+          entries: [
+            ...session.entries,
+            createEntry(event, "user", "You", event.text),
+          ],
+        };
       case "tool-call":
         return {
           ...session,
