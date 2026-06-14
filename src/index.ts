@@ -27,6 +27,7 @@ export type {
   DateGroupBy,
   ProviderConfig,
   AIConfig,
+  VoiceConfig,
   AppSettings,
   FilterRule,
   FilterState,
@@ -41,6 +42,11 @@ export type {
 
 // Export utilities
 export { cn, deriveTaskStatus } from "./utils";
+export type {
+  VoiceRuntime,
+  VoiceRuntimeRequest,
+  VoiceRuntimeResponse,
+} from "./utils/voice-providers";
 export { TasksTimelineApp } from "./TasksTimelineApp";
 export type { TasksTimelineAppProps } from "./TasksTimelineApp";
 export * from "./index.css";

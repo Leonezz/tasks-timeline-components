@@ -28,6 +28,7 @@ import type {
   ToastVariant,
   TokenUsageRecord,
 } from "./types";
+import type { VoiceRuntime } from "./utils/voice-providers";
 import { cn, deriveTaskStatus } from "./utils";
 import { logger } from "./utils/logger";
 import { BrowserSettingsRepository } from "./storage";
@@ -154,6 +155,8 @@ export interface TasksTimelineAppProps {
   aiCapabilityContext?: CapabilityContext;
   /** Fully constructed host capabilities for the built-in AI agent. */
   aiCapabilities?: Capabilities;
+  /** Host runtime for voice input in embedded environments such as Obsidian. */
+  voiceRuntime?: VoiceRuntime;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -172,6 +175,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   aiProviderFactory,
   aiCapabilityContext,
   aiCapabilities,
+  voiceRuntime,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
     [editingTask, setEditingTask] = useState<Task | null>(null),
@@ -689,6 +693,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               sort,
               onSortChange: setSort,
               onVoiceError: handleVoiceError,
+              voiceRuntime,
               onOpenSettings:
                 settings.settingButtonOnInputBar === false
                   ? undefined

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BrowserVoiceProvider,
   OpenAIWhisperProvider,
@@ -6,6 +6,7 @@ import {
   type IVoiceProvider,
   type VoiceInputResult,
   type VoiceInputError,
+  type VoiceRuntime,
 } from "../utils/voice-providers";
 import type { VoiceConfig } from "../types";
 import { logger } from "../utils/logger";
@@ -14,9 +15,28 @@ export const useVoiceInput = (
   voiceConfig: VoiceConfig,
   onResult: (text: string) => void,
   onError: (msg: string) => void,
+  runtime?: VoiceRuntime,
 ) => {
   const [isListening, setIsListening] = useState(false);
-  const [stopFn, setStopFn] = useState<(() => void) | null>(null);
+  const stopRef = useRef<(() => void) | null>(null);
+
+  const stop = useCallback(() => {
+    const stopFn = stopRef.current;
+    stopRef.current = null;
+    if (stopFn) {
+      stopFn();
+    }
+    setIsListening(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (stopRef.current) {
+        stopRef.current();
+        stopRef.current = null;
+      }
+    };
+  }, []);
 
   const start = useCallback(() => {
     if (!voiceConfig.enabled) {
@@ -24,18 +44,29 @@ export const useVoiceInput = (
       return;
     }
 
+    if (stopRef.current) {
+      stopRef.current();
+      stopRef.current = null;
+    }
+
     // Get the appropriate provider
     let provider: IVoiceProvider | null = null;
 
     switch (voiceConfig.activeProvider) {
       case "browser":
-        provider = new BrowserVoiceProvider();
+        provider = new BrowserVoiceProvider(runtime);
         break;
       case "openai":
-        provider = new OpenAIWhisperProvider(voiceConfig.providers.openai);
+        provider = new OpenAIWhisperProvider(
+          voiceConfig.providers.openai,
+          runtime,
+        );
         break;
       case "gemini":
-        provider = new GeminiSpeechProvider(voiceConfig.providers.gemini);
+        provider = new GeminiSpeechProvider(
+          voiceConfig.providers.gemini,
+          runtime,
+        );
         break;
       default:
         onError(`Unknown voice provider: ${voiceConfig.activeProvider}`);
@@ -50,23 +81,33 @@ export const useVoiceInput = (
     }
 
     logger.info("Voice", `Starting ${provider.getName()}...`, {
-      language: voiceConfig.language || navigator.language,
+      language:
+        voiceConfig.language ||
+        runtime?.win?.navigator.language ||
+        (typeof navigator !== "undefined" ? navigator.language : "en-US"),
     });
 
     setIsListening(true);
+    let finished = false;
+
+    const finish = () => {
+      finished = true;
+      stopRef.current = null;
+      setIsListening(false);
+    };
 
     const handleResult = (result: VoiceInputResult) => {
       logger.info("Voice", "Transcription received", {
         text: result.transcript,
         confidence: result.confidence,
       });
-      setIsListening(false);
+      finish();
       onResult(result.transcript);
     };
 
     const handleError = (error: VoiceInputError) => {
       logger.error("Voice", "Voice input error", error);
-      setIsListening(false);
+      finish();
       onError(error.message);
     };
 
@@ -74,18 +115,13 @@ export const useVoiceInput = (
       voiceConfig.language,
       handleResult,
       handleError,
+      finish,
     );
 
-    setStopFn(() => cleanup);
-  }, [voiceConfig, onResult, onError]);
-
-  const stop = useCallback(() => {
-    if (stopFn) {
-      stopFn();
-      setStopFn(null);
+    if (!finished) {
+      stopRef.current = cleanup;
     }
-    setIsListening(false);
-  }, [stopFn]);
+  }, [voiceConfig, onResult, onError, runtime]);
 
   return { isListening, start, stop };
 };

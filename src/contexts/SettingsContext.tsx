@@ -1,5 +1,6 @@
 import { type ReactNode, createContext, useContext } from "react";
 import type { AppSettings, FilterState, SortState } from "../types";
+import type { VoiceRuntime } from "../utils/voice-providers";
 
 /* eslint-disable react-refresh/only-export-components */
 export interface SettingsContextType {
@@ -14,6 +15,7 @@ export interface SettingsContextType {
   sort: SortState;
   onSortChange: (sort: SortState) => void;
   onVoiceError: (msg: string) => void;
+  voiceRuntime?: VoiceRuntime;
   onOpenSettings?: () => void;
 }
 

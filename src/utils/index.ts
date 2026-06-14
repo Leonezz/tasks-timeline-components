@@ -34,6 +34,9 @@ export {
   type IVoiceProvider,
   type VoiceInputResult,
   type VoiceInputError,
+  type VoiceRuntime,
+  type VoiceRuntimeRequest,
+  type VoiceRuntimeResponse,
 } from "./voice-providers";
 
 /**

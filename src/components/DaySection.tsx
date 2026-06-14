@@ -24,7 +24,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   const { containerRef, contentRef, isNearViewport, placeholderHeight } =
       useLazyRender(group.tasks.length, { enabled: lazy }),
     { onAddTask, onAICommand, availableCategories } = useTasksContext(),
-    { settings, isAiMode, onVoiceError } = useSettingsContext(),
+    { settings, isAiMode, onVoiceError, voiceRuntime } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true),
     [isAdding, setIsAdding] = useState(false),
     [newTaskTitle, setNewTaskTitle] = useState(""),
@@ -50,6 +50,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
       settings.voiceConfig,
       (text) => setNewTaskTitle((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
+      voiceRuntime,
     ),
     // Parse the ISO date string from the group key
     dt = DateTime.fromISO(group.date),
