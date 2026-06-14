@@ -346,12 +346,12 @@
    COMPONENT RESETS & GLOBAL STYLES
    ============================================================================ */
 
-.tasks-timeline-app button,
-.tasks-timeline-app input[type="text"],
-.tasks-timeline-app input[type="search"],
-.tasks-timeline-app input[type="number"],
-.tasks-timeline-app input[type="date"],
-.tasks-timeline-app input[type="datetime-local"] {
+:where(.tasks-timeline-app button),
+:where(.tasks-timeline-app input[type="text"]),
+:where(.tasks-timeline-app input[type="search"]),
+:where(.tasks-timeline-app input[type="number"]),
+:where(.tasks-timeline-app input[type="date"]),
+:where(.tasks-timeline-app input[type="datetime-local"]) {
   /* Reset to transparent/initial so Tailwind can take over fully */
   background-image: none;
   border: 1px solid transparent;
