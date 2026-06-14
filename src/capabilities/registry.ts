@@ -17,6 +17,13 @@ import { createGetTaskStatsTool } from "./tools/get-task-stats";
 import { createGetTodayPlanTool } from "./tools/get-today-plan";
 import { createNotifyUserTool } from "./tools/notify-user";
 import { createAskUserTool } from "./tools/ask-user";
+import {
+  createGetViewSettingsTool,
+  createResetViewSettingsTool,
+  createSetTaskFiltersTool,
+  createSetTaskSortTool,
+  createUpdateViewSettingsTool,
+} from "./tools/settings";
 import { createAllTasksResource } from "./resources/all-tasks";
 import { createTaskByIdResource } from "./resources/task-by-id";
 import { createFilteredTasksResources } from "./resources/filtered-tasks";
@@ -39,6 +46,11 @@ export function createCapabilities(ctx: CapabilityContext): Capabilities {
     createGetTodayPlanTool(ctx),
     createNotifyUserTool(ctx),
     createAskUserTool(ctx),
+    createGetViewSettingsTool(ctx),
+    createUpdateViewSettingsTool(ctx),
+    createSetTaskFiltersTool(ctx),
+    createSetTaskSortTool(ctx),
+    createResetViewSettingsTool(ctx),
   ];
 
   const resources: ResourceSpec[] = [

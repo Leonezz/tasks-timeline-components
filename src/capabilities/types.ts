@@ -8,6 +8,7 @@ export interface CapabilityContext {
   updateTask(task: Task): Promise<void>;
   deleteTask(id: string): Promise<void>;
   getSettings?(): AppSettings | null;
+  updateSettings?(settings: AppSettings): Promise<void> | void;
   notify?(
     type: "success" | "error" | "info" | "warning",
     message: string,

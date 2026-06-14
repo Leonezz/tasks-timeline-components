@@ -28,6 +28,7 @@ export interface UseAIAgentOptions {
   providerFactory?: AIProviderFactory;
   capabilities?: Capabilities;
   capabilityContext?: CapabilityContext;
+  updateSettings?: (settings: AppSettings) => void | Promise<void>;
   onAgentEvent?: (event: AgentEvent) => void;
   shouldNotifyAgentResponse?: () => boolean;
 }
@@ -77,12 +78,17 @@ export const useAIAgent = (
   options?: UseAIAgentOptions,
 ) => {
   const tasksRef = useRef(tasks),
+    settingsRef = useRef(settings),
     historiesRef = useRef<Map<string, ChatMessage[]>>(new Map());
 
   // Update ref when tasks change to access latest state in async callbacks
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const handleAICommand = async (
     input: string,
@@ -141,7 +147,12 @@ export const useAIAgent = (
           await onTaskDeleted(id, previous);
         }
       },
-      getSettings: () => settings,
+      getSettings: () => settingsRef.current,
+      updateSettings: options?.updateSettings
+        ? async (nextSettings) => {
+            await options.updateSettings?.(nextSettings);
+          }
+        : undefined,
       notify: (type, message) => onNotify(type, message),
       showToast: onShowToast
         ? (toast) =>

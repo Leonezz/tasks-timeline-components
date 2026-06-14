@@ -723,6 +723,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         addNotification("error", "Add Failed", "Could not create task");
       }
     },
+    applyAgentSettings = useCallback((nextSettings: AppSettings) => {
+      setSettings(nextSettings);
+      setFilters(nextSettings.filters);
+      setSort(nextSettings.sort);
+    }, []),
     { handleAICommand } = useAIAgent(
       tasks,
       onTaskAdded,
@@ -741,6 +746,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         providerFactory: aiProviderFactory,
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
+        updateSettings: applyAgentSettings,
         onAgentEvent: handleAgentEvent,
         shouldNotifyAgentResponse: () => !agentPanelState.isOpen,
       },

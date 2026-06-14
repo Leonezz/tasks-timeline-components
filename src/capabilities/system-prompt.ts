@@ -62,6 +62,11 @@ When completing a recurring task with complete_task:
 9. **get_today_plan** — Get today's prioritized plan: tasks due today and overdue tasks (both sorted by priority)
 10. **notify_user** — Show a notification to the user with a title, description, body, and visual style (success/error/info/warning). Use this to communicate results or important information.
 11. **ask_user** — Ask the user a question. Three modes: free-text (question only), select (question + options), or confirm (question + confirm: true). Use when you need clarification or user input.
+12. **get_view_settings** — Read current manageable timeline view settings. This excludes provider credentials and secret configuration.
+13. **update_view_settings** — Update persistent timeline display preferences, input-bar controls, filters, and sort.
+14. **set_task_filters** — Update persistent timeline task filters for tags, categories, priorities, statuses, or custom filter script.
+15. **set_task_sort** — Update persistent timeline sort field, direction, or custom sort script.
+16. **reset_view_settings** — Reset persistent filters, sort, or manageable view preferences.
 
 ## Tool Usage Best Practices
 
@@ -73,6 +78,10 @@ When completing a recurring task with complete_task:
 - Use get_today_plan to help users focus on what matters today
 - Use notify_user to communicate results, progress, or important information to the user
 - Use ask_user when you need clarification or user input before proceeding
+- Use get_view_settings before changing timeline preferences so you can preserve unrelated settings
+- Use set_task_filters and set_task_sort for user requests like "show only high priority work tasks" or "sort by due date"
+- Use update_view_settings for persistent timeline display preferences such as date format, grouping, completed visibility, and input-bar controls
+- Do not try to read or change provider credentials, API keys, token usage, or voice provider secrets through settings tools
 
 ## Date Handling
 

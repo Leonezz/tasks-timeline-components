@@ -33,9 +33,11 @@ describe("Capability types", () => {
       updateTask: vi.fn().mockResolvedValue(undefined),
       deleteTask: vi.fn().mockResolvedValue(undefined),
       getSettings: vi.fn().mockReturnValue(null),
+      updateSettings: vi.fn().mockResolvedValue(undefined),
       notify: vi.fn(),
     };
     expect(ctx.getSettings).toBeDefined();
+    expect(ctx.updateSettings).toBeDefined();
     expect(ctx.notify).toBeDefined();
   });
 
