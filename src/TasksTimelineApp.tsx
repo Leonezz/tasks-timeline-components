@@ -142,8 +142,8 @@ interface AgentPanelState {
 type AgentPanelAction =
   | { type: "open" }
   | { type: "close" }
-  | { type: "clear" }
   | { type: "select"; sessionId: string }
+  | { type: "delete-session"; sessionId: string; nextSessionId: string | null }
   | { type: "new-session" }
   | { type: "event"; event: AgentEvent };
 
@@ -162,10 +162,17 @@ function agentPanelReducer(
       return { ...state, isOpen: true, unreadCount: 0 };
     case "close":
       return { ...state, isOpen: false };
-    case "clear":
-      return { ...state, activeSessionId: null, unreadCount: 0 };
     case "select":
       return { ...state, activeSessionId: action.sessionId, unreadCount: 0 };
+    case "delete-session":
+      return {
+        ...state,
+        activeSessionId:
+          state.activeSessionId === action.sessionId
+            ? action.nextSessionId
+            : state.activeSessionId,
+        unreadCount: 0,
+      };
     case "new-session":
       return { ...state, isOpen: true, activeSessionId: null, unreadCount: 0 };
     case "event":
@@ -282,21 +289,34 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Defer filter updates to keep UI responsive during rapid filter changes
     deferredFilters = useDeferredValue(filters);
 
-  const {
-      agentSessions,
-      emitAgentEvent,
-      clearAgentSessions,
-    } = useAgentSessions(onAgentEvent),
+  const { agentSessions, emitAgentEvent, removeAgentSession } =
+      useAgentSessions(onAgentEvent),
     openAgentPanel = useCallback(() => {
       dispatchAgentPanel({ type: "open" });
     }, []),
     closeAgentPanel = useCallback(() => {
       dispatchAgentPanel({ type: "close" });
     }, []),
-    clearAgentPanel = useCallback(() => {
-      clearAgentSessions();
-      dispatchAgentPanel({ type: "clear" });
-    }, [clearAgentSessions]),
+    deleteAgentPanelSession = useCallback(
+      (sessionId: string) => {
+        const nextSessionId =
+          [...agentSessions]
+            .filter((session) => session.id !== sessionId)
+            .sort(
+              (a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime(),
+            )[0]?.id ?? null;
+
+        removeAgentSession(sessionId);
+        dispatchAgentPanel({
+          type: "delete-session",
+          sessionId,
+          nextSessionId,
+        });
+      },
+      [agentSessions, removeAgentSession],
+    ),
     selectAgentSession = useCallback((sessionId: string) => {
       dispatchAgentPanel({ type: "select", sessionId });
     }, []),
@@ -947,7 +967,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   onStartNewSession={startNewAgentSession}
                   onSendMessage={handleInputAICommand}
                   onClose={closeAgentPanel}
-                  onClear={clearAgentPanel}
+                  onDeleteSession={deleteAgentPanelSession}
                 />
 
                 <ErrorBoundary

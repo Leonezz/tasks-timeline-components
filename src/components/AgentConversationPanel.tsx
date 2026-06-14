@@ -1,4 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AnimatePresence } from "framer-motion";
 import type { AgentEntry, AgentSession, LucideIconName } from "../types";
 import { cn } from "../utils";
@@ -12,9 +18,10 @@ interface AgentConversationPanelProps {
   activeSessionId: string | null;
   onSelectSession: (sessionId: string) => void;
   onStartNewSession: () => void;
+  onDeleteSession?: (sessionId: string) => void;
   onSendMessage: (message: string) => void | Promise<void>;
   onClose: () => void;
-  onClear: () => void;
+  onClear?: () => void;
 }
 
 function formatTime(value: string): string {
@@ -83,11 +90,112 @@ function getStatusStyles(status: AgentSession["status"]): string {
   }
 }
 
+function isProcessEntry(entry: AgentEntry): boolean {
+  return (
+    entry.kind === "status" ||
+    entry.kind === "tool-call" ||
+    entry.kind === "tool-result"
+  );
+}
+
+type AgentConversationDisplayItem =
+  | { type: "entry"; entry: AgentEntry }
+  | { type: "process"; id: string; entries: AgentEntry[] };
+
+function groupAgentEntriesForDisplay(
+  entries: AgentEntry[],
+): AgentConversationDisplayItem[] {
+  const items: AgentConversationDisplayItem[] = [];
+  let processEntries: AgentEntry[] = [];
+
+  entries.forEach((entry) => {
+    if (isProcessEntry(entry)) {
+      processEntries.push(entry);
+      return;
+    }
+
+    if (processEntries.length > 0) {
+      items.push({
+        type: "process",
+        id: `process-${processEntries[0].id}`,
+        entries: processEntries,
+      });
+      processEntries = [];
+    }
+
+    items.push({ type: "entry", entry });
+  });
+
+  if (processEntries.length > 0) {
+    items.push({
+      type: "process",
+      id: `process-${processEntries[0].id}`,
+      entries: processEntries,
+    });
+  }
+
+  return items;
+}
+
+function formatPayloadForCopy(payload: unknown): string | null {
+  if (payload === undefined || payload === null) {
+    return null;
+  }
+
+  try {
+    return typeof payload === "string"
+      ? payload
+      : JSON.stringify(payload, null, 2);
+  } catch {
+    return String(payload);
+  }
+}
+
+function formatEntryForCopy(entry: AgentEntry): string {
+  const parts = [
+    `## ${entry.title} (${entry.kind})`,
+    `Time: ${entry.timestamp}`,
+  ];
+
+  if (entry.body) {
+    parts.push("", entry.body);
+  }
+
+  const payload = formatPayloadForCopy(entry.payload);
+  if (payload) {
+    parts.push("", "```json", payload, "```");
+  }
+
+  return parts.join("\n");
+}
+
+function formatTrajectoryForCopy(session: AgentSession): string {
+  return [
+    "# Agent conversation trajectory",
+    `Session: ${session.id}`,
+    `Status: ${session.status}`,
+    `Provider: ${session.provider}`,
+    `Model: ${session.model || "default model"}`,
+    `Started: ${session.startedAt}`,
+    `Updated: ${session.updatedAt}`,
+    "",
+    `Prompt: ${session.prompt}`,
+    "",
+    ...session.entries.map(formatEntryForCopy),
+  ].join("\n\n");
+}
+
+async function copyTextToClipboard(text: string): Promise<void> {
+  if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+    throw new Error("Clipboard API is not available.");
+  }
+
+  await navigator.clipboard.writeText(text);
+}
+
 const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
-  const payload = stringifyPayload(entry.payload);
   const isUser = entry.kind === "user";
   const isAssistant = entry.kind === "assistant";
-  const preview = getEntryPreview(entry, payload);
 
   if (isUser || isAssistant || entry.kind === "error") {
     return (
@@ -141,53 +249,114 @@ const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
     );
   }
 
+  return null;
+};
+
+const AgentProcessEntry: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
+  const payload = stringifyPayload(entry.payload);
+  const preview = getEntryPreview(entry, payload);
+
   return (
-    <div className="px-4 py-1.5">
-      <details className="group rounded-md border border-slate-100 bg-slate-50/70 text-slate-600">
-        <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-white/55 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
-          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
-            <Icon name={getEntryIcon(entry)} size={14} />
+    <details className="group rounded-md border border-slate-100 bg-white/80 text-slate-600">
+      <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
+          <Icon name={getEntryIcon(entry)} size={14} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="truncate text-[11px] font-semibold text-slate-500">
+              {entry.title}
+            </h4>
+            <span className="shrink-0 font-mono text-[10px] text-slate-400">
+              {formatTime(entry.timestamp)}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-xs leading-relaxed text-slate-500">
+            {preview}
+          </p>
+        </div>
+        <Icon
+          name="ChevronDown"
+          size={14}
+          className="mt-1 shrink-0 text-slate-300 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      {(entry.body || payload) && (
+        <div className="border-t border-slate-100 px-3 pb-2 pt-2">
+          {entry.body && (
+            <MarkdownText
+              content={entry.body}
+              className="text-xs leading-relaxed text-slate-500"
+              compact
+            />
+          )}
+          {payload && (
+            <details className={cn(entry.body ? "mt-2" : undefined)}>
+              <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600">
+                Payload
+              </summary>
+              <pre className="mt-1 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
+                {payload}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
+    </details>
+  );
+};
+
+const AgentProcessBlock: React.FC<{ entries: AgentEntry[] }> = ({
+  entries,
+}) => {
+  const toolCount = entries.filter(
+    (entry) => entry.kind === "tool-call",
+  ).length;
+  const lastEntry = entries[entries.length - 1];
+  const statusLabels = entries
+    .filter((entry) => entry.kind === "status")
+    .map((entry) => entry.body)
+    .filter(Boolean)
+    .slice(-2);
+  const summaryParts = [
+    `${entries.length} step${entries.length === 1 ? "" : "s"}`,
+    toolCount > 0
+      ? `${toolCount} tool${toolCount === 1 ? "" : "s"}`
+      : undefined,
+    ...statusLabels,
+  ].filter(Boolean);
+
+  return (
+    <div className="px-4 py-2">
+      <details className="group rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-100">
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+            <Icon name="Workflow" size={15} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <h4 className="truncate text-[11px] font-semibold text-slate-500">
-                {entry.title}
+              <h4 className="truncate text-xs font-bold text-slate-600">
+                Agent process
               </h4>
               <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                {formatTime(entry.timestamp)}
+                {formatTime(lastEntry?.timestamp ?? "")}
               </span>
             </div>
-            <p className="mt-0.5 truncate text-xs leading-relaxed text-slate-500">
-              {preview}
+            <p className="mt-0.5 truncate text-[11px] leading-relaxed text-slate-400">
+              {summaryParts.join(" · ")}
             </p>
           </div>
           <Icon
             name="ChevronDown"
-            size={14}
-            className="mt-1 shrink-0 text-slate-300 transition-transform group-open:rotate-180"
+            size={15}
+            className="shrink-0 text-slate-300 transition-transform group-open:rotate-180"
           />
         </summary>
-        {(entry.body || payload) && (
-          <div className="border-t border-slate-100 px-3 pb-2 pt-2">
-            {entry.body && (
-              <MarkdownText
-                content={entry.body}
-                className="text-xs leading-relaxed text-slate-500"
-                compact
-              />
-            )}
-            {payload && (
-              <details className={cn(entry.body ? "mt-2" : undefined)}>
-                <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600">
-                  Payload
-                </summary>
-                <pre className="mt-1 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
-                  {payload}
-                </pre>
-              </details>
-            )}
-          </div>
-        )}
+        <div className="space-y-2 border-t border-slate-100 bg-slate-50/60 p-3">
+          {entries.map((entry) => (
+            <AgentProcessEntry key={entry.id} entry={entry} />
+          ))}
+        </div>
       </details>
     </div>
   );
@@ -272,10 +441,15 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
   activeSessionId,
   onSelectSession,
   onStartNewSession,
+  onDeleteSession,
   onSendMessage,
   onClose,
   onClear,
 }) => {
+  const copyResetTimerRef = useRef<number | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
   const activeSession = activeSessionId
     ? (sessions.find((session) => session.id === activeSessionId) ?? null)
     : null;
@@ -288,6 +462,58 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
       ),
     [sessions],
   );
+  const activeTrajectory = useMemo(
+    () => (activeSession ? formatTrajectoryForCopy(activeSession) : ""),
+    [activeSession],
+  );
+  const displayItems = useMemo(
+    () =>
+      activeSession ? groupAgentEntriesForDisplay(activeSession.entries) : [],
+    [activeSession],
+  );
+
+  useEffect(
+    () => () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const handleDeleteActiveSession = useCallback(() => {
+    if (!activeSession) {
+      return;
+    }
+
+    if (onDeleteSession) {
+      onDeleteSession(activeSession.id);
+      return;
+    }
+
+    onClear?.();
+  }, [activeSession, onClear, onDeleteSession]);
+
+  const handleCopyTrajectory = useCallback(async () => {
+    if (!activeTrajectory) {
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(activeTrajectory);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+
+    if (copyResetTimerRef.current !== null) {
+      window.clearTimeout(copyResetTimerRef.current);
+    }
+    copyResetTimerRef.current = window.setTimeout(() => {
+      setCopyState("idle");
+      copyResetTimerRef.current = null;
+    }, 1600);
+  }, [activeTrajectory]);
 
   return (
     <AnimatePresence>
@@ -324,6 +550,39 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {activeSession && (
+                <button
+                  type="button"
+                  onClick={() => void handleCopyTrajectory()}
+                  className={cn(
+                    "rounded-md p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                    copyState === "copied"
+                      ? "text-emerald-500"
+                      : copyState === "error"
+                        ? "text-rose-500"
+                        : "text-slate-400 hover:bg-white hover:text-blue-500",
+                  )}
+                  aria-label="Copy agent trajectory"
+                  title={
+                    copyState === "copied"
+                      ? "Copied agent trajectory"
+                      : copyState === "error"
+                        ? "Could not copy agent trajectory"
+                        : "Copy agent trajectory"
+                  }
+                >
+                  <Icon
+                    name={
+                      copyState === "copied"
+                        ? "Check"
+                        : copyState === "error"
+                          ? "AlertCircle"
+                          : "Copy"
+                    }
+                    size={15}
+                  />
+                </button>
+              )}
               {sessions.length > 0 && (
                 <button
                   type="button"
@@ -340,13 +599,13 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                   <Icon name="Plus" size={15} />
                 </button>
               )}
-              {sessions.length > 0 && (
+              {activeSession && (
                 <button
                   type="button"
-                  onClick={onClear}
+                  onClick={handleDeleteActiveSession}
                   className="rounded-md p-2 text-slate-400 transition-colors hover:bg-white hover:text-rose-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  aria-label="Clear agent conversation"
-                  title="Clear agent conversation"
+                  aria-label="Delete current agent conversation"
+                  title="Delete current agent conversation"
                 >
                   <Icon name="Trash2" size={15} />
                 </button>
@@ -365,20 +624,17 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
 
           {sessions.length > 0 && (
             <div className="no-scrollbar flex snap-x gap-1 overflow-x-auto border-b border-slate-100 bg-white px-3 py-2">
-              <button
-                type="button"
-                onClick={onStartNewSession}
-                aria-pressed={isComposingNewSession}
-                className={cn(
-                  "max-w-44 shrink-0 snap-start rounded-md border px-2 py-1 text-left text-[11px] font-semibold transition-colors",
-                  isComposingNewSession
-                    ? "border-blue-300 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50",
-                )}
-              >
-                <span className="block truncate">New conversation</span>
-                <span className="block truncate font-normal">New thread</span>
-              </button>
+              {isComposingNewSession && (
+                <button
+                  type="button"
+                  onClick={onStartNewSession}
+                  aria-pressed
+                  className="max-w-44 shrink-0 snap-start rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-left text-[11px] font-semibold text-blue-700 transition-colors"
+                >
+                  <span className="block truncate">New conversation</span>
+                  <span className="block truncate font-normal">New thread</span>
+                </button>
+              )}
               {sortedSessions.map((session) => (
                 <button
                   type="button"
@@ -427,9 +683,13 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                   </span>
                 </div>
 
-                {activeSession.entries.map((entry) => (
-                  <AgentEntryRow key={entry.id} entry={entry} />
-                ))}
+                {displayItems.map((item) =>
+                  item.type === "process" ? (
+                    <AgentProcessBlock key={item.id} entries={item.entries} />
+                  ) : (
+                    <AgentEntryRow key={item.entry.id} entry={item.entry} />
+                  ),
+                )}
               </div>
             ) : (
               <div className="flex min-h-44 flex-col items-center justify-center px-4 py-8 text-center text-slate-400">

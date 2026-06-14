@@ -147,9 +147,14 @@ export function reduceAgentSessions(
   });
 }
 
-export function useAgentSessions(
-  onAgentEvent?: (event: AgentEvent) => void,
-) {
+export function removeAgentSessionById(
+  sessions: AgentSession[],
+  sessionId: string,
+): AgentSession[] {
+  return sessions.filter((session) => session.id !== sessionId);
+}
+
+export function useAgentSessions(onAgentEvent?: (event: AgentEvent) => void) {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
 
   const emitAgentEvent = useCallback(
@@ -164,9 +169,14 @@ export function useAgentSessions(
     setSessions([]);
   }, []);
 
+  const removeAgentSession = useCallback((sessionId: string) => {
+    setSessions((current) => removeAgentSessionById(current, sessionId));
+  }, []);
+
   return {
     agentSessions: sessions,
     emitAgentEvent,
     clearAgentSessions,
+    removeAgentSession,
   };
 }

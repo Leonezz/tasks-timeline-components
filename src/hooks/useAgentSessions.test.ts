@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { AgentEvent, AgentSession } from "../types";
-import { reduceAgentSessions } from "./useAgentSessions";
+import {
+  reduceAgentSessions,
+  removeAgentSessionById,
+} from "./useAgentSessions";
 
 function applyEvents(events: AgentEvent[]): AgentSession[] {
   return events.reduce<AgentSession[]>(
@@ -149,6 +152,33 @@ describe("reduceAgentSessions", () => {
     expect(sessions[0].entries.at(-1)).toMatchObject({
       title: "You",
       body: "What should I do after that?",
+    });
+  });
+
+  it("removes one session without clearing the remaining history", () => {
+    const sessions = applyEvents([
+      {
+        kind: "session-start",
+        sessionId: "session-1",
+        timestamp: "2026-06-14T00:00:00.000Z",
+        prompt: "First",
+        provider: "openai",
+        model: "gpt-4o",
+      },
+      {
+        kind: "session-start",
+        sessionId: "session-2",
+        timestamp: "2026-06-14T00:00:01.000Z",
+        prompt: "Second",
+        provider: "openai",
+        model: "gpt-4o",
+      },
+    ]);
+
+    expect(removeAgentSessionById(sessions, "session-1")).toHaveLength(1);
+    expect(removeAgentSessionById(sessions, "session-1")[0]).toMatchObject({
+      id: "session-2",
+      prompt: "Second",
     });
   });
 });
