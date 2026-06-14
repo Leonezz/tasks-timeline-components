@@ -346,7 +346,7 @@
    COMPONENT RESETS & GLOBAL STYLES
    ============================================================================ */
 
-@layer base {
+@layer tasks-timeline-app.base {
   :where(.tasks-timeline-app button),
   :where(.tasks-timeline-app input[type="text"]),
   :where(.tasks-timeline-app input[type="search"]),
