@@ -119,9 +119,30 @@ export const SettingsPageAI = ({
         },
       });
     },
+    updateProviderResponsesApi = (provider: AIProvider, value: boolean) => {
+      onUpdateSettings({
+        ...settings,
+        aiConfig: {
+          ...settings.aiConfig,
+          providers: {
+            ...settings.aiConfig.providers,
+            [provider]: {
+              ...settings.aiConfig.providers[provider],
+              useResponsesApi: value,
+            },
+          },
+        },
+      });
+    },
     activeProviderConfig =
       settings.aiConfig.providers[settings.aiConfig.activeProvider],
-    placeholders = AI_PROVIDER_PLACEHOLDERS[settings.aiConfig.activeProvider];
+    placeholders = AI_PROVIDER_PLACEHOLDERS[settings.aiConfig.activeProvider],
+    supportsResponsesApiToggle =
+      settings.aiConfig.activeProvider === "openai" ||
+      settings.aiConfig.activeProvider === "openai-compatible",
+    responsesApiEnabled =
+      activeProviderConfig.useResponsesApi ??
+      settings.aiConfig.activeProvider === "openai";
 
   const [testResult, setTestResult] = useState<TestResult | null>(null),
     [isTesting, setIsTesting] = useState(false),
@@ -405,6 +426,45 @@ export const SettingsPageAI = ({
                         />
                       </div>
                     </div>
+
+                    {supportsResponsesApiToggle && (
+                      <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2 py-2">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                            Responses API
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {settings.aiConfig.activeProvider ===
+                            "openai-compatible"
+                              ? "Enable only if this provider supports /responses."
+                              : "Turn off to use Chat Completions."}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateProviderResponsesApi(
+                              settings.aiConfig.activeProvider,
+                              !responsesApiEnabled,
+                            );
+                            setTestResult(null);
+                          }}
+                          aria-label="Toggle Responses API"
+                          className={cn(
+                            "relative h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                            responsesApiEnabled
+                              ? "bg-blue-500"
+                              : "bg-slate-200 dark:bg-slate-700",
+                          )}
+                        >
+                          <MotionSpan
+                            layout
+                            className="absolute left-1 top-1 block h-3 w-3 rounded-full bg-white shadow-sm"
+                            animate={{ x: responsesApiEnabled ? 16 : 0 }}
+                          />
+                        </button>
+                      </div>
+                    )}
 
                     {/* Test Connection Button */}
                     <div className="flex items-center gap-2 pt-1">

@@ -32,6 +32,35 @@ const DEFAULT_MODELS: Record<AISDKProviderType, string> = {
   "openai-compatible": "gpt-4o",
 };
 
+type OpenAILanguageModelMode = "responses" | "chat";
+
+function getOpenAILanguageModelMode(
+  type: AISDKProviderType,
+  config: ProviderConfig,
+): OpenAILanguageModelMode | undefined {
+  if (type === "openai") {
+    return config.useResponsesApi === false ? "chat" : "responses";
+  }
+
+  if (type === "openai-compatible") {
+    return config.useResponsesApi ? "responses" : "chat";
+  }
+
+  return undefined;
+}
+
+function createOpenAILanguageModel(
+  provider: ReturnType<typeof createOpenAI>,
+  model: string,
+  mode: OpenAILanguageModelMode,
+): LanguageModel {
+  if (mode === "chat") {
+    return provider.chat(model as Parameters<typeof provider.chat>[0]);
+  }
+
+  return provider(model as Parameters<typeof provider>[0]);
+}
+
 function createLanguageModel(
   type: AISDKProviderType,
   config: ProviderConfig,
@@ -52,7 +81,11 @@ function createLanguageModel(
         apiKey: config.apiKey,
         baseURL,
       });
-      return provider(model);
+      return createOpenAILanguageModel(
+        provider,
+        model,
+        getOpenAILanguageModelMode(type, config) ?? "responses",
+      );
     }
     case "anthropic": {
       const provider = createAnthropic({
@@ -67,7 +100,11 @@ function createLanguageModel(
         baseURL,
         name: "openai-compatible",
       });
-      return provider(model);
+      return createOpenAILanguageModel(
+        provider,
+        model,
+        getOpenAILanguageModelMode(type, config) ?? "chat",
+      );
     }
   }
 }
@@ -274,7 +311,7 @@ export class AISDKProvider implements IAIProvider {
 
       return {
         success: true,
-        message: `Connected to ${this.config.model || DEFAULT_MODELS[this.type]}. Response: "${response.text.trim()}"`,
+        message: `Connected to ${this.config.model || DEFAULT_MODELS[this.type]}${this.connectionModeLabel()}. Response: "${response.text.trim()}"`,
       };
     } catch (error) {
       return {
@@ -282,5 +319,12 @@ export class AISDKProvider implements IAIProvider {
         message: error instanceof Error ? error.message : "Unknown error",
       };
     }
+  }
+
+  private connectionModeLabel(): string {
+    const mode = getOpenAILanguageModelMode(this.type, this.config);
+    if (mode === "responses") return " via Responses API";
+    if (mode === "chat") return " via Chat Completions";
+    return "";
   }
 }

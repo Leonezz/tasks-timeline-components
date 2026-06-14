@@ -65,6 +65,8 @@ export interface ProviderConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+  /** OpenAI-family providers only. Disable to use Chat Completions instead of Responses API. */
+  useResponsesApi?: boolean;
 }
 
 export interface AIConfig {
