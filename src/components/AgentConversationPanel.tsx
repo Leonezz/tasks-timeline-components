@@ -42,6 +42,19 @@ function stringifyPayload(payload: unknown): string | null {
   }
 }
 
+function getEntryPreview(entry: AgentEntry, payload: string | null): string {
+  const bodyPreview = entry.body
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (bodyPreview) {
+    return bodyPreview;
+  }
+
+  return payload ? "Payload available" : "No additional details";
+}
+
 function getEntryIcon(entry: AgentEntry): LucideIconName {
   switch (entry.kind) {
     case "user":
@@ -74,6 +87,7 @@ const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   const payload = stringifyPayload(entry.payload);
   const isUser = entry.kind === "user";
   const isAssistant = entry.kind === "assistant";
+  const preview = getEntryPreview(entry, payload);
 
   if (isUser || isAssistant || entry.kind === "error") {
     return (
@@ -129,38 +143,52 @@ const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
 
   return (
     <div className="px-4 py-1.5">
-      <div className="flex items-start gap-2 rounded-md border border-slate-100 bg-slate-50/70 px-3 py-2 text-slate-600">
-        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
-          <Icon name={getEntryIcon(entry)} size={14} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="truncate text-[11px] font-semibold text-slate-500">
-              {entry.title}
-            </h4>
-            <span className="shrink-0 font-mono text-[10px] text-slate-400">
-              {formatTime(entry.timestamp)}
-            </span>
+      <details className="group rounded-md border border-slate-100 bg-slate-50/70 text-slate-600">
+        <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-white/55 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
+            <Icon name={getEntryIcon(entry)} size={14} />
           </div>
-          {entry.body && (
-            <MarkdownText
-              content={entry.body}
-              className="mt-1 text-xs leading-relaxed text-slate-500"
-              compact
-            />
-          )}
-          {payload && (
-            <details className="mt-1">
-              <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600">
-                Payload
-              </summary>
-              <pre className="mt-1 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
-                {payload}
-              </pre>
-            </details>
-          )}
-        </div>
-      </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="truncate text-[11px] font-semibold text-slate-500">
+                {entry.title}
+              </h4>
+              <span className="shrink-0 font-mono text-[10px] text-slate-400">
+                {formatTime(entry.timestamp)}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-xs leading-relaxed text-slate-500">
+              {preview}
+            </p>
+          </div>
+          <Icon
+            name="ChevronDown"
+            size={14}
+            className="mt-1 shrink-0 text-slate-300 transition-transform group-open:rotate-180"
+          />
+        </summary>
+        {(entry.body || payload) && (
+          <div className="border-t border-slate-100 px-3 pb-2 pt-2">
+            {entry.body && (
+              <MarkdownText
+                content={entry.body}
+                className="text-xs leading-relaxed text-slate-500"
+                compact
+              />
+            )}
+            {payload && (
+              <details className={cn(entry.body ? "mt-2" : undefined)}>
+                <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600">
+                  Payload
+                </summary>
+                <pre className="mt-1 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
+                  {payload}
+                </pre>
+              </details>
+            )}
+          </div>
+        )}
+      </details>
     </div>
   );
 };
@@ -249,7 +277,7 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
   onClear,
 }) => {
   const activeSession = activeSessionId
-    ? sessions.find((session) => session.id === activeSessionId) ?? null
+    ? (sessions.find((session) => session.id === activeSessionId) ?? null)
     : null;
   const isComposingNewSession = sessions.length > 0 && !activeSession;
   const sortedSessions = useMemo(
@@ -349,9 +377,7 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                 )}
               >
                 <span className="block truncate">New conversation</span>
-                <span className="block truncate font-normal">
-                  New thread
-                </span>
+                <span className="block truncate font-normal">New thread</span>
               </button>
               {sortedSessions.map((session) => (
                 <button

@@ -55,11 +55,11 @@ describe("notify_user tool", () => {
       title: "Task created",
       description: "Your task was added.",
       body: undefined,
-      timeout: 8000,
+      timeout: null,
     });
   });
 
-  it("uses null timeout when explicitly set to null", async () => {
+  it("uses null timeout when explicitly set to null or 0", async () => {
     const tool = createNotifyUserTool(ctx);
     await tool.execute({
       variant: "info",
@@ -69,6 +69,29 @@ describe("notify_user tool", () => {
 
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({ timeout: null }),
+    );
+
+    await tool.execute({
+      variant: "info",
+      title: "Also persistent",
+      timeout: 0,
+    });
+
+    expect(mockShowToast).toHaveBeenLastCalledWith(
+      expect.objectContaining({ timeout: null }),
+    );
+  });
+
+  it("keeps explicit positive timeouts", async () => {
+    const tool = createNotifyUserTool(ctx);
+    await tool.execute({
+      variant: "info",
+      title: "Timed",
+      timeout: 3000,
+    });
+
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: 3000 }),
     );
   });
 

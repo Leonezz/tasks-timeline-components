@@ -148,7 +148,7 @@ export const useAIAgent = (
             onShowToast({
               ...toast,
               interaction: { kind: "dismiss" },
-              timeout: toast.timeout ?? 8000,
+              timeout: toast.timeout ?? null,
             })
         : undefined,
       confirm: onConfirm,

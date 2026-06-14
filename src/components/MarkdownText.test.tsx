@@ -5,7 +5,11 @@ import { MarkdownText } from "./MarkdownText";
 describe("MarkdownText", () => {
   it("renders paragraphs, lists, and code blocks", () => {
     const html = renderToStaticMarkup(
-      <MarkdownText content={"Plan:\n\n- Review tasks\n- Ship UI\n\n```ts\nconst ok = true;\n```"} />,
+      <MarkdownText
+        content={
+          "Plan:\n\n- Review tasks\n- Ship UI\n\n```ts\nconst ok = true;\n```"
+        }
+      />,
     );
 
     expect(html).toContain("<p");
@@ -34,5 +38,24 @@ describe("MarkdownText", () => {
     expect(html).not.toContain("javascript:");
     expect(html).not.toContain("<a ");
     expect(html).toContain("bad");
+  });
+
+  it("renders markdown tables with inline content and alignment", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText
+        content={
+          "| Task | Status | Count |\n| :--- | :---: | ---: |\n| **Ship** | `done` | 3 |"
+        }
+      />,
+    );
+
+    expect(html).toContain("<table");
+    expect(html).toContain("<th");
+    expect(html).toContain("<td");
+    expect(html).toContain("text-left");
+    expect(html).toContain("text-center");
+    expect(html).toContain("text-right");
+    expect(html).toContain("<strong");
+    expect(html).toContain("<code");
   });
 });

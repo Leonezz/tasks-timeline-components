@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
+import ReactMarkdown, {
+  type Components,
+  type UrlTransform,
+} from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "../utils";
-
-type MarkdownBlock =
-  | { type: "paragraph"; lines: string[] }
-  | { type: "code"; code: string; language?: string }
-  | { type: "list"; ordered: boolean; items: string[] };
 
 export interface MarkdownTextProps {
   content: string;
@@ -18,298 +18,76 @@ export interface MarkdownTextProps {
   compact?: boolean;
 }
 
-const FENCE_MARKER = "```";
+const REMARK_PLUGINS = [remarkGfm];
+const DISALLOWED_ELEMENTS = ["img"];
 
-function parseListItem(
-  line: string,
-): { ordered: boolean; content: string } | null {
-  const unorderedMatch = /^\s*[-*+]\s+(.+)$/.exec(line);
-  if (unorderedMatch) {
-    return { ordered: false, content: unorderedMatch[1] };
+function getSafeUrl(url: string, key: string): string | undefined {
+  if (key !== "href" && key !== "src") {
+    return undefined;
   }
 
-  const orderedMatch = /^\s*\d+[.)]\s+(.+)$/.exec(line);
-  if (orderedMatch) {
-    return { ordered: true, content: orderedMatch[1] };
-  }
-
-  return null;
-}
-
-function parseMarkdownTextBlocks(content: string): MarkdownBlock[] {
-  const lines = content.replace(/\r\n?/g, "\n").trim().split("\n");
-  const blocks: MarkdownBlock[] = [];
-  let index = 0;
-
-  while (index < lines.length) {
-    const line = lines[index];
-    const trimmedLine = line.trim();
-
-    if (trimmedLine === "") {
-      index += 1;
-      continue;
-    }
-
-    if (trimmedLine.startsWith(FENCE_MARKER)) {
-      const language =
-        trimmedLine.slice(FENCE_MARKER.length).trim() || undefined;
-      const codeLines: string[] = [];
-      index += 1;
-
-      while (
-        index < lines.length &&
-        !lines[index].trim().startsWith(FENCE_MARKER)
-      ) {
-        codeLines.push(lines[index]);
-        index += 1;
-      }
-
-      if (index < lines.length) {
-        index += 1;
-      }
-
-      blocks.push({ type: "code", code: codeLines.join("\n"), language });
-      continue;
-    }
-
-    const firstListItem = parseListItem(line);
-    if (firstListItem) {
-      const items: string[] = [];
-      const ordered = firstListItem.ordered;
-
-      while (index < lines.length) {
-        const item = parseListItem(lines[index]);
-        if (!item || item.ordered !== ordered) {
-          break;
-        }
-
-        items.push(item.content);
-        index += 1;
-      }
-
-      blocks.push({ type: "list", ordered, items });
-      continue;
-    }
-
-    const paragraphLines: string[] = [];
-    while (index < lines.length) {
-      const paragraphLine = lines[index];
-      const trimmedParagraphLine = paragraphLine.trim();
-
-      if (
-        trimmedParagraphLine === "" ||
-        trimmedParagraphLine.startsWith(FENCE_MARKER) ||
-        parseListItem(paragraphLine)
-      ) {
-        break;
-      }
-
-      paragraphLines.push(trimmedParagraphLine);
-      index += 1;
-    }
-
-    blocks.push({ type: "paragraph", lines: paragraphLines });
-  }
-
-  return blocks;
-}
-
-function findLinkEnd(text: string, startIndex: number): number {
-  let depth = 0;
-
-  for (let index = startIndex; index < text.length; index += 1) {
-    const char = text[index];
-
-    if (char === "(") {
-      depth += 1;
-    } else if (char === ")") {
-      if (depth === 0) {
-        return index;
-      }
-      depth -= 1;
-    }
-  }
-
-  return -1;
-}
-
-function getSafeHref(href: string): string | null {
-  const trimmedHref = href.trim();
-
-  if (!trimmedHref) {
-    return null;
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return undefined;
   }
 
   try {
-    const parsedUrl = new URL(trimmedHref, "https://tasks-timeline.local");
+    const parsedUrl = new URL(trimmedUrl, "https://tasks-timeline.local");
     if (
       parsedUrl.protocol === "http:" ||
       parsedUrl.protocol === "https:" ||
       parsedUrl.protocol === "mailto:"
     ) {
-      return trimmedHref;
+      return trimmedUrl;
     }
   } catch {
-    return null;
+    return undefined;
   }
 
-  return null;
+  return undefined;
 }
 
-function findNextTokenIndex(text: string, startIndex: number): number {
-  const tokenIndexes = ["`", "[", "*", "_", "\\"]
-    .map((token) => text.indexOf(token, startIndex))
-    .filter((index) => index >= 0);
+const safeUrlTransform: UrlTransform = (url, key) => getSafeUrl(url, key);
 
-  return tokenIndexes.length > 0 ? Math.min(...tokenIndexes) : text.length;
+function getAlignmentClass(
+  textAlign: React.CSSProperties["textAlign"],
+): string {
+  switch (textAlign) {
+    case "center":
+      return "text-center";
+    case "right":
+      return "text-right";
+    case "left":
+    default:
+      return "text-left";
+  }
 }
 
-function renderInline(
-  text: string,
-  keyPrefix: string,
-  classes: Pick<MarkdownTextProps, "codeClassName" | "linkClassName">,
-): React.ReactNode[] {
-  const nodes: React.ReactNode[] = [];
-  let index = 0;
-
-  while (index < text.length) {
-    const char = text[index];
-
-    if (char === "\\") {
-      const escapedChar = text[index + 1];
-      nodes.push(escapedChar ?? char);
-      index += escapedChar ? 2 : 1;
-      continue;
-    }
-
-    if (char === "`") {
-      const endIndex = text.indexOf("`", index + 1);
-      if (endIndex > index + 1) {
-        nodes.push(
-          <code
-            key={`${keyPrefix}-code-${index}`}
-            className={cn(
-              "rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.92em] text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100",
-              classes.codeClassName,
-            )}
-          >
-            {text.slice(index + 1, endIndex)}
-          </code>,
-        );
-        index = endIndex + 1;
-        continue;
-      }
-    }
-
-    if (char === "[") {
-      const labelEndIndex = text.indexOf("]", index + 1);
-      if (labelEndIndex > index + 1 && text[labelEndIndex + 1] === "(") {
-        const hrefEndIndex = findLinkEnd(text, labelEndIndex + 2);
-        if (hrefEndIndex > labelEndIndex + 2) {
-          const label = text.slice(index + 1, labelEndIndex);
-          const href = getSafeHref(
-            text.slice(labelEndIndex + 2, hrefEndIndex),
-          );
-
-          if (href) {
-            nodes.push(
-              <a
-                key={`${keyPrefix}-link-${index}`}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "font-medium text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700 [.tasks-timeline-app[data-theme='dark']_&]:text-blue-300 [.tasks-timeline-app[data-theme='dark']_&]:decoration-blue-500 [.tasks-timeline-app[data-theme='dark']_&]:hover:text-blue-200",
-                  classes.linkClassName,
-                )}
-              >
-                {renderInline(label, `${keyPrefix}-link-${index}`, classes)}
-              </a>,
-            );
-          } else {
-            nodes.push(
-              ...renderInline(
-                label,
-                `${keyPrefix}-unsafe-link-${index}`,
-                classes,
-              ),
-            );
-          }
-
-          index = hrefEndIndex + 1;
-          continue;
-        }
-      }
-    }
-
-    const boldToken = text.startsWith("**", index)
-      ? "**"
-      : text.startsWith("__", index)
-        ? "__"
-        : null;
-    if (boldToken) {
-      const endIndex = text.indexOf(boldToken, index + boldToken.length);
-      if (endIndex > index + boldToken.length) {
-        nodes.push(
-          <strong key={`${keyPrefix}-strong-${index}`} className="font-bold">
-            {renderInline(
-              text.slice(index + boldToken.length, endIndex),
-              `${keyPrefix}-strong-${index}`,
-              classes,
-            )}
-          </strong>,
-        );
-        index = endIndex + boldToken.length;
-        continue;
-      }
-    }
-
-    if (char === "*" || char === "_") {
-      const endIndex = text.indexOf(char, index + 1);
-      if (endIndex > index + 1) {
-        nodes.push(
-          <em key={`${keyPrefix}-em-${index}`} className="italic">
-            {renderInline(
-              text.slice(index + 1, endIndex),
-              `${keyPrefix}-em-${index}`,
-              classes,
-            )}
-          </em>,
-        );
-        index = endIndex + 1;
-        continue;
-      }
-    }
-
-    const nextTokenIndex = findNextTokenIndex(text, index + 1);
-    nodes.push(text.slice(index, nextTokenIndex));
-    index = nextTokenIndex;
+function hasBlockCodeContent(
+  children: React.ReactNode,
+  markdownClassName?: string,
+): boolean {
+  if (markdownClassName?.includes("language-")) {
+    return true;
   }
 
-  return nodes;
+  if (typeof children === "string") {
+    return children.includes("\n");
+  }
+
+  if (Array.isArray(children)) {
+    return children.some((child) => hasBlockCodeContent(child));
+  }
+
+  return false;
 }
 
-function renderParagraphLines(
-  lines: string[],
-  keyPrefix: string,
-  classes: Pick<MarkdownTextProps, "codeClassName" | "linkClassName">,
-): React.ReactNode[] {
-  return lines.flatMap((line, index) => {
-    const renderedLine = renderInline(
-      line,
-      `${keyPrefix}-line-${index}`,
-      classes,
-    );
-
-    if (index === lines.length - 1) {
-      return renderedLine;
-    }
-
-    return [
-      ...renderedLine,
-      <br key={`${keyPrefix}-line-break-${index}`} />,
-    ];
-  });
+function omitMarkdownNode<TProps extends { node?: unknown }>(
+  props: TProps,
+): Omit<TProps, "node"> {
+  const { node, ...rest } = props;
+  void node;
+  return rest;
 }
 
 export const MarkdownText: React.FC<MarkdownTextProps> = ({
@@ -323,65 +101,314 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
   linkClassName,
   compact = false,
 }) => {
-  const blocks = useMemo(() => parseMarkdownTextBlocks(content), [content]);
+  const components = useMemo<Components>(
+    () => ({
+      p({ children, ...props }) {
+        return (
+          <p
+            {...omitMarkdownNode(props)}
+            className={cn(
+              "whitespace-pre-wrap",
+              compact ? "leading-relaxed" : undefined,
+              paragraphClassName,
+            )}
+          >
+            {children}
+          </p>
+        );
+      },
+      a({ href, children, ...props }) {
+        const safeHref = href ? getSafeUrl(href, "href") : undefined;
 
-  if (blocks.length === 0) {
+        if (!safeHref) {
+          return <>{children}</>;
+        }
+
+        return (
+          <a
+            {...omitMarkdownNode(props)}
+            href={safeHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "font-medium text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700 [.tasks-timeline-app[data-theme='dark']_&]:text-blue-300 [.tasks-timeline-app[data-theme='dark']_&]:decoration-blue-500 [.tasks-timeline-app[data-theme='dark']_&]:hover:text-blue-200",
+              linkClassName,
+            )}
+          >
+            {children}
+          </a>
+        );
+      },
+      ul({ className: markdownClassName, children, ...props }) {
+        const isTaskList = markdownClassName?.includes("contains-task-list");
+
+        return (
+          <ul
+            {...omitMarkdownNode(props)}
+            className={cn(
+              isTaskList ? "list-none pl-0" : "list-disc pl-4",
+              "space-y-1",
+              listClassName,
+            )}
+          >
+            {children}
+          </ul>
+        );
+      },
+      ol({ children, ...props }) {
+        return (
+          <ol
+            {...omitMarkdownNode(props)}
+            className={cn("list-decimal space-y-1 pl-4", listClassName)}
+          >
+            {children}
+          </ol>
+        );
+      },
+      li({ className: markdownClassName, children, ...props }) {
+        const isTaskListItem = markdownClassName?.includes("task-list-item");
+
+        return (
+          <li
+            {...omitMarkdownNode(props)}
+            className={cn(
+              isTaskListItem ? "flex list-none items-start gap-2" : undefined,
+              listItemClassName,
+            )}
+          >
+            {children}
+          </li>
+        );
+      },
+      input({ ...props }) {
+        return (
+          <input
+            {...omitMarkdownNode(props)}
+            disabled
+            readOnly
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-blue-500"
+          />
+        );
+      },
+      strong({ children, ...props }) {
+        return (
+          <strong {...omitMarkdownNode(props)} className="font-bold">
+            {children}
+          </strong>
+        );
+      },
+      em({ children, ...props }) {
+        return (
+          <em {...omitMarkdownNode(props)} className="italic">
+            {children}
+          </em>
+        );
+      },
+      del({ children, ...props }) {
+        return (
+          <del {...omitMarkdownNode(props)} className="text-slate-400">
+            {children}
+          </del>
+        );
+      },
+      blockquote({ children, ...props }) {
+        return (
+          <blockquote
+            {...omitMarkdownNode(props)}
+            className="border-l-2 border-slate-200 pl-3 text-slate-500 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-400"
+          >
+            {children}
+          </blockquote>
+        );
+      },
+      h1({ children, ...props }) {
+        return (
+          <h1
+            {...omitMarkdownNode(props)}
+            className="text-lg font-black leading-tight text-slate-900 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100"
+          >
+            {children}
+          </h1>
+        );
+      },
+      h2({ children, ...props }) {
+        return (
+          <h2
+            {...omitMarkdownNode(props)}
+            className="text-base font-black leading-tight text-slate-900 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100"
+          >
+            {children}
+          </h2>
+        );
+      },
+      h3({ children, ...props }) {
+        return (
+          <h3
+            {...omitMarkdownNode(props)}
+            className="text-sm font-bold leading-tight text-slate-800 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100"
+          >
+            {children}
+          </h3>
+        );
+      },
+      h4({ children, ...props }) {
+        return (
+          <h4
+            {...omitMarkdownNode(props)}
+            className="text-sm font-bold leading-tight text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-200"
+          >
+            {children}
+          </h4>
+        );
+      },
+      h5({ children, ...props }) {
+        return (
+          <h5
+            {...omitMarkdownNode(props)}
+            className="text-xs font-bold uppercase tracking-wide text-slate-500 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
+          >
+            {children}
+          </h5>
+        );
+      },
+      h6({ children, ...props }) {
+        return (
+          <h6
+            {...omitMarkdownNode(props)}
+            className="text-xs font-semibold uppercase tracking-wide text-slate-400 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-400"
+          >
+            {children}
+          </h6>
+        );
+      },
+      pre({ children, ...props }) {
+        return (
+          <pre
+            {...omitMarkdownNode(props)}
+            className={cn(
+              "overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-2 font-mono text-[11px] leading-relaxed text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-900/70 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-200",
+              preClassName,
+            )}
+          >
+            {children}
+          </pre>
+        );
+      },
+      code({ className: markdownClassName, children, ...props }) {
+        const isBlockCode = hasBlockCodeContent(children, markdownClassName);
+
+        return (
+          <code
+            {...omitMarkdownNode(props)}
+            className={cn(
+              isBlockCode
+                ? "font-mono"
+                : "rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.92em] text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100",
+              markdownClassName,
+              codeClassName,
+            )}
+          >
+            {children}
+          </code>
+        );
+      },
+      table({ children, ...props }) {
+        return (
+          <div className="overflow-x-auto rounded-md border border-slate-200 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700">
+            <table
+              {...omitMarkdownNode(props)}
+              className={cn(
+                "min-w-full border-collapse text-xs",
+                compact ? "text-[11px]" : undefined,
+              )}
+            >
+              {children}
+            </table>
+          </div>
+        );
+      },
+      thead({ children, ...props }) {
+        return (
+          <thead
+            {...omitMarkdownNode(props)}
+            className="bg-slate-50 text-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-800 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-200"
+          >
+            {children}
+          </thead>
+        );
+      },
+      tbody({ children, ...props }) {
+        return (
+          <tbody
+            {...omitMarkdownNode(props)}
+            className="bg-white text-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-900/60 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
+          >
+            {children}
+          </tbody>
+        );
+      },
+      th({ style, children, ...props }) {
+        return (
+          <th
+            {...omitMarkdownNode(props)}
+            className={cn(
+              "border-b border-slate-200 px-2 py-1.5 font-semibold [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700",
+              getAlignmentClass(style?.textAlign),
+            )}
+          >
+            {children}
+          </th>
+        );
+      },
+      td({ style, children, ...props }) {
+        return (
+          <td
+            {...omitMarkdownNode(props)}
+            className={cn(
+              "border-t border-slate-100 px-2 py-1.5 align-top [.tasks-timeline-app[data-theme='dark']_&]:border-slate-800",
+              getAlignmentClass(style?.textAlign),
+            )}
+          >
+            {children}
+          </td>
+        );
+      },
+      hr({ ...props }) {
+        return (
+          <hr
+            {...omitMarkdownNode(props)}
+            className="border-slate-200 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700"
+          />
+        );
+      },
+    }),
+    [
+      codeClassName,
+      compact,
+      linkClassName,
+      listClassName,
+      listItemClassName,
+      paragraphClassName,
+      preClassName,
+    ],
+  );
+
+  if (!content.trim()) {
     return null;
   }
 
   return (
     <div className={cn(compact ? "space-y-1" : "space-y-2", className)}>
-      {blocks.map((block, index) => {
-        if (block.type === "code") {
-          return (
-            <pre
-              key={`block-${index}`}
-              className={cn(
-                "overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-2 font-mono text-[11px] leading-relaxed text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-900/70 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-200",
-                preClassName,
-              )}
-            >
-              <code>{block.code}</code>
-            </pre>
-          );
-        }
-
-        if (block.type === "list") {
-          const ListTag = block.ordered ? "ol" : "ul";
-
-          return (
-            <ListTag
-              key={`block-${index}`}
-              className={cn(
-                block.ordered ? "list-decimal" : "list-disc",
-                "space-y-1 pl-4",
-                listClassName,
-              )}
-            >
-              {block.items.map((item, itemIndex) => (
-                <li
-                  key={`block-${index}-item-${itemIndex}`}
-                  className={listItemClassName}
-                >
-                  {renderInline(item, `block-${index}-item-${itemIndex}`, {
-                    codeClassName,
-                    linkClassName,
-                  })}
-                </li>
-              ))}
-            </ListTag>
-          );
-        }
-
-        return (
-          <p key={`block-${index}`} className={paragraphClassName}>
-            {renderParagraphLines(block.lines, `block-${index}`, {
-              codeClassName,
-              linkClassName,
-            })}
-          </p>
-        );
-      })}
+      <ReactMarkdown
+        remarkPlugins={REMARK_PLUGINS}
+        skipHtml
+        disallowedElements={DISALLOWED_ELEMENTS}
+        unwrapDisallowed
+        urlTransform={safeUrlTransform}
+        components={components}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 };

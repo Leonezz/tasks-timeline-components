@@ -28,7 +28,7 @@ export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
         timeout: {
           type: "number",
           description:
-            "Auto-dismiss after this many milliseconds. Use 0 or null for persistent notifications. Default: 8000",
+            "Auto-dismiss after this many milliseconds. Use 0 or null for persistent notifications. Default: persistent",
         },
       },
       required: ["variant", "title"],
@@ -41,7 +41,9 @@ export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
       const body = args.body as string | undefined;
       const rawTimeout = args.timeout as number | null | undefined;
       const timeout =
-        rawTimeout === null || rawTimeout === 0 ? null : (rawTimeout ?? 8000);
+        rawTimeout === undefined || rawTimeout === null || rawTimeout === 0
+          ? null
+          : rawTimeout;
 
       ctx.showToast?.({
         variant,

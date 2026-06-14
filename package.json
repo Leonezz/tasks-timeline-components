@@ -2,7 +2,7 @@
   "name": "@tasks-timeline/components",
   "description": "A comprehensive React component library for task management and timeline visualization",
   "private": false,
-  "version": "0.4.15",
+  "version": "0.4.16",
   "type": "module",
   "license": "MIT",
   "author": "Leonezz <zhwuenqa@outlook.com>",
@@ -98,7 +98,9 @@
     "luxon": "3.4.4",
     "next-themes": "^0.4.6",
     "react-error-boundary": "^6.0.3",
+    "react-markdown": "^10.1.0",
     "react-shadow": "^20.6.0",
+    "remark-gfm": "^4.0.1",
     "rrule": "2.8.1",
     "tailwind-merge": "^3.4.0"
   },
