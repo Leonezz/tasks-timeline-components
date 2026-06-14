@@ -925,6 +925,15 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               </div>
 
               <main className="px-4 sm:px-6 pt-6">
+                <AgentConversationPanel
+                  isOpen={agentPanelState.isOpen}
+                  sessions={agentSessions}
+                  activeSessionId={agentPanelState.activeSessionId}
+                  onSelectSession={selectAgentSession}
+                  onClose={closeAgentPanel}
+                  onClear={clearAgentPanel}
+                />
+
                 <ErrorBoundary
                   FallbackComponent={TaskListErrorFallback}
                   onError={(error, info) => {
@@ -972,15 +981,6 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   ))}
                 </AnimatePresence>
               </div>
-
-              <AgentConversationPanel
-                isOpen={agentPanelState.isOpen}
-                sessions={agentSessions}
-                activeSessionId={agentPanelState.activeSessionId}
-                onSelectSession={selectAgentSession}
-                onClose={closeAgentPanel}
-                onClear={clearAgentPanel}
-              />
 
               <SettingsModal
                 isOpen={isSettingsOpen}

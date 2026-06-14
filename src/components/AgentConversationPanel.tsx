@@ -59,32 +59,32 @@ function getEntryIcon(entry: AgentEntry): LucideIconName {
 function getEntryStyles(entry: AgentEntry): string {
   switch (entry.kind) {
     case "user":
-      return "border-slate-200 bg-slate-50 text-slate-800";
+      return "border-slate-100 bg-white text-slate-800";
     case "assistant":
-      return "border-blue-100 bg-blue-50/80 text-slate-800";
+      return "border-blue-100 bg-blue-50/50 text-slate-800";
     case "tool-call":
-      return "border-amber-100 bg-amber-50/80 text-slate-800";
+      return "border-amber-100 bg-amber-50/50 text-slate-800";
     case "tool-result":
-      return "border-emerald-100 bg-emerald-50/80 text-slate-800";
+      return "border-emerald-100 bg-emerald-50/50 text-slate-800";
     case "error":
-      return "border-rose-100 bg-rose-50/80 text-rose-900";
+      return "border-rose-100 bg-rose-50/60 text-rose-900";
     case "status":
-      return "border-slate-100 bg-white text-slate-700";
+      return "border-slate-100 bg-slate-50/70 text-slate-700";
   }
 }
 
-const AgentEntryCard: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
+const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   const payload = stringifyPayload(entry.payload);
 
   return (
     <div
       className={cn(
-        "rounded-md border px-3 py-2 shadow-sm",
+        "border-t px-4 py-3 first:border-t-0",
         getEntryStyles(entry),
       )}
     >
       <div className="flex items-start gap-2">
-        <div className="mt-0.5 shrink-0 text-slate-500">
+        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200">
           <Icon name={getEntryIcon(entry)} size={14} />
         </div>
         <div className="min-w-0 flex-1">
@@ -102,7 +102,7 @@ const AgentEntryCard: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
             </p>
           )}
           {payload && (
-            <pre className="mt-2 max-h-48 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
+            <pre className="mt-2 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
               {payload}
             </pre>
           )}
@@ -129,18 +129,19 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
     <AnimatePresence>
       {isOpen && (
         <MotionDiv
-          role="dialog"
+          role="region"
           aria-label="Agent conversation"
+          aria-live="polite"
           tabIndex={-1}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               onClose();
             }
           }}
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          className="fixed inset-x-3 bottom-3 z-50 flex max-h-[78vh] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-300/50 md:inset-y-4 md:left-auto md:right-4 md:w-[400px] md:max-h-none"
+          exit={{ opacity: 0, y: -8 }}
+          className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/70"
         >
           <header className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
             <div className="min-w-0">
@@ -172,10 +173,10 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                 type="button"
                 onClick={onClose}
                 className="rounded-md p-2 text-slate-400 transition-colors hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                aria-label="Close agent conversation"
-                title="Close agent conversation"
+                aria-label="Collapse agent conversation"
+                title="Collapse agent conversation"
               >
-                <Icon name="PanelRightClose" size={15} />
+                <Icon name="ChevronUp" size={15} />
               </button>
             </div>
           </header>
@@ -203,10 +204,10 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto bg-slate-50/60 px-4 py-3">
+          <div className="max-h-[min(42vh,360px)] overflow-y-auto bg-slate-50/60">
             {activeSession ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-slate-700">
                       {activeSession.prompt}
@@ -231,11 +232,11 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                 </div>
 
                 {activeSession.entries.map((entry) => (
-                  <AgentEntryCard key={entry.id} entry={entry} />
+                  <AgentEntryRow key={entry.id} entry={entry} />
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-56 flex-col items-center justify-center text-center text-slate-400">
+              <div className="flex min-h-44 flex-col items-center justify-center px-4 py-8 text-center text-slate-400">
                 <Icon name="MessageSquareText" size={32} />
                 <p className="mt-3 text-sm font-semibold text-slate-600">
                   No agent conversation yet
