@@ -16,6 +16,10 @@ export interface SettingsContextType {
   onSortChange: (sort: SortState) => void;
   onVoiceError: (msg: string) => void;
   voiceRuntime?: VoiceRuntime;
+  hasAgentSession?: boolean;
+  isAgentPanelOpen?: boolean;
+  agentPanelUnreadCount?: number;
+  onOpenAgentPanel?: () => void;
   onOpenSettings?: () => void;
 }
 

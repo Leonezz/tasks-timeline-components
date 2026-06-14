@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type {
+  AgentEvent,
   AppSettings,
   Task,
   ToastMessage,
@@ -27,6 +28,7 @@ export interface UseAIAgentOptions {
   providerFactory?: AIProviderFactory;
   capabilities?: Capabilities;
   capabilityContext?: CapabilityContext;
+  onAgentEvent?: (event: AgentEvent) => void;
 }
 
 export const useAIAgent = (
@@ -62,6 +64,22 @@ export const useAIAgent = (
   const handleAICommand = async (input: string) => {
     const activeProvider = settings.aiConfig.activeProvider;
     const config = settings.aiConfig.providers[activeProvider];
+    const sessionId = `agent-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      timestamp = () => new Date().toISOString(),
+      emitAgentEvent = (event: AgentEvent) => {
+        options?.onAgentEvent?.(event);
+      };
+
+    emitAgentEvent({
+      kind: "session-start",
+      sessionId,
+      timestamp: timestamp(),
+      prompt: input,
+      provider: activeProvider,
+      model: config.model,
+    });
 
     // Build capability context from React callbacks
     const ctx: CapabilityContext = {
@@ -115,6 +133,12 @@ export const useAIAgent = (
 
     try {
       const providerFactory = options?.providerFactory ?? createDefaultProvider;
+      emitAgentEvent({
+        kind: "status",
+        sessionId,
+        timestamp: timestamp(),
+        message: "Connecting to provider",
+      });
       const provider = await providerFactory(activeProvider, config);
 
       logger.info("AI", `Sending prompt to ${activeProvider}`, {
@@ -123,6 +147,12 @@ export const useAIAgent = (
       });
 
       // Initial chat call
+      emitAgentEvent({
+        kind: "status",
+        sessionId,
+        timestamp: timestamp(),
+        message: "Thinking",
+      });
       let response = await provider.chat(systemPrompt, input, tools);
 
       // Track Tokens
@@ -165,7 +195,23 @@ export const useAIAgent = (
         for (const call of response.toolCalls) {
           if (!call.name) continue;
           logger.info("AI", `Executing tool: ${call.name}`, call.args);
+          emitAgentEvent({
+            kind: "tool-call",
+            sessionId,
+            timestamp: timestamp(),
+            toolCallId: call.id,
+            toolName: call.name,
+            args: call.args,
+          });
           const result = await capabilities.executeTool(call.name, call.args);
+          emitAgentEvent({
+            kind: "tool-result",
+            sessionId,
+            timestamp: timestamp(),
+            toolCallId: call.id,
+            toolName: call.name,
+            result: result.result,
+          });
           toolResults.push({
             id: call.id,
             name: call.name,
@@ -180,6 +226,12 @@ export const useAIAgent = (
         });
 
         // Send tool results back to the provider with accumulated history
+        emitAgentEvent({
+          kind: "status",
+          sessionId,
+          timestamp: timestamp(),
+          message: "Reviewing tool results",
+        });
         response = await provider.chat(
           systemPrompt,
           input,
@@ -209,10 +261,38 @@ export const useAIAgent = (
 
       // Show the model's final text response to the user
       if (response.text?.trim()) {
-        onNotify("info", "AI", response.text.trim());
+        emitAgentEvent({
+          kind: "assistant-message",
+          sessionId,
+          timestamp: timestamp(),
+          text: response.text.trim(),
+        });
+        if (options?.onAgentEvent) {
+          onNotify(
+            "success",
+            "Agent finished",
+            "Response added to the agent conversation.",
+          );
+        } else {
+          onNotify("info", "AI", response.text.trim());
+        }
       }
+      emitAgentEvent({
+        kind: "session-complete",
+        sessionId,
+        timestamp: timestamp(),
+      });
     } catch (e) {
       logger.error("AI", "Agent processing failed", e);
+      emitAgentEvent({
+        kind: "error",
+        sessionId,
+        timestamp: timestamp(),
+        message:
+          e instanceof Error
+            ? e.message
+            : "Something went wrong while processing your request.",
+      });
       onNotify(
         "error",
         "AI Agent Error",

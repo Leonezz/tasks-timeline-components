@@ -18,6 +18,7 @@ export { InputBar } from "./InputBar";
 export { TaskEditModal } from "./TaskEditModal";
 export * from "./settings/index";
 export { HelpModal } from "./HelpModal";
+export { AgentConversationPanel } from "./AgentConversationPanel";
 
 // UI Components
 export { Toast } from "./Toast";

@@ -25,6 +25,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
       toggleAiMode,
       onVoiceError,
       voiceRuntime,
+      hasAgentSession,
+      isAgentPanelOpen,
+      agentPanelUnreadCount,
+      onOpenAgentPanel,
       onOpenSettings,
     } = useSettingsContext(),
     [value, setValue] = useState(""),
@@ -171,7 +175,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
           <input
             type="text"
             className={cn(
-              "w-full bg-white pl-8 min-[400px]:pl-10 pr-24 min-[400px]:pr-28 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
+              "w-full bg-white pl-8 min-[400px]:pl-10 pr-32 min-[400px]:pr-36 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
                 : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
@@ -202,7 +206,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     ? "text-rose-500 bg-rose-50 animate-pulse"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
-                title={isListening ? "Stop Recording" : "Start Voice Input"}
+                title={isListening ? "Stop recording" : "Start voice input"}
               >
                 <Icon name={isListening ? "Square" : "Mic"} size={16} />
               </button>
@@ -219,8 +223,8 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 )}
                 title={
                   effectiveAiActive
-                    ? "Switch to Manual Mode"
-                    : "Switch to AI Mode"
+                    ? "Switch to manual mode"
+                    : "Switch to AI mode"
                 }
               >
                 <Icon
@@ -229,13 +233,33 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 />
               </button>
             )}
+            {settings.aiConfig.enabled && hasAgentSession && onOpenAgentPanel && (
+              <button
+                onClick={onOpenAgentPanel}
+                className={cn(
+                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
+                  isAgentPanelOpen
+                    ? "text-blue-600 bg-blue-50 ring-1 ring-blue-200"
+                    : "text-slate-400 hover:text-blue-600 hover:bg-blue-50",
+                )}
+                title="Open agent conversation"
+                aria-label="Open agent conversation"
+              >
+                <Icon name="MessageSquareText" size={16} />
+                {agentPanelUnreadCount ? (
+                  <span className="absolute -right-0.5 -top-0.5 min-w-3 rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-3 text-white">
+                    {agentPanelUnreadCount > 9 ? "9+" : agentPanelUnreadCount}
+                  </span>
+                ) : null}
+              </button>
+            )}
             {onOpenSettings && settings.settingButtonOnInputBar !== false && (
               <>
                 <div className="w-px h-4 bg-slate-200 mx-0.5 min-[400px]:mx-1" />
                 <button
                   onClick={onOpenSettings}
                   className="text-slate-400 hover:text-blue-600 p-1 min-[400px]:p-1.5 rounded-md hover:bg-blue-50 transition-colors"
-                  title="Settings & Docs"
+                  title="Settings and docs"
                 >
                   <Icon name="Settings" size={16} />
                 </button>

@@ -180,6 +180,88 @@ export interface CustomSettingsTab {
   content: React.ReactNode;
 }
 
+// --- Agent Interaction Types ---
+
+export type AgentSessionStatus = "running" | "complete" | "error";
+
+export type AgentEntryKind =
+  | "user"
+  | "assistant"
+  | "status"
+  | "tool-call"
+  | "tool-result"
+  | "error";
+
+export interface AgentEntry {
+  id: string;
+  kind: AgentEntryKind;
+  title: string;
+  body?: string;
+  timestamp: ISO8601String;
+  toolName?: string;
+  payload?: unknown;
+}
+
+export interface AgentSession {
+  id: string;
+  prompt: string;
+  provider: AIProvider;
+  model: string;
+  status: AgentSessionStatus;
+  startedAt: ISO8601String;
+  updatedAt: ISO8601String;
+  entries: AgentEntry[];
+}
+
+export type AgentEvent =
+  | {
+      kind: "session-start";
+      sessionId: string;
+      timestamp: ISO8601String;
+      prompt: string;
+      provider: AIProvider;
+      model: string;
+    }
+  | {
+      kind: "status";
+      sessionId: string;
+      timestamp: ISO8601String;
+      message: string;
+    }
+  | {
+      kind: "assistant-message";
+      sessionId: string;
+      timestamp: ISO8601String;
+      text: string;
+    }
+  | {
+      kind: "tool-call";
+      sessionId: string;
+      timestamp: ISO8601String;
+      toolCallId?: string;
+      toolName: string;
+      args: Record<string, unknown>;
+    }
+  | {
+      kind: "tool-result";
+      sessionId: string;
+      timestamp: ISO8601String;
+      toolCallId?: string;
+      toolName: string;
+      result: unknown;
+    }
+  | {
+      kind: "error";
+      sessionId: string;
+      timestamp: ISO8601String;
+      message: string;
+    }
+  | {
+      kind: "session-complete";
+      sessionId: string;
+      timestamp: ISO8601String;
+    };
+
 // --- Enriched Toast Types ---
 
 export type ToastVariant = "success" | "error" | "info" | "warning";

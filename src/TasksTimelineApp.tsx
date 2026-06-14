@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   useTransition,
@@ -14,7 +15,9 @@ import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/settings/SettingsModal";
 import { TaskEditModal } from "./components/TaskEditModal";
 import { Toast } from "./components/Toast";
+import { AgentConversationPanel } from "./components/AgentConversationPanel";
 import type {
+  AgentEvent,
   AIProvider,
   AppSettings,
   CustomSettingsTab,
@@ -47,6 +50,7 @@ import {
 import { useTaskFiltering } from "./hooks/useTaskFiltering";
 import { useTaskStats } from "./hooks/useTaskStats";
 import { useAIAgent } from "./hooks/useAIAgent";
+import { useAgentSessions } from "./hooks/useAgentSessions";
 
 // Default Settings Definition
 const DEFAULT_SETTINGS: AppSettings = {
@@ -129,6 +133,53 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
+interface AgentPanelState {
+  isOpen: boolean;
+  activeSessionId: string | null;
+  unreadCount: number;
+}
+
+type AgentPanelAction =
+  | { type: "open" }
+  | { type: "close" }
+  | { type: "clear" }
+  | { type: "select"; sessionId: string }
+  | { type: "event"; event: AgentEvent };
+
+const DEFAULT_AGENT_PANEL_STATE: AgentPanelState = {
+  isOpen: false,
+  activeSessionId: null,
+  unreadCount: 0,
+};
+
+function agentPanelReducer(
+  state: AgentPanelState,
+  action: AgentPanelAction,
+): AgentPanelState {
+  switch (action.type) {
+    case "open":
+      return { ...state, isOpen: true, unreadCount: 0 };
+    case "close":
+      return { ...state, isOpen: false };
+    case "clear":
+      return { ...state, activeSessionId: null, unreadCount: 0 };
+    case "select":
+      return { ...state, activeSessionId: action.sessionId, unreadCount: 0 };
+    case "event":
+      if (action.event.kind === "session-start") {
+        return {
+          isOpen: true,
+          activeSessionId: action.event.sessionId,
+          unreadCount: 0,
+        };
+      }
+      return {
+        ...state,
+        unreadCount: state.isOpen ? 0 : state.unreadCount + 1,
+      };
+  }
+}
+
 export interface TasksTimelineAppProps {
   className?: string;
 
@@ -157,6 +208,8 @@ export interface TasksTimelineAppProps {
   aiCapabilities?: Capabilities;
   /** Host runtime for voice input in embedded environments such as Obsidian. */
   voiceRuntime?: VoiceRuntime;
+  /** Optional host observer for structured agent lifecycle events. */
+  onAgentEvent?: (event: AgentEvent) => void;
 }
 
 export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
@@ -176,8 +229,13 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   aiCapabilityContext,
   aiCapabilities,
   voiceRuntime,
+  onAgentEvent,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false),
+    [agentPanelState, dispatchAgentPanel] = useReducer(
+      agentPanelReducer,
+      DEFAULT_AGENT_PANEL_STATE,
+    ),
     [editingTask, setEditingTask] = useState<Task | null>(null),
     // Use state for the container ref to ensure re-render when it's attached,
     // Allowing the Provider to pass the correct element to children.
@@ -220,6 +278,32 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     [sort, setSort] = useState<SortState>(settings.sort),
     // Defer filter updates to keep UI responsive during rapid filter changes
     deferredFilters = useDeferredValue(filters);
+
+  const {
+      agentSessions,
+      emitAgentEvent,
+      clearAgentSessions,
+    } = useAgentSessions(onAgentEvent),
+    openAgentPanel = useCallback(() => {
+      dispatchAgentPanel({ type: "open" });
+    }, []),
+    closeAgentPanel = useCallback(() => {
+      dispatchAgentPanel({ type: "close" });
+    }, []),
+    clearAgentPanel = useCallback(() => {
+      clearAgentSessions();
+      dispatchAgentPanel({ type: "clear" });
+    }, [clearAgentSessions]),
+    selectAgentSession = useCallback((sessionId: string) => {
+      dispatchAgentPanel({ type: "select", sessionId });
+    }, []),
+    handleAgentEvent = useCallback(
+      (event: AgentEvent) => {
+        emitAgentEvent(event);
+        dispatchAgentPanel({ type: "event", event });
+      },
+      [emitAgentEvent],
+    );
 
   // Load settings from repository
   useEffect(() => {
@@ -631,6 +715,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         providerFactory: aiProviderFactory,
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
+        onAgentEvent: handleAgentEvent,
       },
     ),
     toggleDashboardFilter = (statuses: TaskStatus[]) => {
@@ -694,6 +779,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               onSortChange: setSort,
               onVoiceError: handleVoiceError,
               voiceRuntime,
+              hasAgentSession: agentSessions.length > 0,
+              isAgentPanelOpen: agentPanelState.isOpen,
+              agentPanelUnreadCount: agentPanelState.unreadCount,
+              onOpenAgentPanel: openAgentPanel,
               onOpenSettings:
                 settings.settingButtonOnInputBar === false
                   ? undefined
@@ -883,6 +972,15 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   ))}
                 </AnimatePresence>
               </div>
+
+              <AgentConversationPanel
+                isOpen={agentPanelState.isOpen}
+                sessions={agentSessions}
+                activeSessionId={agentPanelState.activeSessionId}
+                onSelectSession={selectAgentSession}
+                onClose={closeAgentPanel}
+                onClear={clearAgentPanel}
+              />
 
               <SettingsModal
                 isOpen={isSettingsOpen}
