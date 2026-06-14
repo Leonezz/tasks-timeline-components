@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { cn } from "../utils";
 import { MotionDiv } from "./Motion";
 import { DetailBlockRenderer } from "./toast/DetailBlockRenderer";
+import { MarkdownText } from "./MarkdownText";
 import type { ToastMessage } from "../types";
 
 const PromptInput: React.FC<{
@@ -32,7 +33,7 @@ const PromptInput: React.FC<{
         }}
         placeholder={placeholder ?? "Type your answer..."}
         autoFocus
-        className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:border-slate-600 [.chronos-app[data-theme='dark']_&]:text-slate-100"
+        className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100"
       />
       <div className="flex gap-2">
         <button
@@ -44,7 +45,7 @@ const PromptInput: React.FC<{
         </button>
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-300"
+          className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
         >
           Cancel
         </button>
@@ -91,42 +92,42 @@ export const Toast: React.FC<ToastProps> = ({
     getStyles = () => {
       // Base: Neutral Paper with Blur + Subtle Shadow
       const base =
-        "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.chronos-app[data-theme='dark']_&]:bg-slate-800/95 [.chronos-app[data-theme='dark']_&]:shadow-black/20 [.chronos-app[data-theme='dark']_&]:border-slate-700/50";
+        "bg-white/95 backdrop-blur-md border shadow-xl shadow-slate-200/50 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-800/95 [.tasks-timeline-app[data-theme='dark']_&]:shadow-black/20 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-700/50";
 
       // Semantic Borders (Subtle)
       switch (toast.variant) {
         case "success":
           return cn(
             base,
-            "border-l-4 border-l-emerald-500 border-y-emerald-100/50 border-r-emerald-100/50 [.chronos-app[data-theme='dark']_&]:border-y-emerald-500/20 [.chronos-app[data-theme='dark']_&]:border-r-emerald-500/20",
+            "border-l-4 border-l-emerald-500 border-y-emerald-100/50 border-r-emerald-100/50 [.tasks-timeline-app[data-theme='dark']_&]:border-y-emerald-500/20 [.tasks-timeline-app[data-theme='dark']_&]:border-r-emerald-500/20",
           );
         case "error":
           return cn(
             base,
-            "border-l-4 border-l-rose-500 border-y-rose-100/50 border-r-rose-100/50 [.chronos-app[data-theme='dark']_&]:border-y-rose-500/20 [.chronos-app[data-theme='dark']_&]:border-r-rose-500/20",
+            "border-l-4 border-l-rose-500 border-y-rose-100/50 border-r-rose-100/50 [.tasks-timeline-app[data-theme='dark']_&]:border-y-rose-500/20 [.tasks-timeline-app[data-theme='dark']_&]:border-r-rose-500/20",
           );
         case "info":
           return cn(
             base,
-            "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.chronos-app[data-theme='dark']_&]:border-y-blue-500/20 [.chronos-app[data-theme='dark']_&]:border-r-blue-500/20",
+            "border-l-4 border-l-blue-500 border-y-blue-100/50 border-r-blue-100/50 [.tasks-timeline-app[data-theme='dark']_&]:border-y-blue-500/20 [.tasks-timeline-app[data-theme='dark']_&]:border-r-blue-500/20",
           );
         case "warning":
           return cn(
             base,
-            "border-l-4 border-l-amber-500 border-y-amber-100/50 border-r-amber-100/50 [.chronos-app[data-theme='dark']_&]:border-y-amber-500/20 [.chronos-app[data-theme='dark']_&]:border-r-amber-500/20",
+            "border-l-4 border-l-amber-500 border-y-amber-100/50 border-r-amber-100/50 [.tasks-timeline-app[data-theme='dark']_&]:border-y-amber-500/20 [.tasks-timeline-app[data-theme='dark']_&]:border-r-amber-500/20",
           );
       }
     },
     getIconColor = () => {
       switch (toast.variant) {
         case "success":
-          return "text-emerald-500 [.chronos-app[data-theme='dark']_&]:text-emerald-400";
+          return "text-emerald-500 [.tasks-timeline-app[data-theme='dark']_&]:text-emerald-400";
         case "error":
-          return "text-rose-500 [.chronos-app[data-theme='dark']_&]:text-rose-400";
+          return "text-rose-500 [.tasks-timeline-app[data-theme='dark']_&]:text-rose-400";
         case "info":
-          return "text-blue-500 [.chronos-app[data-theme='dark']_&]:text-blue-400";
+          return "text-blue-500 [.tasks-timeline-app[data-theme='dark']_&]:text-blue-400";
         case "warning":
-          return "text-amber-500 [.chronos-app[data-theme='dark']_&]:text-amber-400";
+          return "text-amber-500 [.tasks-timeline-app[data-theme='dark']_&]:text-amber-400";
       }
     };
 
@@ -137,7 +138,7 @@ export const Toast: React.FC<ToastProps> = ({
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 20, scale: 0.9 }}
       className={cn(
-        "flex items-start gap-3 p-4 rounded-lg w-full pointer-events-auto text-slate-800 [.chronos-app[data-theme='dark']_&]:text-slate-100",
+        "flex items-start gap-3 p-4 rounded-lg w-full pointer-events-auto text-slate-800 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-100",
         isExpanded ? "max-w-[350px]" : "max-w-sm",
         getStyles(),
       )}
@@ -148,14 +149,17 @@ export const Toast: React.FC<ToastProps> = ({
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-bold leading-tight">{toast.title}</h4>
         {toast.description && (
-          <p className="text-xs opacity-80 mt-1 leading-snug font-medium text-slate-500 [.chronos-app[data-theme='dark']_&]:text-slate-400">
-            {toast.description}
-          </p>
+          <MarkdownText
+            content={toast.description}
+            compact
+            className="mt-1 space-y-1 text-xs font-medium leading-snug text-slate-500 opacity-80 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-400"
+          />
         )}
         {toast.body && (
-          <p className="text-xs mt-2 leading-relaxed text-slate-600 [.chronos-app[data-theme='dark']_&]:text-slate-300 whitespace-pre-wrap">
-            {toast.body}
-          </p>
+          <MarkdownText
+            content={toast.body}
+            className="mt-2 space-y-2 text-xs leading-relaxed text-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
+          />
         )}
         {toast.interaction.kind === "confirm" && (
           <div className="flex gap-2 mt-3">
@@ -175,7 +179,7 @@ export const Toast: React.FC<ToastProps> = ({
                   toast.interaction.onCancel?.();
                 }
               }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-300"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
             >
               {toast.interaction.kind === "confirm" &&
                 (toast.interaction.cancelLabel || "No")}
@@ -191,7 +195,7 @@ export const Toast: React.FC<ToastProps> = ({
                   toast.interaction.kind === "select" &&
                   toast.interaction.onSelect(opt.value)
                 }
-                className="text-left px-3 py-1.5 text-xs font-medium rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:border-slate-600 [.chronos-app[data-theme='dark']_&]:hover:bg-slate-600"
+                className="text-left px-3 py-1.5 text-xs font-medium rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:border-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:hover:bg-slate-600"
               >
                 {opt.label}
               </button>

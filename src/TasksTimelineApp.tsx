@@ -945,6 +945,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   activeSessionId={agentPanelState.activeSessionId}
                   onSelectSession={selectAgentSession}
                   onStartNewSession={startNewAgentSession}
+                  onSendMessage={handleInputAICommand}
                   onClose={closeAgentPanel}
                   onClear={clearAgentPanel}
                 />
@@ -983,7 +984,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               </footer>
 
               {/* Toast Container */}
-              <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-2 pointer-events-none">
+              <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex flex-col-reverse gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6">
                 <AnimatePresence>
                   {toasts.map((toast) => (
                     <Toast

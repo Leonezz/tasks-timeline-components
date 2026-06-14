@@ -236,26 +236,30 @@ export const InputBar: React.FC<InputBarProps> = () => {
                 />
               </button>
             )}
-            {settings.aiConfig.enabled && hasAgentSession && onOpenAgentPanel && (
-              <button
-                onClick={onOpenAgentPanel}
-                className={cn(
-                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
-                  isAgentPanelOpen
-                    ? "text-blue-600 bg-blue-50 ring-1 ring-blue-200"
-                    : "text-slate-400 hover:text-blue-600 hover:bg-blue-50",
-                )}
-                title="Open agent conversation"
-                aria-label="Open agent conversation"
-              >
-                <Icon name="MessageSquareText" size={16} />
-                {agentPanelUnreadCount ? (
-                  <span className="absolute -right-0.5 -top-0.5 min-w-3 rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-3 text-white">
-                    {agentPanelUnreadCount > 9 ? "9+" : agentPanelUnreadCount}
-                  </span>
-                ) : null}
-              </button>
-            )}
+            {settings.aiConfig.enabled &&
+              (hasAgentSession || effectiveAiActive) &&
+              onOpenAgentPanel && (
+                <button
+                  onClick={onOpenAgentPanel}
+                  className={cn(
+                    "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
+                    isAgentPanelOpen
+                      ? "text-blue-600 bg-blue-50 ring-1 ring-blue-200"
+                      : "text-slate-400 hover:text-blue-600 hover:bg-blue-50",
+                  )}
+                  title="Open agent conversation"
+                  aria-label="Open agent conversation"
+                >
+                  <Icon name="MessageSquareText" size={16} />
+                  {agentPanelUnreadCount ? (
+                    <span className="absolute -right-0.5 -top-0.5 min-w-3 rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-3 text-white">
+                      {agentPanelUnreadCount > 9
+                        ? "9+"
+                        : agentPanelUnreadCount}
+                    </span>
+                  ) : null}
+                </button>
+              )}
             {onOpenSettings && settings.settingButtonOnInputBar !== false && (
               <>
                 <div className="w-px h-4 bg-slate-200 mx-0.5 min-[400px]:mx-1" />

@@ -19,12 +19,12 @@ const statusColors: Record<string, string> = {
 
 export const DetailBlockStats: React.FC<{ data: StatsData }> = ({ data }) => (
   <div className="space-y-2">
-    <div className="text-xs font-semibold text-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-200">
+    <div className="text-xs font-semibold text-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-200">
       {data.total} total tasks
     </div>
     {/* Status bar */}
     {data.total > 0 && (
-      <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 [.chronos-app[data-theme='dark']_&]:bg-slate-700">
+      <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700">
         {Object.entries(data.byStatus).map(([status, count]) =>
           count > 0 ? (
             <div
@@ -43,7 +43,7 @@ export const DetailBlockStats: React.FC<{ data: StatsData }> = ({ data }) => (
         count > 0 ? (
           <span
             key={priority}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-300"
+            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
           >
             {priority}: {count}
           </span>

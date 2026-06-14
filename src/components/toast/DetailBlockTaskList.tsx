@@ -2,10 +2,10 @@ import React from "react";
 import type { Task } from "../../types";
 
 const priorityColors: Record<string, string> = {
-  high: "bg-rose-100 text-rose-700 [.chronos-app[data-theme='dark']_&]:bg-rose-900/30 [.chronos-app[data-theme='dark']_&]:text-rose-400",
+  high: "bg-rose-100 text-rose-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-rose-900/30 [.tasks-timeline-app[data-theme='dark']_&]:text-rose-400",
   medium:
-    "bg-amber-100 text-amber-700 [.chronos-app[data-theme='dark']_&]:bg-amber-900/30 [.chronos-app[data-theme='dark']_&]:text-amber-400",
-  low: "bg-slate-100 text-slate-600 [.chronos-app[data-theme='dark']_&]:bg-slate-700 [.chronos-app[data-theme='dark']_&]:text-slate-400",
+    "bg-amber-100 text-amber-700 [.tasks-timeline-app[data-theme='dark']_&]:bg-amber-900/30 [.tasks-timeline-app[data-theme='dark']_&]:text-amber-400",
+  low: "bg-slate-100 text-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-400",
 };
 
 const statusDots: Record<string, string> = {
@@ -38,7 +38,7 @@ export const DetailBlockTaskList: React.FC<DetailBlockTaskListProps> = ({
       {tasks.map((task) => (
         <div
           key={task.id}
-          className="flex items-center gap-2 px-2 py-1.5 rounded bg-slate-50 [.chronos-app[data-theme='dark']_&]:bg-slate-700/50"
+          className="flex items-center gap-2 px-2 py-1.5 rounded bg-slate-50 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700/50"
         >
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDots[task.status] || "bg-slate-400"}`}

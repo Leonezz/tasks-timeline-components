@@ -13,7 +13,7 @@ export const DetailBlockKeyValue: React.FC<DetailBlockKeyValueProps> = ({
         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
           {entry.key}
         </span>
-        <span className="text-xs text-slate-600 [.chronos-app[data-theme='dark']_&]:text-slate-300">
+        <span className="text-xs text-slate-600 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300">
           {entry.value}
         </span>
       </React.Fragment>

@@ -22,6 +22,8 @@ export { AgentConversationPanel } from "./AgentConversationPanel";
 
 // UI Components
 export { Toast } from "./Toast";
+export { MarkdownText } from "./MarkdownText";
+export type { MarkdownTextProps } from "./MarkdownText";
 export type {
   ToastMessage,
   ToastVariant,
