@@ -83,7 +83,9 @@ export const SettingsPage = ({
           {/* Tabs */}
           <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <button
+              type="button"
               onClick={() => setActiveTab("general")}
+              aria-pressed={activeTab === "general"}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "general"
@@ -94,7 +96,9 @@ export const SettingsPage = ({
               General
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("filters")}
+              aria-pressed={activeTab === "filters"}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "filters"
@@ -102,10 +106,12 @@ export const SettingsPage = ({
                   : "text-slate-500 hover:text-slate-700",
               )}
             >
-              Filters & Sorting
+              Filters & sorting
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("ai")}
+              aria-pressed={activeTab === "ai"}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "ai"
@@ -116,7 +122,9 @@ export const SettingsPage = ({
               AI
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("docs")}
+              aria-pressed={activeTab === "docs"}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "docs"
@@ -127,7 +135,9 @@ export const SettingsPage = ({
               Docs
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("about")}
+              aria-pressed={activeTab === "about"}
               className={cn(
                 "px-3 py-1 text-xs font-medium rounded-md transition-all",
                 activeTab === "about"
@@ -139,8 +149,10 @@ export const SettingsPage = ({
             </button>
             {customTabs.map((tab) => (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                aria-pressed={activeTab === tab.id}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1",
                   activeTab === tab.id
@@ -156,6 +168,8 @@ export const SettingsPage = ({
         </div>
         {onClose && (
           <button
+            type="button"
+            aria-label="Close settings"
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors outline-none"
           >

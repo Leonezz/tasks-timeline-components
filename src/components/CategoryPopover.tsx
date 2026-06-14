@@ -34,11 +34,15 @@ export const CategoryPopover = ({
     <Popover>
       <PopoverTrigger asChild>
         <button
+          type="button"
           className={cn(
             badgeClass,
-            "text-slate-600 bg-slate-100 border-slate-200",
+            "text-slate-600 bg-slate-100 border-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30",
           )}
-          title="Change Category"
+          title={`Change category (current: ${task.category || "none"})`}
+          aria-label={`Change category for ${task.title}. Current category: ${
+            task.category || "none"
+          }`}
         >
           <Icon name="Folder" size={10} />
           <span>{task.category || "No Category"}</span>
@@ -65,13 +69,16 @@ export const CategoryPopover = ({
             }}
             className="w-full text-xs border border-slate-200 rounded px-2 py-1 mb-2 focus:ring-2 focus:ring-blue-500/20 outline-none"
             placeholder="Category name..."
+            aria-label={`Category for ${task.title}`}
           />
           <div className="flex flex-col gap-0.5">
             {suggestions.map((s) => (
               <PopoverClose key={s} asChild>
                 <button
+                  type="button"
                   onClick={() => onUpdate({ ...task, category: s })}
-                  className="text-left px-2 py-1.5 text-xs text-slate-600 hover:opacity-80 rounded flex items-center gap-2 justify-start!"
+                  className="text-left min-h-8 px-2 py-1.5 text-xs text-slate-600 hover:opacity-80 rounded flex items-center gap-2 justify-start! outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                  aria-label={`Set ${task.title} category to ${s}`}
                 >
                   <Icon name="Folder" size={10} className="opacity-50" />
                   {s}
@@ -80,8 +87,10 @@ export const CategoryPopover = ({
             ))}
             <PopoverClose asChild>
               <button
+                type="button"
                 onClick={() => onUpdate({ ...task, category: val })}
-                className="text-center px-2 py-1.5 text-xs text-blue-600! hover:opacity-80 rounded font-medium mt-1"
+                className="text-center min-h-8 px-2 py-1.5 text-xs text-blue-600! hover:opacity-80 rounded font-medium mt-1 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                aria-label={`Set ${task.title} category to ${val || "blank"}`}
               >
                 Set to "{val}"
               </button>

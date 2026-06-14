@@ -32,7 +32,16 @@ export const PriorityPopover = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={cn(badgeClass, colorClass)} title="Change Priority">
+        <button
+          type="button"
+          className={cn(
+            badgeClass,
+            colorClass,
+            "outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30",
+          )}
+          title={`Change priority (current: ${p})`}
+          aria-label={`Change priority for ${task.title}. Current priority: ${p}`}
+        >
           <Icon name="Flag" size={10} strokeWidth={p === "high" ? 3 : 2} />
           <span className="capitalize">{p}</span>
         </button>
@@ -50,10 +59,16 @@ export const PriorityPopover = ({
         >
           {(["high", "medium", "low"] as Priority[]).map((opt) => (
             <PopoverClose key={opt} asChild>
-              <button onClick={() => onUpdate({ ...task, priority: opt })}>
+              <button
+                type="button"
+                onClick={() => onUpdate({ ...task, priority: opt })}
+                aria-pressed={task.priority === opt}
+                aria-label={`Set ${task.title} priority to ${opt}`}
+                className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+              >
                 <div
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start! hover:bg-slate-300",
+                    "flex min-h-8 items-center gap-2 px-2 py-1.5 text-xs rounded-md text-left transition-colors justify-start! hover:bg-slate-300",
                     task.priority === opt
                       ? "bg-rose-300 font-bold"
                       : "hover:opacity-80 text-slate-600",

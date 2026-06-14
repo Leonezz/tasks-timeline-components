@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { DateTime } from "luxon";
 import type { DateGroupBy, DayGroup, Task } from "../types";
 import { groupTasksByYearAndDate } from "../utils";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
 import { BacklogSection } from "./BacklogSection";
+import { Icon } from "./Icon";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 
@@ -14,7 +15,12 @@ interface TodoListProps {
 
 export const TodoList: React.FC<TodoListProps> = ({ className }) => {
   const { tasks } = useTasksContext(),
-    { settings, isFocusMode } = useSettingsContext(),
+    { settings, isFocusMode, toggleFocusMode } = useSettingsContext(),
+    todayAddTaskButtonRef = useRef<HTMLButtonElement>(null),
+    handleAddTodayTask = () => {
+      todayAddTaskButtonRef.current?.click();
+      todayAddTaskButtonRef.current?.focus();
+    },
     { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
       const today = DateTime.now(),
         todayStr = today.toISODate(),
@@ -102,7 +108,11 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
               : ""}
           </span>
         </div>
-        <DaySection group={todayGroup} lazy={false} />
+        <DaySection
+          group={todayGroup}
+          lazy={false}
+          addTaskButtonRef={todayAddTaskButtonRef}
+        />
       </div>
 
       {/* Timeline - Hidden in Focus Mode */}
@@ -116,20 +126,55 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
         <BacklogSection tasks={backlogTasks} />
       )}
 
+      {isFocusMode && backlogTasks.length > 0 && (
+        <div
+          className="mx-2 mb-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500"
+          role="note"
+        >
+          <Icon name="Archive" size={14} className="shrink-0 text-slate-400" />
+          <span className="min-w-0 flex-1">
+            {backlogTasks.length} backlog task
+            {backlogTasks.length === 1 ? "" : "s"} hidden in focus mode.
+          </span>
+          <button
+            type="button"
+            onClick={toggleFocusMode}
+            className="shrink-0 rounded-md px-2 py-1 font-semibold text-blue-600 outline-none hover:bg-white hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500/30"
+            aria-label="Show backlog tasks by leaving focus mode"
+          >
+            Show backlog
+          </button>
+        </div>
+      )}
+
       {/* Empty State */}
       {!isFocusMode &&
         otherYearGroups.length === 0 &&
         tasks.length > 0 &&
         !todayGroup.tasks.length &&
         backlogTasks.length === 0 && (
-          <div className="text-center text-slate-400 text-sm py-10">
+          <div
+            className="text-center text-slate-400 text-sm py-10"
+            role="status"
+          >
             No tasks visible based on current filters.
           </div>
         )}
 
       {isFocusMode && !todayGroup.tasks.length && (
-        <div className="text-center text-slate-400 text-sm py-10">
-          Focus mode is on. No tasks for today.
+        <div
+          className="mx-auto max-w-sm px-4 py-10 text-center text-sm text-slate-400"
+          role="status"
+        >
+          <p>Focus mode is on. No tasks for today.</p>
+          <button
+            type="button"
+            onClick={handleAddTodayTask}
+            className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-600 outline-none transition-colors hover:bg-blue-100 focus-visible:ring-2 focus-visible:ring-blue-500/30"
+          >
+            <Icon name="Plus" size={14} />
+            Add today&apos;s first task
+          </button>
         </div>
       )}
     </div>

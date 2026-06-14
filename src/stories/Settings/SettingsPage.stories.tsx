@@ -100,12 +100,12 @@ export const Default: Story = {
 const customTabs: CustomSettingsTab[] = [
   {
     id: "host-settings",
-    label: "Host App",
+    label: "Host app",
     icon: "Plug",
     content: (
       <div className="p-6">
         <h3 className="text-lg font-semibold mb-4">
-          Host Application Settings
+          Host application settings
         </h3>
         <p className="text-slate-600 mb-4">
           This tab is injected by the host application. It can contain any React
@@ -113,7 +113,7 @@ const customTabs: CustomSettingsTab[] = [
         </p>
         <div className="bg-slate-100 rounded-lg p-4">
           <label className="block text-sm font-medium mb-2">
-            Custom Setting
+            Custom setting
           </label>
           <input
             type="text"
@@ -130,7 +130,7 @@ const customTabs: CustomSettingsTab[] = [
     icon: "Cloud",
     content: (
       <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Sync Settings</h3>
+        <h3 className="text-lg font-semibold mb-4">Sync settings</h3>
         <p className="text-slate-600">
           Configure cloud synchronization options here.
         </p>

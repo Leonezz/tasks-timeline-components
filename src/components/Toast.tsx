@@ -12,6 +12,7 @@ const PromptInput: React.FC<{
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }> = ({ placeholder, onSubmit, onCancel }) => {
+  const inputId = React.useId();
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {
@@ -23,8 +24,13 @@ const PromptInput: React.FC<{
 
   return (
     <div className="flex-1 flex flex-col gap-2">
+      <label htmlFor={inputId} className="sr-only">
+        Toast prompt response
+      </label>
       <input
+        id={inputId}
         type="text"
+        aria-label="Toast prompt response"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
@@ -37,6 +43,7 @@ const PromptInput: React.FC<{
       />
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={!value.trim()}
           className="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -44,6 +51,7 @@ const PromptInput: React.FC<{
           Submit
         </button>
         <button
+          type="button"
           onClick={onCancel}
           className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700 [.tasks-timeline-app[data-theme='dark']_&]:text-slate-300"
         >
@@ -164,6 +172,7 @@ export const Toast: React.FC<ToastProps> = ({
         {toast.interaction.kind === "confirm" && (
           <div className="flex gap-2 mt-3">
             <button
+              type="button"
               onClick={() =>
                 toast.interaction.kind === "confirm" &&
                 toast.interaction.onConfirm()
@@ -174,6 +183,7 @@ export const Toast: React.FC<ToastProps> = ({
                 (toast.interaction.confirmLabel || "Yes")}
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (toast.interaction.kind === "confirm") {
                   toast.interaction.onCancel?.();
@@ -190,6 +200,7 @@ export const Toast: React.FC<ToastProps> = ({
           <div className="flex flex-col gap-1.5 mt-3">
             {toast.interaction.options.map((opt) => (
               <button
+                type="button"
                 key={opt.value}
                 onClick={() =>
                   toast.interaction.kind === "select" &&
@@ -201,6 +212,7 @@ export const Toast: React.FC<ToastProps> = ({
               </button>
             ))}
             <button
+              type="button"
               onClick={() =>
                 toast.interaction.kind === "select" &&
                 toast.interaction.onCancel?.()
@@ -234,7 +246,11 @@ export const Toast: React.FC<ToastProps> = ({
         {toast.detail && toast.detail.length > 0 && (
           <div className="mt-2">
             <button
+              type="button"
               onClick={() => onToggleExpand?.(toast.id)}
+              aria-expanded={isExpanded}
+              data-testid="toast-detail-toggle"
+              data-toast-id={toast.id}
               className="text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors"
             >
               <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} size={12} />
@@ -247,8 +263,10 @@ export const Toast: React.FC<ToastProps> = ({
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
+                  data-testid="toast-detail-panel"
+                  data-toast-id={toast.id}
                 >
-                  <div className="mt-2 space-y-2 max-h-[40vh] overflow-y-auto">
+                  <div className="mt-2 max-h-[40vh] space-y-2 overflow-y-auto overscroll-contain pr-1">
                     {toast.detail.map((block, i) => (
                       <DetailBlockRenderer key={i} block={block} />
                     ))}
@@ -260,7 +278,9 @@ export const Toast: React.FC<ToastProps> = ({
         )}
       </div>
       <button
+        type="button"
         onClick={() => onDismiss(toast.id)}
+        aria-label="Dismiss notification"
         className="opacity-40 hover:opacity-100 transition-opacity p-0.5 -mr-1 -mt-1"
       >
         <Icon name="X" size={14} />

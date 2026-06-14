@@ -1,7 +1,7 @@
 import { SettingsPageAI } from "../../components/settings/SettingsPageAI";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AppSettings } from "../../types";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { settingsBuilder } from "../fixtures";
 
 const meta: Meta<typeof SettingsPageAI> = {
@@ -187,11 +187,64 @@ export const WithCustomBaseURL: Story = {
   },
 };
 
+export const CustomProviderValidation: Story = {
+  args: {
+    settings: {
+      ...settingsBuilder.withAI(),
+      aiConfig: {
+        enabled: true,
+        defaultMode: true,
+        activeProvider: "openai-compatible",
+        providers: {
+          gemini: { apiKey: "", model: "gemini-2.0-flash", baseUrl: "" },
+          openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
+          anthropic: {
+            apiKey: "",
+            model: "claude-sonnet-4-20250514",
+            baseUrl: "",
+          },
+          "openai-compatible": {
+            apiKey: "custom-provider-key",
+            model: "",
+            baseUrl: "",
+          },
+        },
+        systemPrompt: "",
+      },
+    },
+    onUpdateSettings: handleUpdateSettings,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Show custom provider validation", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /test connection/i }),
+      );
+      await expect(canvas.getByRole("alert")).toHaveTextContent(
+        "Custom provider base URL is required.",
+      );
+    });
+  },
+};
+
 export const WithTokenUsage: Story = {
   args: {
     settings: {
       ...settingsBuilder.withAI(),
       totalTokenUsage: 125000,
+      tokenUsageByModel: {
+        "gemini:gemini-2.0-flash": {
+          inputTokens: 70000,
+          outputTokens: 30000,
+          totalTokens: 100000,
+        },
+        "openai:gpt-4o": {
+          inputTokens: 15000,
+          outputTokens: 10000,
+          totalTokens: 25000,
+        },
+      },
     },
     onUpdateSettings: handleUpdateSettings,
   },
@@ -356,6 +409,18 @@ export const AllFeaturesEnabled: Story = {
         },
       },
       totalTokenUsage: 500000,
+      tokenUsageByModel: {
+        "gemini:gemini-2.0-flash": {
+          inputTokens: 260000,
+          outputTokens: 140000,
+          totalTokens: 400000,
+        },
+        "anthropic:claude-sonnet-4-20250514": {
+          inputTokens: 70000,
+          outputTokens: 30000,
+          totalTokens: 100000,
+        },
+      },
     },
     onUpdateSettings: handleUpdateSettings,
   },

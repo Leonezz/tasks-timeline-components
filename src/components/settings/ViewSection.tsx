@@ -49,19 +49,22 @@ export const ViewSection = ({
 }: ViewSectionProps) => (
   <>
     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-      View Options
+      View options
     </h3>
 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">
-            Show Completed
+            Show completed
           </span>
           <span className="text-xs text-slate-400">Display finished items</span>
         </div>
         <button
+          type="button"
           onClick={toggleShowCompleted}
+          aria-label="Show completed tasks"
+          aria-pressed={showCompleted}
           className={cn(
             "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
             showCompleted ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
@@ -78,14 +81,17 @@ export const ViewSection = ({
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">
-            Relative Dates
+            Relative dates
           </span>
           <span className="text-xs text-slate-400">
             e.g. "In 2 days", "Yesterday"
           </span>
         </div>
         <button
+          type="button"
           onClick={toggleRelativeDates}
+          aria-label="Use relative dates"
+          aria-pressed={useRelativeDates}
           className={cn(
             "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
             useRelativeDates ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
@@ -102,14 +108,17 @@ export const ViewSection = ({
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">
-            Progress Bars
+            Progress bars
           </span>
           <span className="text-xs text-slate-400">
             Show visual completion in timeline
           </span>
         </div>
         <button
+          type="button"
           onClick={toggleProgressBar}
+          aria-label="Show progress bars"
+          aria-pressed={showProgressBar}
           className={cn(
             "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
             showProgressBar ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
@@ -129,7 +138,10 @@ export const ViewSection = ({
           <span className="text-xs text-slate-400">Play sounds on actions</span>
         </div>
         <button
+          type="button"
           onClick={toggleSound}
+          aria-label="Enable sound"
+          aria-pressed={soundEnabled}
           className={cn(
             "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
             soundEnabled ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
@@ -146,14 +158,17 @@ export const ViewSection = ({
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-medium text-slate-700">
-            Default Focus Mode
+            Default focus mode
           </span>
           <span className="text-xs text-slate-400">
-            Start app in Focus Mode
+            Start app in focus mode
           </span>
         </div>
         <button
+          type="button"
           onClick={toggleDefaultFocus}
+          aria-label="Use focus mode by default"
+          aria-pressed={defaultFocusMode}
           className={cn(
             "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
             defaultFocusMode ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700",
@@ -170,16 +185,19 @@ export const ViewSection = ({
       {/* Date Format */}
       <div className="pt-2">
         <label className="text-xs font-medium text-slate-500 block mb-2">
-          Date Format
+          Date format
         </label>
         <div className="grid grid-cols-2 gap-2 mb-2">
           {DATE_FORMATS.map((fmt) => (
             <button
+              type="button"
               key={fmt.value}
               onClick={() => {
                 setDateFormat(fmt.value);
                 setIsCustomFormat(false);
               }}
+              aria-label={`Use ${fmt.label} date format`}
+              aria-pressed={!isCustomFormat && dateFormat === fmt.value}
               className={cn(
                 "px-3 py-2 text-xs font-medium rounded-lg border transition-all text-left flex items-center justify-between",
                 !isCustomFormat && dateFormat === fmt.value
@@ -198,7 +216,10 @@ export const ViewSection = ({
         {/* Custom Format Option */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setIsCustomFormat(true)}
+            aria-label="Use custom date format"
+            aria-pressed={isCustomFormat}
             className={cn(
               "px-3 py-2 text-xs font-medium rounded-lg border transition-all text-left flex items-center justify-between flex-1",
               isCustomFormat
@@ -231,11 +252,12 @@ export const ViewSection = ({
       {/* Default Category */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
         <label className="text-xs font-medium text-slate-500 block mb-2">
-          Default Category
+          Default category
         </label>
         <div className="relative">
           <input
             type="text"
+            aria-label="Default category"
             list="category-suggestions"
             value={defaultCategory}
             onChange={(e) => setDefaultCategory(e.target.value)}
@@ -253,15 +275,18 @@ export const ViewSection = ({
       {/* Grouping Strategy */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
         <label className="text-xs font-medium text-slate-500 block mb-2">
-          Group Tasks By (Multi-select)
+          Group tasks by
         </label>
         <div className="grid grid-cols-2 gap-2">
           {GROUP_STRATEGIES.map((s) => {
             const isSelected = groupingStrategy.includes(s.id);
             return (
               <button
+                type="button"
                 key={s.id}
                 onClick={() => toggleGroupingStrategy(s.id)}
+                aria-label={`${isSelected ? "Remove" : "Add"} ${s.label} grouping`}
+                aria-pressed={isSelected}
                 className={cn(
                   "px-3 py-2 text-xs font-medium rounded-lg border transition-all text-left flex items-center justify-between group",
                   isSelected

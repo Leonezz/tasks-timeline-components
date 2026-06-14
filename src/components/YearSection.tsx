@@ -22,7 +22,14 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* Year Header & Progress - Clickable */}
         <CollapsibleTrigger asChild>
-          <button className="w-full text-left mb-1.5 group outline-none">
+          <button
+            type="button"
+            className="w-full text-left mb-1.5 group outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1"
+            aria-label={`${isOpen ? "Collapse" : "Expand"} ${group.year}, ${
+              group.totalTasks
+            } task${group.totalTasks === 1 ? "" : "s"}, ${progressPercent}% complete`}
+            title={`${group.year} - ${group.completedTasks} of ${group.totalTasks} complete`}
+          >
             <div className="flex items-end justify-between mb-1">
               <div className="flex items-baseline gap-4">
                 <div className="flex items-center gap-2">
@@ -50,7 +57,10 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
               </div>
 
               {/* Progress Numbers Moved Here */}
-              <div className="flex items-center gap-2 pb-1">
+              <div
+                className="flex items-center gap-2 pb-1"
+                aria-label={`${group.completedTasks} of ${group.totalTasks} tasks complete`}
+              >
                 <span className="text-[10px] text-slate-400 font-mono">
                   {group.completedTasks} / {group.totalTasks}
                 </span>
@@ -59,7 +69,14 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
 
             {/* Progress Bar */}
             {settings.showProgressBar && (
-              <div className="relative h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="relative h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-label={`${group.year} completion`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progressPercent}
+              >
                 <motion.div
                   className={cn(
                     "absolute top-0 left-0 h-full rounded-full",

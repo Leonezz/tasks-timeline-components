@@ -17,37 +17,37 @@ interface SettingsPageGeneralProps {
 const INPUT_BAR_ITEMS = [
   {
     key: "settingButtonOnInputBar" as const,
-    label: "Settings Button",
+    label: "Settings button",
     description: "Show settings gear icon",
     icon: "Settings" as const,
   },
   {
     key: "tagsFilterOnInputBar" as const,
-    label: "Tags Filter",
+    label: "Tags filter",
     description: "Show tags filter chips",
     icon: "Tag" as const,
   },
   {
     key: "categoriesFilterOnInputBar" as const,
-    label: "Categories Filter",
+    label: "Categories filter",
     description: "Show categories filter chips",
     icon: "Folder" as const,
   },
   {
     key: "priorityFilterOnInputBar" as const,
-    label: "Priority Filter",
+    label: "Priority filter",
     description: "Show priority filter chips",
     icon: "Flag" as const,
   },
   {
     key: "statusFilterOnInputBar" as const,
-    label: "Status Filter",
+    label: "Status filter",
     description: "Show status filter chips",
     icon: "CircleDot" as const,
   },
   {
     key: "sortOnInputBar" as const,
-    label: "Sort Control",
+    label: "Sort control",
     description: "Show sort options",
     icon: "ArrowUpDown" as const,
   },
@@ -166,7 +166,7 @@ export const SettingsPageGeneral = ({
         <section>
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Icon name="PanelBottom" size={12} className="text-blue-500" />
-            Input Bar
+            Input bar
           </h3>
           <div className="space-y-4">
             {INPUT_BAR_ITEMS.map((item) => {
@@ -192,7 +192,10 @@ export const SettingsPageGeneral = ({
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => toggleInputBarItem(item.key)}
+                    aria-label={`${isEnabled ? "Hide" : "Show"} ${item.label.toLowerCase()} on input bar`}
+                    aria-pressed={isEnabled}
                     className={cn(
                       "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                       isEnabled

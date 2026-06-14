@@ -42,6 +42,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
       voiceRuntime,
     ),
     effectiveAiActive = settings.aiConfig.enabled && isAiMode,
+    isCompactViewport =
+      typeof window !== "undefined" && window.innerWidth < 530,
+    inputActionButtonClass =
+      "min-h-8 min-w-8 p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
     handleSubmit = async () => {
       if (!value.trim() || isLoading) {
         return;
@@ -62,8 +66,13 @@ export const InputBar: React.FC<InputBarProps> = () => {
       }
     },
     handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        handleSubmit();
+      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        void handleSubmit();
+      }
+      if (e.key === "Escape" && value) {
+        e.preventDefault();
+        setValue("");
       }
     },
     toggleFilter = (
@@ -176,11 +185,18 @@ export const InputBar: React.FC<InputBarProps> = () => {
           <input
             type="text"
             className={cn(
-              "w-full bg-white pl-8 min-[400px]:pl-10 pr-32 min-[400px]:pr-36 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
+              "w-full bg-white pl-8 min-[400px]:pl-10 pr-36 min-[400px]:pr-44 py-2 min-[400px]:py-2.5 rounded-xl border shadow-sm text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 font-medium",
               effectiveAiActive
                 ? "border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
                 : "border-slate-200 focus:border-slate-400 focus:ring-slate-400/20",
             )}
+            aria-label={
+              effectiveAiActive
+                ? isAgentConversationActive
+                  ? "Reply to agent"
+                  : "Describe tasks with AI"
+                : "Quick add task"
+            }
             placeholder={
               isListening
                 ? "Listening..."
@@ -188,7 +204,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   ? isAgentConversationActive
                     ? "Reply to agent..."
                     : "Describe tasks using natural language..."
-                  : window.innerWidth < 530
+                  : isCompactViewport
                     ? "Quick add task..."
                     : "Quick add (e.g., 'Meeting due:tomorrow p:high')"
             }
@@ -202,14 +218,19 @@ export const InputBar: React.FC<InputBarProps> = () => {
             {/* Voice Input Button */}
             {settings.voiceConfig.enabled && (
               <button
+                type="button"
                 onClick={isListening ? stop : start}
                 className={cn(
-                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
+                  inputActionButtonClass,
                   isListening
                     ? "text-rose-500 bg-rose-50 animate-pulse"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
                 title={isListening ? "Stop recording" : "Start voice input"}
+                aria-label={
+                  isListening ? "Stop voice input" : "Start voice input"
+                }
+                aria-pressed={isListening}
               >
                 <Icon name={isListening ? "Square" : "Mic"} size={16} />
               </button>
@@ -217,9 +238,10 @@ export const InputBar: React.FC<InputBarProps> = () => {
 
             {settings.aiConfig.enabled && (
               <button
+                type="button"
                 onClick={toggleAiMode}
                 className={cn(
-                  "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200",
+                  inputActionButtonClass,
                   effectiveAiActive
                     ? "text-purple-600 bg-purple-50 hover:bg-purple-100 ring-1 ring-purple-200"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
@@ -229,6 +251,12 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     ? "Switch to manual mode"
                     : "Switch to AI mode"
                 }
+                aria-label={
+                  effectiveAiActive
+                    ? "Switch to manual task entry"
+                    : "Switch to AI task entry"
+                }
+                aria-pressed={effectiveAiActive}
               >
                 <Icon
                   name={effectiveAiActive ? "Sparkles" : "TerminalSquare"}
@@ -240,22 +268,27 @@ export const InputBar: React.FC<InputBarProps> = () => {
               (hasAgentSession || effectiveAiActive) &&
               onOpenAgentPanel && (
                 <button
+                  type="button"
                   onClick={onOpenAgentPanel}
                   className={cn(
-                    "p-1 min-[400px]:p-1.5 rounded-md transition-all duration-200 relative",
+                    inputActionButtonClass,
                     isAgentPanelOpen
                       ? "text-blue-600 bg-blue-50 ring-1 ring-blue-200"
                       : "text-slate-400 hover:text-blue-600 hover:bg-blue-50",
                   )}
                   title="Open agent conversation"
                   aria-label="Open agent conversation"
+                  aria-expanded={isAgentPanelOpen}
                 >
                   <Icon name="MessageSquareText" size={16} />
                   {agentPanelUnreadCount ? (
-                    <span className="absolute -right-0.5 -top-0.5 min-w-3 rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-3 text-white">
-                      {agentPanelUnreadCount > 9
-                        ? "9+"
-                        : agentPanelUnreadCount}
+                    <span
+                      className="absolute -right-0.5 -top-0.5 min-w-3 rounded-full bg-rose-500 px-0.5 text-[8px] font-bold leading-3 text-white"
+                      aria-label={`${agentPanelUnreadCount} unread agent message${
+                        agentPanelUnreadCount === 1 ? "" : "s"
+                      }`}
+                    >
+                      {agentPanelUnreadCount > 9 ? "9+" : agentPanelUnreadCount}
                     </span>
                   ) : null}
                 </button>
@@ -264,9 +297,14 @@ export const InputBar: React.FC<InputBarProps> = () => {
               <>
                 <div className="w-px h-4 bg-slate-200 mx-0.5 min-[400px]:mx-1" />
                 <button
+                  type="button"
                   onClick={onOpenSettings}
-                  className="text-slate-400 hover:text-blue-600 p-1 min-[400px]:p-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                  className={cn(
+                    inputActionButtonClass,
+                    "text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors",
+                  )}
                   title="Settings and docs"
+                  aria-label="Open settings and docs"
                 >
                   <Icon name="Settings" size={16} />
                 </button>
@@ -299,7 +337,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   {availableTags.map((tag) => (
                     <label
                       key={tag}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
+                      className="flex min-h-8 items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
                     >
                       <input
                         type="checkbox"
@@ -337,7 +375,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   {availableCategories.map((cat) => (
                     <label
                       key={cat}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
+                      className="flex min-h-8 items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer transition-colors group"
                     >
                       <input
                         type="checkbox"
@@ -369,7 +407,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   {(["low", "medium", "high"] as Priority[]).map((p) => (
                     <label
                       key={p}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
+                      className="flex min-h-8 items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
                     >
                       <input
                         type="checkbox"
@@ -413,7 +451,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
                   ).map((s) => (
                     <label
                       key={s}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
+                      className="flex min-h-8 items-center gap-2 px-2 py-1.5 hover:bg-slate-300 font-mono rounded-lg cursor-pointer capitalize transition-colors group"
                     >
                       <input
                         type="checkbox"
@@ -476,15 +514,21 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className={cn(
-            "flex items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none",
+            "flex min-h-8 items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 text-xs font-medium rounded-full border transition-all shrink-0 outline-none select-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
             isActive
               ? "bg-slate-800 text-white border-slate-800 shadow-md shadow-slate-200"
               : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-800",
           )}
+          aria-label={`${label} filter${isActive ? `, ${count} selected` : ""}`}
+          aria-pressed={isActive}
+          title={`${label} filter${isActive ? ` (${count} selected)` : ""}`}
         >
           {label}
           {isActive && (
-            <span className="flex items-center justify-center bg-white text-slate-900 text-[9px] font-bold h-4 min-w-4 px-0.5 rounded-full">
+            <span
+              className="flex items-center justify-center bg-white text-slate-900 text-[9px] font-bold h-4 min-w-4 px-0.5 rounded-full"
+              aria-hidden="true"
+            >
               {count}
             </span>
           )}
@@ -520,8 +564,10 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
             </span>
             {isActive && (
               <button
+                type="button"
                 onClick={onClear}
-                className="text-[10px] font-medium text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-50 transition-colors"
+                className="min-h-7 text-[10px] font-medium text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30"
+                aria-label={`Clear ${label.toLowerCase()} filter`}
               >
                 Clear
               </button>
@@ -567,7 +613,12 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold rounded-full transition-all shrink-0 outline-none ml-auto active:scale-95">
+        <button
+          type="button"
+          className="flex min-h-8 items-center gap-1 min-[400px]:gap-1.5 px-2 min-[400px]:px-3 py-1 min-[400px]:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold rounded-full transition-all shrink-0 outline-none ml-auto active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1"
+          aria-label={`Sort tasks by ${sort.field}, ${sort.direction}`}
+          title={`Sort by ${sort.field} (${sort.direction})`}
+        >
           <Icon name="ArrowUpDown" size={12} />
           <span>Sort</span>
         </button>
@@ -595,12 +646,18 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
               const isSelected = sort.field === f.value;
               return (
                 <button
+                  type="button"
                   key={f.value}
                   onClick={() => handleFieldSelect(f.value)}
+                  aria-pressed={isSelected}
+                  aria-label={`Sort by ${f.label}${
+                    isSelected ? `, currently ${sort.direction}` : ""
+                  }`}
+                  className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-start! text-sm rounded-lg outline-none hover:bg-slate-300 font-mono w-full p-2",
+                      "flex min-h-8 items-center justify-start! text-sm rounded-lg outline-none hover:bg-slate-300 font-mono w-full p-2",
                       isSelected
                         ? "text-slate-900"
                         : "text-slate-600 hover:text-slate-900",

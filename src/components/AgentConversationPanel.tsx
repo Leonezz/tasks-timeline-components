@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -82,12 +83,113 @@ function getEntryIcon(entry: AgentEntry): LucideIconName {
 function getStatusStyles(status: AgentSession["status"]): string {
   switch (status) {
     case "running":
-      return "bg-blue-100 text-blue-700";
+      return "bg-blue-100 text-blue-700 ring-1 ring-blue-200";
     case "complete":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200";
     case "error":
-      return "bg-rose-100 text-rose-700";
+      return "bg-rose-100 text-rose-700 ring-1 ring-rose-200";
   }
+}
+
+function getEntryKindLabel(entry: AgentEntry): string {
+  switch (entry.kind) {
+    case "user":
+      return "User message";
+    case "assistant":
+      return "Agent reply";
+    case "tool-call":
+      return "Tool request";
+    case "tool-result":
+      return "Tool response";
+    case "error":
+      return "Error";
+    case "status":
+      return "Status update";
+  }
+}
+
+function getPayloadLabel(entry: AgentEntry): string {
+  switch (entry.kind) {
+    case "tool-call":
+      return "Tool input";
+    case "tool-result":
+      return "Tool output";
+    case "status":
+      return "Status payload";
+    case "assistant":
+      return "Reply payload";
+    case "user":
+      return "Message payload";
+    case "error":
+      return "Error payload";
+  }
+}
+
+function getEntryCopyLabel(entry: AgentEntry): string {
+  switch (entry.kind) {
+    case "assistant":
+      return "Copy reply";
+    case "error":
+      return "Copy error";
+    case "tool-call":
+      return "Copy tool request";
+    case "tool-result":
+      return "Copy tool response";
+    case "status":
+      return "Copy status update";
+    case "user":
+      return "Copy message";
+  }
+}
+
+function getSessionStatusLabel(status: AgentSession["status"]): string {
+  switch (status) {
+    case "running":
+      return "Running";
+    case "complete":
+      return "Complete";
+    case "error":
+      return "Failed";
+  }
+}
+
+function getSessionTabLabel(session: AgentSession): string {
+  const status = getSessionStatusLabel(session.status);
+  const updatedAt = formatTime(session.updatedAt);
+  const timeSuffix = updatedAt ? ` at ${updatedAt}` : "";
+
+  return `${status}${timeSuffix}: ${session.prompt}`;
+}
+
+function getLatestProgressText(session: AgentSession): string | null {
+  for (let index = session.entries.length - 1; index >= 0; index -= 1) {
+    const entry = session.entries[index];
+    if (!entry || !isProcessEntry(entry)) {
+      continue;
+    }
+
+    if (entry.body) {
+      return entry.body;
+    }
+
+    if (entry.toolName) {
+      return `${getEntryKindLabel(entry)}: ${entry.toolName}`;
+    }
+
+    return entry.title;
+  }
+
+  return null;
+}
+
+function truncateText(value: string, maxLength: number): string {
+  return value.length > maxLength
+    ? `${value.slice(0, maxLength - 3)}...`
+    : value;
+}
+
+function sanitizeDomId(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
 function isProcessEntry(entry: AgentEntry): boolean {
@@ -186,14 +288,160 @@ function formatTrajectoryForCopy(session: AgentSession): string {
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {
-  if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-    throw new Error("Clipboard API is not available.");
+  let clipboardError: unknown;
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      clipboardError = error;
+    }
   }
 
-  await navigator.clipboard.writeText(text);
+  if (typeof document !== "undefined" && document.body) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+
+    try {
+      if (document.execCommand("copy")) {
+        return;
+      }
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }
+
+  throw clipboardError instanceof Error
+    ? clipboardError
+    : new Error("Clipboard is not available.");
 }
 
-const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
+type CopyStatus = "idle" | "copied" | "error";
+
+function getCopyStatusLabel(status: CopyStatus): string {
+  switch (status) {
+    case "copied":
+      return "Copied";
+    case "error":
+      return "Copy failed";
+    case "idle":
+      return "Copy";
+  }
+}
+
+function useCopyFeedback() {
+  const resetTimersRef = useRef<Map<string, number>>(new Map());
+  const [copyStates, setCopyStates] = useState<Record<string, CopyStatus>>({});
+
+  useEffect(
+    () => () => {
+      resetTimersRef.current.forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+      resetTimersRef.current.clear();
+    },
+    [],
+  );
+
+  const setCopyStatus = useCallback((key: string, status: CopyStatus) => {
+    const existingTimer = resetTimersRef.current.get(key);
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer);
+    }
+
+    setCopyStates((current) => ({ ...current, [key]: status }));
+
+    const timerId = window.setTimeout(() => {
+      setCopyStates((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      resetTimersRef.current.delete(key);
+    }, 1800);
+
+    resetTimersRef.current.set(key, timerId);
+  }, []);
+
+  const copy = useCallback(
+    async (key: string, text: string | null | undefined) => {
+      if (!text) {
+        setCopyStatus(key, "error");
+        return;
+      }
+
+      try {
+        await copyTextToClipboard(text);
+        setCopyStatus(key, "copied");
+      } catch {
+        setCopyStatus(key, "error");
+      }
+    },
+    [setCopyStatus],
+  );
+
+  const getStatus = useCallback(
+    (key: string): CopyStatus => copyStates[key] ?? "idle",
+    [copyStates],
+  );
+
+  return { copy, getStatus };
+}
+
+const CopyActionButton: React.FC<{
+  label: string;
+  status: CopyStatus;
+  onCopy: () => void;
+  compact?: boolean;
+}> = ({ label, status, onCopy, compact = false }) => {
+  const statusLabel = getCopyStatusLabel(status);
+  const accessibleLabel =
+    status === "idle" ? label : `${statusLabel}: ${label}`;
+
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-1 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300",
+        status === "copied"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : status === "error"
+            ? "border-rose-200 bg-rose-50 text-rose-700"
+            : "border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:text-blue-600",
+      )}
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
+    >
+      <Icon
+        name={
+          status === "copied"
+            ? "Check"
+            : status === "error"
+              ? "AlertCircle"
+              : "Copy"
+        }
+        size={12}
+      />
+      <span>{compact && status === "idle" ? label : statusLabel}</span>
+    </button>
+  );
+};
+
+const AgentEntryRow: React.FC<{
+  entry: AgentEntry;
+  copyStatus: CopyStatus;
+  onCopyEntry: (entry: AgentEntry) => void;
+}> = ({ entry, copyStatus, onCopyEntry }) => {
   const isUser = entry.kind === "user";
   const isAssistant = entry.kind === "assistant";
 
@@ -229,12 +477,22 @@ const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
           )}
         >
           <div className="mb-1 flex items-center justify-between gap-2">
-            <h4 className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              {entry.title}
-            </h4>
-            <span className="shrink-0 font-mono text-[10px] text-slate-400">
-              {formatTime(entry.timestamp)}
-            </span>
+            <div className="min-w-0">
+              <h4 className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                {getEntryKindLabel(entry)}
+              </h4>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="font-mono text-[10px] text-slate-400">
+                {formatTime(entry.timestamp)}
+              </span>
+              <CopyActionButton
+                label={getEntryCopyLabel(entry)}
+                status={copyStatus}
+                onCopy={() => onCopyEntry(entry)}
+                compact
+              />
+            </div>
           </div>
           {entry.body && (
             <MarkdownText
@@ -252,20 +510,40 @@ const AgentEntryRow: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   return null;
 };
 
-const AgentProcessEntry: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
+const AgentProcessEntry: React.FC<{
+  entry: AgentEntry;
+  copyEntryStatus: CopyStatus;
+  copyPayloadStatus: CopyStatus;
+  onCopyEntry: (entry: AgentEntry) => void;
+  onCopyPayload: (entry: AgentEntry) => void;
+}> = ({
+  entry,
+  copyEntryStatus,
+  copyPayloadStatus,
+  onCopyEntry,
+  onCopyPayload,
+}) => {
   const payload = stringifyPayload(entry.payload);
   const preview = getEntryPreview(entry, payload);
+  const payloadLabel = getPayloadLabel(entry);
 
   return (
-    <details className="group rounded-md border border-slate-100 bg-white/80 text-slate-600">
-      <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+    <details
+      className="group rounded-md border border-slate-100 bg-white/80 text-slate-600"
+      data-testid="agent-process-entry"
+      data-entry-kind={entry.kind}
+    >
+      <summary
+        className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden"
+        data-testid="agent-process-entry-toggle"
+      >
         <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
           <Icon name={getEntryIcon(entry)} size={14} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h4 className="truncate text-[11px] font-semibold text-slate-500">
-              {entry.title}
+              {getEntryKindLabel(entry)}
             </h4>
             <span className="shrink-0 font-mono text-[10px] text-slate-400">
               {formatTime(entry.timestamp)}
@@ -283,6 +561,17 @@ const AgentProcessEntry: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
       </summary>
       {(entry.body || payload) && (
         <div className="border-t border-slate-100 px-3 pb-2 pt-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {entry.title}
+            </p>
+            <CopyActionButton
+              label={getEntryCopyLabel(entry)}
+              status={copyEntryStatus}
+              onCopy={() => onCopyEntry(entry)}
+              compact
+            />
+          </div>
           {entry.body && (
             <MarkdownText
               content={entry.body}
@@ -292,12 +581,28 @@ const AgentProcessEntry: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
           )}
           {payload && (
             <details className={cn(entry.body ? "mt-2" : undefined)}>
-              <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600">
-                Payload
+              <summary
+                className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
+                data-testid="agent-payload-toggle"
+              >
+                {payloadLabel}
               </summary>
-              <pre className="mt-1 max-h-44 overflow-auto rounded-md border border-slate-200 bg-white/80 p-2 font-mono text-[10px] leading-relaxed text-slate-600">
-                {payload}
-              </pre>
+              <div className="mt-1 rounded-md border border-slate-200 bg-white/80">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-2 py-1">
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {payloadLabel} data
+                  </span>
+                  <CopyActionButton
+                    label={`Copy ${payloadLabel.toLowerCase()}`}
+                    status={copyPayloadStatus}
+                    onCopy={() => onCopyPayload(entry)}
+                    compact
+                  />
+                </div>
+                <pre className="max-h-36 overflow-auto overscroll-contain p-2 font-mono text-[10px] leading-relaxed text-slate-600">
+                  {payload}
+                </pre>
+              </div>
             </details>
           )}
         </div>
@@ -306,9 +611,13 @@ const AgentProcessEntry: React.FC<{ entry: AgentEntry }> = ({ entry }) => {
   );
 };
 
-const AgentProcessBlock: React.FC<{ entries: AgentEntry[] }> = ({
-  entries,
-}) => {
+const AgentProcessBlock: React.FC<{
+  entries: AgentEntry[];
+  isRunning: boolean;
+  getCopyStatus: (key: string) => CopyStatus;
+  onCopyEntry: (entry: AgentEntry) => void;
+  onCopyPayload: (entry: AgentEntry) => void;
+}> = ({ entries, isRunning, getCopyStatus, onCopyEntry, onCopyPayload }) => {
   const toolCount = entries.filter(
     (entry) => entry.kind === "tool-call",
   ).length;
@@ -328,15 +637,23 @@ const AgentProcessBlock: React.FC<{ entries: AgentEntry[] }> = ({
 
   return (
     <div className="px-4 py-2">
-      <details className="group rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-100">
-        <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden">
+      <details
+        className="group rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-100"
+        open={isRunning || undefined}
+        data-testid="agent-process-block"
+        data-state={isRunning ? "live" : "logged"}
+      >
+        <summary
+          className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden"
+          data-testid="agent-process-block-toggle"
+        >
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 ring-1 ring-slate-200">
             <Icon name="Workflow" size={15} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <h4 className="truncate text-xs font-bold text-slate-600">
-                Agent process
+                {isRunning ? "Live agent activity" : "Agent activity log"}
               </h4>
               <span className="shrink-0 font-mono text-[10px] text-slate-400">
                 {formatTime(lastEntry?.timestamp ?? "")}
@@ -354,7 +671,14 @@ const AgentProcessBlock: React.FC<{ entries: AgentEntry[] }> = ({
         </summary>
         <div className="space-y-2 border-t border-slate-100 bg-slate-50/60 p-3">
           {entries.map((entry) => (
-            <AgentProcessEntry key={entry.id} entry={entry} />
+            <AgentProcessEntry
+              key={entry.id}
+              entry={entry}
+              copyEntryStatus={getCopyStatus(`entry:${entry.id}`)}
+              copyPayloadStatus={getCopyStatus(`payload:${entry.id}`)}
+              onCopyEntry={onCopyEntry}
+              onCopyPayload={onCopyPayload}
+            />
           ))}
         </div>
       </details>
@@ -367,6 +691,7 @@ const AgentComposer: React.FC<{
   hasExistingSessions: boolean;
   onSendMessage: (message: string) => void | Promise<void>;
 }> = ({ activeSession, hasExistingSessions, onSendMessage }) => {
+  const composerId = useId();
   const [value, setValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isAgentRunning = activeSession?.status === "running";
@@ -395,8 +720,13 @@ const AgentComposer: React.FC<{
         void submit();
       }}
     >
+      <label htmlFor={composerId} className="sr-only">
+        Agent conversation message
+      </label>
       <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200/70">
         <textarea
+          id={composerId}
+          aria-label="Agent conversation message"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
@@ -446,10 +776,14 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
   onClose,
   onClear,
 }) => {
-  const copyResetTimerRef = useRef<number | null>(null);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
-    "idle",
-  );
+  const panelId = useId();
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const deleteFeedbackTimerRef = useRef<number | null>(null);
+  const { copy, getStatus: getCopyStatus } = useCopyFeedback();
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<
+    string | null
+  >(null);
+  const [deleteFeedback, setDeleteFeedback] = useState<string | null>(null);
   const activeSession = activeSessionId
     ? (sessions.find((session) => session.id === activeSessionId) ?? null)
     : null;
@@ -471,49 +805,120 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
       activeSession ? groupAgentEntriesForDisplay(activeSession.entries) : [],
     [activeSession],
   );
+  const activeSessionDomId = activeSession
+    ? sanitizeDomId(activeSession.id)
+    : null;
+  const activeTabId = activeSessionDomId
+    ? `${panelId}-tab-${activeSessionDomId}`
+    : `${panelId}-tab-new`;
+  const activePanelId = activeSessionDomId
+    ? `${panelId}-panel-${activeSessionDomId}`
+    : `${panelId}-panel-new`;
+  const activeSessionEntryCount = activeSession?.entries.length ?? 0;
+  const activeSessionUpdatedAt = activeSession?.updatedAt ?? "";
+  const latestProgressText = activeSession
+    ? getLatestProgressText(activeSession)
+    : null;
+  const latestSession = sortedSessions[0] ?? null;
+  const isConfirmingDelete =
+    activeSession !== null && pendingDeleteSessionId === activeSession.id;
 
   useEffect(
     () => () => {
-      if (copyResetTimerRef.current !== null) {
-        window.clearTimeout(copyResetTimerRef.current);
+      if (deleteFeedbackTimerRef.current !== null) {
+        window.clearTimeout(deleteFeedbackTimerRef.current);
       }
     },
     [],
   );
+
+  useEffect(() => {
+    if (!isOpen || !activeSession) {
+      return;
+    }
+
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    scrollContainer.scrollTo({
+      top: scrollContainer.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [activeSession, activeSessionEntryCount, activeSessionUpdatedAt, isOpen]);
+
+  const showDeleteFeedback = useCallback((message: string) => {
+    if (deleteFeedbackTimerRef.current !== null) {
+      window.clearTimeout(deleteFeedbackTimerRef.current);
+    }
+
+    setDeleteFeedback(message);
+    deleteFeedbackTimerRef.current = window.setTimeout(() => {
+      setDeleteFeedback(null);
+      deleteFeedbackTimerRef.current = null;
+    }, 2200);
+  }, []);
+
+  const handleSelectSession = useCallback(
+    (sessionId: string) => {
+      setPendingDeleteSessionId(null);
+      onSelectSession(sessionId);
+    },
+    [onSelectSession],
+  );
+
+  const handleStartNewSession = useCallback(() => {
+    setPendingDeleteSessionId(null);
+    onStartNewSession();
+  }, [onStartNewSession]);
 
   const handleDeleteActiveSession = useCallback(() => {
     if (!activeSession) {
       return;
     }
 
-    if (onDeleteSession) {
-      onDeleteSession(activeSession.id);
+    setPendingDeleteSessionId(activeSession.id);
+  }, [activeSession]);
+
+  const confirmDeleteActiveSession = useCallback(() => {
+    if (!activeSession) {
       return;
     }
 
-    onClear?.();
-  }, [activeSession, onClear, onDeleteSession]);
+    const deletedPrompt = truncateText(activeSession.prompt, 64);
+
+    if (onDeleteSession) {
+      onDeleteSession(activeSession.id);
+    } else {
+      onClear?.();
+    }
+
+    setPendingDeleteSessionId(null);
+    showDeleteFeedback(`Deleted "${deletedPrompt}".`);
+  }, [activeSession, onClear, onDeleteSession, showDeleteFeedback]);
+
+  const handleCopyEntry = useCallback(
+    (entry: AgentEntry) => {
+      void copy(`entry:${entry.id}`, formatEntryForCopy(entry));
+    },
+    [copy],
+  );
+
+  const handleCopyPayload = useCallback(
+    (entry: AgentEntry) => {
+      void copy(`payload:${entry.id}`, formatPayloadForCopy(entry.payload));
+    },
+    [copy],
+  );
 
   const handleCopyTrajectory = useCallback(async () => {
     if (!activeTrajectory) {
       return;
     }
 
-    try {
-      await copyTextToClipboard(activeTrajectory);
-      setCopyState("copied");
-    } catch {
-      setCopyState("error");
-    }
-
-    if (copyResetTimerRef.current !== null) {
-      window.clearTimeout(copyResetTimerRef.current);
-    }
-    copyResetTimerRef.current = window.setTimeout(() => {
-      setCopyState("idle");
-      copyResetTimerRef.current = null;
-    }, 1600);
-  }, [activeTrajectory]);
+    await copy("trajectory", activeTrajectory);
+  }, [activeTrajectory, copy]);
 
   return (
     <AnimatePresence>
@@ -555,38 +960,37 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                   type="button"
                   onClick={() => void handleCopyTrajectory()}
                   className={cn(
-                    "rounded-md p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                    copyState === "copied"
-                      ? "text-emerald-500"
-                      : copyState === "error"
-                        ? "text-rose-500"
+                    "inline-flex items-center gap-1 rounded-md px-2 py-2 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                    getCopyStatus("trajectory") === "copied"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : getCopyStatus("trajectory") === "error"
+                        ? "bg-rose-50 text-rose-600"
                         : "text-slate-400 hover:bg-white hover:text-blue-500",
                   )}
-                  aria-label="Copy agent trajectory"
-                  title={
-                    copyState === "copied"
-                      ? "Copied agent trajectory"
-                      : copyState === "error"
-                        ? "Could not copy agent trajectory"
-                        : "Copy agent trajectory"
-                  }
+                  aria-label={`${getCopyStatusLabel(
+                    getCopyStatus("trajectory"),
+                  )} agent conversation trajectory`}
+                  title={`${getCopyStatusLabel(
+                    getCopyStatus("trajectory"),
+                  )} agent conversation trajectory`}
                 >
                   <Icon
                     name={
-                      copyState === "copied"
+                      getCopyStatus("trajectory") === "copied"
                         ? "Check"
-                        : copyState === "error"
+                        : getCopyStatus("trajectory") === "error"
                           ? "AlertCircle"
                           : "Copy"
                     }
                     size={15}
                   />
+                  <span>{getCopyStatusLabel(getCopyStatus("trajectory"))}</span>
                 </button>
               )}
               {sessions.length > 0 && (
                 <button
                   type="button"
-                  onClick={onStartNewSession}
+                  onClick={handleStartNewSession}
                   className={cn(
                     "rounded-md p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                     isComposingNewSession
@@ -603,9 +1007,18 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleDeleteActiveSession}
-                  className="rounded-md p-2 text-slate-400 transition-colors hover:bg-white hover:text-rose-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className={cn(
+                    "rounded-md p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+                    isConfirmingDelete
+                      ? "bg-rose-50 text-rose-600"
+                      : "text-slate-400 hover:bg-white hover:text-rose-500",
+                  )}
                   aria-label="Delete current agent conversation"
-                  title="Delete current agent conversation"
+                  title={
+                    isConfirmingDelete
+                      ? "Confirm below to delete this conversation"
+                      : "Delete current agent conversation"
+                  }
                 >
                   <Icon name="Trash2" size={15} />
                 </button>
@@ -616,31 +1029,87 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                 className="rounded-md p-2 text-slate-400 transition-colors hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 aria-label="Collapse agent conversation"
                 title="Collapse agent conversation"
+                data-testid="agent-panel-collapse"
               >
                 <Icon name="ChevronUp" size={15} />
               </button>
             </div>
           </header>
 
+          {(isConfirmingDelete || deleteFeedback) && (
+            <div
+              className={cn(
+                "flex items-center justify-between gap-3 border-b px-4 py-2 text-xs",
+                isConfirmingDelete
+                  ? "border-rose-100 bg-rose-50 text-rose-800"
+                  : "border-emerald-100 bg-emerald-50 text-emerald-800",
+              )}
+              role={isConfirmingDelete ? "group" : "status"}
+              aria-live="polite"
+            >
+              <span className="min-w-0 truncate font-semibold">
+                {isConfirmingDelete
+                  ? `Delete "${truncateText(activeSession?.prompt ?? "", 64)}"?`
+                  : deleteFeedback}
+              </span>
+              {isConfirmingDelete && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={confirmDeleteActiveSession}
+                    className="rounded-md bg-rose-600 px-2 py-1 font-bold text-white transition-colors hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    data-testid="agent-delete-confirm"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteSessionId(null)}
+                    className="rounded-md bg-white px-2 py-1 font-bold text-rose-700 ring-1 ring-rose-200 transition-colors hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    data-testid="agent-delete-cancel"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {sessions.length > 0 && (
-            <div className="no-scrollbar flex snap-x gap-1 overflow-x-auto border-b border-slate-100 bg-white px-3 py-2">
+            <div
+              className="no-scrollbar flex snap-x gap-1 overflow-x-auto overscroll-x-contain border-b border-slate-100 bg-white px-3 py-2"
+              role="tablist"
+              aria-label="Agent conversation sessions"
+            >
               {isComposingNewSession && (
                 <button
                   type="button"
-                  onClick={onStartNewSession}
-                  aria-pressed
+                  onClick={handleStartNewSession}
+                  role="tab"
+                  aria-selected
+                  id={`${panelId}-tab-new`}
+                  aria-controls={`${panelId}-panel-new`}
+                  aria-label="New agent conversation draft"
                   className="max-w-44 shrink-0 snap-start rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-left text-[11px] font-semibold text-blue-700 transition-colors"
                 >
                   <span className="block truncate">New conversation</span>
-                  <span className="block truncate font-normal">New thread</span>
+                  <span className="block truncate font-normal">
+                    Draft ready
+                  </span>
                 </button>
               )}
               {sortedSessions.map((session) => (
                 <button
                   type="button"
                   key={session.id}
-                  onClick={() => onSelectSession(session.id)}
-                  aria-pressed={session.id === activeSession?.id}
+                  onClick={() => handleSelectSession(session.id)}
+                  role="tab"
+                  aria-selected={session.id === activeSession?.id}
+                  id={`${panelId}-tab-${sanitizeDomId(session.id)}`}
+                  aria-controls={`${panelId}-panel-${sanitizeDomId(
+                    session.id,
+                  )}`}
+                  aria-label={getSessionTabLabel(session)}
                   className={cn(
                     "max-w-44 shrink-0 snap-start rounded-md border px-2 py-1 text-left text-[11px] font-semibold transition-colors",
                     session.id === activeSession?.id
@@ -648,10 +1117,23 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                       : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300",
                   )}
                 >
-                  <span className="block truncate">
-                    {session.status === "running"
-                      ? "Running"
-                      : `${formatTime(session.updatedAt)} · ${session.status}`}
+                  <span className="flex items-center gap-1 truncate">
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        session.status === "running" && "bg-blue-500",
+                        session.status === "complete" && "bg-emerald-500",
+                        session.status === "error" && "bg-rose-500",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="truncate">
+                      {session.status === "running"
+                        ? "Running"
+                        : `${formatTime(session.updatedAt)} · ${getSessionStatusLabel(
+                            session.status,
+                          )}`}
+                    </span>
                   </span>
                   <span className="block truncate font-normal">
                     {session.prompt}
@@ -661,9 +1143,17 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
             </div>
           )}
 
-          <div className="max-h-[min(60svh,560px)] overflow-y-auto bg-slate-50/60">
+          <div
+            ref={scrollContainerRef}
+            className="max-h-[min(60svh,560px)] overflow-y-auto overscroll-contain scroll-smooth bg-slate-50/60"
+          >
             {activeSession ? (
-              <div>
+              <div
+                role="tabpanel"
+                id={activePanelId}
+                aria-labelledby={activeTabId}
+                tabIndex={0}
+              >
                 <div className="flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-slate-700">
@@ -683,16 +1173,53 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                   </span>
                 </div>
 
+                {activeSession.status === "running" && (
+                  <div
+                    className="sticky top-0 z-10 flex items-center gap-2 border-b border-blue-100 bg-blue-50/95 px-4 py-2 text-xs text-blue-800 backdrop-blur"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <Icon
+                      name="Loader2"
+                      size={14}
+                      className="shrink-0 animate-spin"
+                    />
+                    <span className="min-w-0 truncate font-semibold">
+                      {latestProgressText
+                        ? `Running: ${latestProgressText}`
+                        : "Running: waiting for the next agent update"}
+                    </span>
+                  </div>
+                )}
+
                 {displayItems.map((item) =>
                   item.type === "process" ? (
-                    <AgentProcessBlock key={item.id} entries={item.entries} />
+                    <AgentProcessBlock
+                      key={item.id}
+                      entries={item.entries}
+                      isRunning={activeSession.status === "running"}
+                      getCopyStatus={getCopyStatus}
+                      onCopyEntry={handleCopyEntry}
+                      onCopyPayload={handleCopyPayload}
+                    />
                   ) : (
-                    <AgentEntryRow key={item.entry.id} entry={item.entry} />
+                    <AgentEntryRow
+                      key={item.entry.id}
+                      entry={item.entry}
+                      copyStatus={getCopyStatus(`entry:${item.entry.id}`)}
+                      onCopyEntry={handleCopyEntry}
+                    />
                   ),
                 )}
               </div>
             ) : (
-              <div className="flex min-h-44 flex-col items-center justify-center px-4 py-8 text-center text-slate-400">
+              <div
+                role={sessions.length > 0 ? "tabpanel" : undefined}
+                id={sessions.length > 0 ? activePanelId : undefined}
+                aria-labelledby={sessions.length > 0 ? activeTabId : undefined}
+                tabIndex={sessions.length > 0 ? 0 : undefined}
+                className="flex min-h-44 flex-col items-center justify-center px-4 py-8 text-center text-slate-400"
+              >
                 <Icon name="MessageSquareText" size={32} />
                 <p className="mt-3 text-sm font-semibold text-slate-600">
                   {sessions.length > 0
@@ -704,6 +1231,16 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                     ? "Previous sessions are still available above. Send a message below to start this new thread."
                     : "Send a message below to start a new agent conversation."}
                 </p>
+                {isComposingNewSession && latestSession && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSession(latestSession.id)}
+                    className="mt-4 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:border-blue-200 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    <Icon name="ArrowLeft" size={13} />
+                    Exit draft
+                  </button>
+                )}
               </div>
             )}
           </div>

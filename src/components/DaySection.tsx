@@ -15,11 +15,13 @@ interface DaySectionProps {
   group: DayGroup;
   /** When false, skip lazy rendering (e.g. for the Today section). Default: true */
   lazy?: boolean;
+  addTaskButtonRef?: React.Ref<HTMLButtonElement>;
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
   group,
   lazy = true,
+  addTaskButtonRef,
 }) => {
   const { containerRef, contentRef, isNearViewport, placeholderHeight } =
       useLazyRender(group.tasks.length, { enabled: lazy }),
@@ -91,6 +93,9 @@ export const DaySection: React.FC<DaySectionProps> = ({
         ),
       [group.tasks],
     ),
+    handleStartAdding = () => {
+      setIsAdding(true);
+    },
     handleCreate = async () => {
       if (!newTaskTitle.trim()) {
         setIsAdding(false);
@@ -141,7 +146,16 @@ export const DaySection: React.FC<DaySectionProps> = ({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* Date Header */}
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between mb-1 sticky top-0 bg-paper/95 backdrop-blur-sm z-20 py-1.5 border-b border-dashed border-slate-200 group hover:border-slate-300 transition-colors text-left outline-none pl-2">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between mb-1 sticky top-0 bg-paper/95 backdrop-blur-sm z-20 py-1.5 border-b border-dashed border-slate-200 group hover:border-slate-300 transition-colors text-left outline-none pl-2 rounded-sm focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1"
+            aria-label={`${isOpen ? "Collapse" : "Expand"} ${relative}, ${displayDate}, ${group.tasks.length} task${
+              group.tasks.length === 1 ? "" : "s"
+            }`}
+            title={`${relative} ${displayDate} - ${group.tasks.length} task${
+              group.tasks.length === 1 ? "" : "s"
+            }`}
+          >
             <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
               <div className="flex items-center gap-2 shrink-0">
                 <motion.div
@@ -170,7 +184,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
               <div className="flex items-center gap-2 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
                 {stats.urgent > 0 && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-100/50 text-rose-600 border border-rose-200/50 shadow-sm shadow-rose-100">
+                  <div
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-100/50 text-rose-600 border border-rose-200/50 shadow-sm shadow-rose-100"
+                    aria-label={`${stats.urgent} urgent task${
+                      stats.urgent === 1 ? "" : "s"
+                    }`}
+                  >
                     <Icon name="AlertCircle" size={10} strokeWidth={2.5} />
                     <span className="text-[10px] font-bold leading-none">
                       {stats.urgent}
@@ -178,7 +197,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   </div>
                 )}
                 {stats.open > 0 && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 shadow-sm shadow-slate-100">
+                  <div
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 shadow-sm shadow-slate-100"
+                    aria-label={`${stats.open} open task${
+                      stats.open === 1 ? "" : "s"
+                    }`}
+                  >
                     <Icon name="Circle" size={10} strokeWidth={2.5} />
                     <span className="text-[10px] font-bold leading-none">
                       {stats.open}
@@ -186,7 +210,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   </div>
                 )}
                 {stats.done > 0 && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100/50 text-emerald-600 border border-emerald-200/50 shadow-sm shadow-emerald-100">
+                  <div
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100/50 text-emerald-600 border border-emerald-200/50 shadow-sm shadow-emerald-100"
+                    aria-label={`${stats.done} completed task${
+                      stats.done === 1 ? "" : "s"
+                    }`}
+                  >
                     <Icon name="CheckCircle2" size={10} strokeWidth={2.5} />
                     <span className="text-[10px] font-bold leading-none">
                       {stats.done}
@@ -198,6 +227,9 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
             <div
               className={`flex flex-col items-center justify-center w-8 h-8 rounded-lg border ${calendarColor} shadow-sm shrink-0 ml-2`}
+              aria-label={`${dayOfWeek}, ${group.tasks.length} task${
+                group.tasks.length === 1 ? "" : "s"
+              }`}
             >
               <span className="text-[10px] font-bold uppercase leading-none">
                 {dayOfWeek}
@@ -262,15 +294,18 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
                 {/* The Dot / Action Icon */}
                 <button
-                  onClick={() => setIsAdding(true)}
+                  type="button"
+                  onClick={handleStartAdding}
                   className={cn(
-                    "relative z-10 w-6 h-6 flex items-center justify-center rounded-full transition-all outline-none",
+                    "relative z-10 -m-1 min-h-8 min-w-8 w-6 h-6 flex items-center justify-center rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
                     isAdding
                       ? isAiMode
                         ? "bg-purple-100 text-purple-600"
                         : "bg-blue-100 text-blue-600"
                       : "bg-white hover:bg-slate-100 text-slate-300 hover:text-blue-500",
                   )}
+                  aria-label={`Add task to ${relative}, ${displayDate}`}
+                  aria-pressed={isAdding}
                 >
                   {isLoading ? (
                     <div className="animate-spin">
@@ -320,6 +355,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                           ? "border-purple-300 focus:border-purple-500 placeholder:text-purple-300 text-purple-900"
                           : "border-blue-300 focus:border-blue-500",
                       )}
+                      aria-label={`New task title for ${relative}, ${displayDate}`}
                       disabled={isLoading || isListening}
                     />
 
@@ -335,6 +371,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                           onChange={(e) => setSelectedCategory(e.target.value)}
                           onFocus={() => {}}
                           title="Task Category"
+                          aria-label={`Category for new task on ${relative}, ${displayDate}`}
                         />
                         <datalist id={`cat-list-${group.date}`}>
                           {availableCategories.map((cat) => (
@@ -345,15 +382,21 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
                       {settings.voiceConfig.enabled && (
                         <button
+                          type="button"
                           onClick={isListening ? stopVoice : startVoice}
                           className={cn(
-                            "p-1 rounded hover:bg-slate-100 transition-colors",
+                            "min-h-8 min-w-8 p-1 rounded hover:bg-slate-100 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30",
                             isListening && "text-rose-500 animate-pulse",
                           )}
-                          tabIndex={-1}
                           title={
                             isListening ? "Stop Recording" : "Start Voice Input"
                           }
+                          aria-label={
+                            isListening
+                              ? "Stop voice input for new task"
+                              : "Start voice input for new task"
+                          }
+                          aria-pressed={isListening}
                         >
                           <Icon
                             name={isListening ? "Square" : "Mic"}
@@ -365,8 +408,11 @@ export const DaySection: React.FC<DaySectionProps> = ({
                   </motion.div>
                 ) : (
                   <button
-                    onClick={() => setIsAdding(true)}
-                    className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors h-5.5 flex items-end font-medium"
+                    ref={addTaskButtonRef}
+                    type="button"
+                    onClick={handleStartAdding}
+                    className="text-left text-sm text-slate-400 hover:text-blue-500 transition-colors min-h-8 flex items-center font-medium rounded px-1 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                    aria-label={`Add task to ${relative}, ${displayDate}`}
                   >
                     Add task...
                   </button>

@@ -249,7 +249,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       startTime = task.startAt ? formatTime(task.startAt) : null,
       displayTime = dueTime || startTime,
       badgeClass =
-        "flex items-center gap-1 min-[400px]:gap-1.5 px-1.5 min-[400px]:px-2 h-4.5 min-[400px]:h-5 rounded-full border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit]";
+        "flex min-h-7 items-center gap-1 min-[400px]:gap-1.5 px-1.5 min-[400px]:px-2 rounded-full border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
     return (
       <MotionDiv
@@ -292,13 +292,15 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           <Popover>
             <PopoverTrigger asChild>
               <button
+                type="button"
                 className={cn(
-                  "relative z-10 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus:ring-2 focus:ring-slate-200 rounded-full",
+                  "relative z-10 -m-1 min-h-8 min-w-8 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1 rounded-full",
                   isUrgent
                     ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
                     : "bg-white hover:bg-slate-50",
                 )}
                 title={`Change Status (Current: ${task.status})`}
+                aria-label={`Change status for ${task.title}. Current status: ${task.status}`}
               >
                 {renderStatusIcon(task.status, 18)}
               </button>
@@ -320,11 +322,17 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 <div className="flex flex-col gap-0.5">
                   {statusOptions.map((option) => (
                     <PopoverClose key={option} asChild>
-                      <button onClick={() => handleStatusChange(option)}>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(option)}
+                        aria-pressed={task.status === option}
+                        aria-label={`Set ${task.title} status to ${option}`}
+                        className="w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                      >
                         <div
                           className={cn(
                             // Base styles: removed justify-start! for better standard behavior
-                            "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium font-mono rounded-lg transition-all hover:bg-slate-300 text-left outline-none",
+                            "w-full flex min-h-8 items-center gap-2.5 px-3 py-2 text-xs font-medium font-mono rounded-lg transition-all hover:bg-slate-300 text-left outline-none",
                             "justify-start! text-left!",
                             // Active (Selected) State: A solid, subtle background
                             task.status === option
@@ -349,8 +357,13 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   ))}
                   <div className="h-px bg-slate-100 my-1 mx-1" />
                   <PopoverClose asChild>
-                    <button onClick={() => onEditTask?.(task)}>
-                      <div className="w-full flex items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 hover:bg-slate-300 transition-all text-left outline-none rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => onEditTask?.(task)}
+                      aria-label={`Edit details for ${task.title}`}
+                      className="w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                    >
+                      <div className="w-full flex min-h-8 items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 hover:bg-slate-300 transition-all text-left outline-none rounded-lg">
                         <Icon name="Pencil" size={14} className="opacity-70" />
                         <span>Edit Details</span>
                       </div>
@@ -381,13 +394,15 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   "flex-1 min-w-0 bg-transparent border-b border-blue-400 focus:outline-none font-medium text-slate-800 pb-0.5",
                   fontSizeClass,
                 )}
+                aria-label={`Edit title for ${task.title}`}
               />
             ) : (
               <>
                 <MotionButton
+                  type="button"
                   onClick={() => setIsEditing(true)}
                   className={cn(
-                    "font-medium leading-tight text-slate-800 transition-all cursor-text text-left border-none bg-transparent p-0 appearance-none font-inherit truncate flex-1 min-w-0",
+                    "font-medium leading-tight text-slate-800 transition-all cursor-text text-left border-none bg-transparent p-0 appearance-none font-inherit truncate flex-1 min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1 focus-visible:whitespace-normal focus-visible:overflow-visible",
                     fontSizeClass,
                     isDone &&
                       "line-through text-slate-500 decoration-slate-300",
@@ -395,6 +410,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       "line-through text-slate-400 decoration-slate-300",
                     isUrgent && "text-rose-700 font-semibold",
                   )}
+                  title={task.title}
+                  aria-label={`Edit task title: ${task.title}`}
                 >
                   {renderTitle ? renderTitle(task.title) : task.title}
                 </MotionButton>
@@ -402,9 +419,12 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
             )}
             {!isEditing && (
               <MotionButton
+                type="button"
                 whileHover={{ scale: 1.1 }}
                 onClick={() => setIsEditing(true)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-blue-500 p-1 shrink-0 bg-transparent border-none"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-slate-300 hover:text-blue-500 p-1 shrink-0 bg-transparent border-none rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                aria-label={`Edit ${task.title}`}
+                title="Edit task title"
               >
                 <Icon name="Pencil" size={12} />
               </MotionButton>
@@ -439,6 +459,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 <div
                   className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-rose-600 bg-rose-50 border-rose-200"
                   title="One or more dates have an invalid format"
+                  role="img"
+                  aria-label="One or more dates have an invalid format"
                 >
                   <Icon name="AlertTriangle" size={10} />
                   <span className="text-[10px]">Invalid Date</span>
@@ -447,6 +469,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 <div
                   className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-amber-600 bg-amber-50 border-amber-200"
                   title="This task has no dates set"
+                  role="img"
+                  aria-label="This task has no dates set"
                 >
                   <Icon name="AlertCircle" size={10} />
                   <span className="text-[10px]">No Dates</span>
@@ -543,6 +567,10 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   "text-slate-500 bg-slate-100 border-slate-200 cursor-default",
                 )}
                 title={formatRecurrence(task.recurringInterval)}
+                role="img"
+                aria-label={`Recurring task: ${formatRecurrence(
+                  task.recurringInterval,
+                )}`}
               >
                 <Icon name="Repeat" size={10} />
                 <span className="capitalize">Recurring</span>
@@ -576,24 +604,33 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
 
         {/* Absolute Time Badge */}
         {displayTime && (
-          <div className="absolute right-8 top-3 text-[10px] font-mono font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+          <div
+            className="absolute right-8 top-3 text-[10px] font-mono font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md"
+            aria-label={`Task time ${displayTime}`}
+          >
             {displayTime}
           </div>
         )}
 
         {/* Delete Action */}
         <MotionButton
+          type="button"
           onClick={handleDeleteClick}
           className={cn(
-            "absolute top-2 right-1 p-1.5 rounded-md transition-all",
+            "absolute top-2 right-1 min-h-8 min-w-8 p-1.5 rounded-md transition-all outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30",
             deleteConfirm
               ? "bg-rose-100 text-rose-600 opacity-100"
-              : "text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-slate-100",
+              : "text-slate-300 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-rose-500 hover:bg-slate-100",
           )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           title={
             deleteConfirm ? "Click again to confirm delete" : "Delete task"
+          }
+          aria-label={
+            deleteConfirm
+              ? `Confirm delete ${task.title}`
+              : `Delete ${task.title}`
           }
         >
           <Icon name={deleteConfirm ? "Trash2" : "Trash"} size={14} />

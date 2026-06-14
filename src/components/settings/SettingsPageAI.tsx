@@ -1,5 +1,10 @@
-import { useState } from "react";
-import type { AIProvider, AppSettings, VoiceProvider } from "@/types";
+import { useId, useState } from "react";
+import type {
+  AIProvider,
+  AppSettings,
+  ProviderConfig,
+  VoiceProvider,
+} from "@/types";
 import { Icon } from "../Icon";
 import { cn } from "@/utils";
 import { testProvider } from "@/providers";
@@ -12,6 +17,19 @@ const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
   "openai-compatible": "Custom",
+};
+
+const AI_PROVIDER_ORDER: AIProvider[] = [
+  "gemini",
+  "openai",
+  "anthropic",
+  "openai-compatible",
+];
+
+const VOICE_PROVIDER_LABELS: Record<VoiceProvider, string> = {
+  browser: "Browser",
+  openai: "OpenAI",
+  gemini: "Gemini",
 };
 
 const AI_PROVIDER_PLACEHOLDERS: Record<
@@ -40,6 +58,74 @@ const AI_PROVIDER_PLACEHOLDERS: Record<
   },
 };
 
+const getProviderLabel = (provider: string): string =>
+  AI_PROVIDER_LABELS[provider as AIProvider] ??
+  provider.charAt(0).toUpperCase() + provider.slice(1);
+
+const getProviderValidationMessage = (
+  provider: AIProvider,
+  config: ProviderConfig,
+): string => {
+  const label = AI_PROVIDER_LABELS[provider];
+
+  if (!config.apiKey.trim()) {
+    return `${label} API key is required.`;
+  }
+
+  if (provider === "openai-compatible" && !config.baseUrl.trim()) {
+    return "Custom provider base URL is required.";
+  }
+
+  if (provider === "openai-compatible" && !config.model.trim()) {
+    return "Custom provider model is required.";
+  }
+
+  return "";
+};
+
+interface SwitchButtonProps {
+  ariaLabel: string;
+  enabled: boolean;
+  onClick: () => void;
+  enabledClassName?: string;
+  size?: "md" | "sm";
+}
+
+const SwitchButton = ({
+  ariaLabel,
+  enabled,
+  onClick,
+  enabledClassName = "bg-blue-500",
+  size = "md",
+}: SwitchButtonProps) => {
+  const sizeClasses = size === "md" ? "h-6 w-10" : "h-5 w-9",
+    knobClasses =
+      size === "md" ? "top-1 left-1 h-4 w-4" : "top-1 left-1 h-3 w-3";
+
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      aria-pressed={enabled}
+      onClick={onClick}
+      className={cn(
+        "relative rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
+        sizeClasses,
+        enabled ? enabledClassName : "bg-slate-200 dark:bg-slate-700",
+      )}
+    >
+      <MotionSpan
+        layout
+        className={cn(
+          "absolute block rounded-full bg-white shadow-sm",
+          knobClasses,
+        )}
+        animate={{ x: enabled ? 16 : 0 }}
+      />
+    </button>
+  );
+};
+
 interface SettingsPageAIProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
@@ -48,6 +134,10 @@ export const SettingsPageAI = ({
   settings,
   onUpdateSettings,
 }: SettingsPageAIProps) => {
+  const inputIdPrefix = useId(),
+    tokenUsageByModel = settings.tokenUsageByModel ?? {},
+    totalTokenUsage = settings.totalTokenUsage ?? 0;
+
   // Voice Input Handlers
   const toggleVoiceInput = () =>
       onUpdateSettings({
@@ -134,28 +224,49 @@ export const SettingsPageAI = ({
         },
       });
     },
-    activeProviderConfig =
-      settings.aiConfig.providers[settings.aiConfig.activeProvider],
-    placeholders = AI_PROVIDER_PLACEHOLDERS[settings.aiConfig.activeProvider],
+    activeProvider = settings.aiConfig.activeProvider,
+    activeProviderConfig = settings.aiConfig.providers[activeProvider],
+    placeholders = AI_PROVIDER_PLACEHOLDERS[activeProvider],
+    validationMessage = getProviderValidationMessage(
+      activeProvider,
+      activeProviderConfig,
+    ),
     supportsResponsesApiToggle =
-      settings.aiConfig.activeProvider === "openai" ||
-      settings.aiConfig.activeProvider === "openai-compatible",
+      activeProvider === "openai" || activeProvider === "openai-compatible",
     responsesApiEnabled =
-      activeProviderConfig.useResponsesApi ??
-      settings.aiConfig.activeProvider === "openai";
+      activeProviderConfig.useResponsesApi ?? activeProvider === "openai",
+    apiKeyInputId = `${inputIdPrefix}-${activeProvider}-api-key`,
+    modelInputId = `${inputIdPrefix}-${activeProvider}-model`,
+    baseUrlInputId = `${inputIdPrefix}-${activeProvider}-base-url`,
+    systemPromptInputId = `${inputIdPrefix}-system-prompt`,
+    voiceOpenAiApiKeyInputId = `${inputIdPrefix}-voice-openai-api-key`,
+    voiceOpenAiModelInputId = `${inputIdPrefix}-voice-openai-model`,
+    voiceOpenAiBaseUrlInputId = `${inputIdPrefix}-voice-openai-base-url`,
+    voiceGeminiApiKeyInputId = `${inputIdPrefix}-voice-gemini-api-key`,
+    voiceGeminiModelInputId = `${inputIdPrefix}-voice-gemini-model`,
+    voiceLanguageInputId = `${inputIdPrefix}-voice-language`;
 
   const [testResult, setTestResult] = useState<TestResult | null>(null),
     [isTesting, setIsTesting] = useState(false),
     handleTestConnection = async () => {
+      if (validationMessage) {
+        setTestResult({ success: false, message: validationMessage });
+        return;
+      }
+
       setIsTesting(true);
       setTestResult(null);
-      const result = await testProvider(
-        settings.aiConfig.activeProvider,
-        activeProviderConfig,
-      );
+      const result = await testProvider(activeProvider, activeProviderConfig);
       setTestResult(result);
       setIsTesting(false);
     };
+
+  const resetProviderField = (field: "baseUrl" | "model") => {
+    const fallbackValue =
+      activeProvider === "openai-compatible" ? placeholders[field] : "";
+    updateProviderConfig(activeProvider, field, fallbackValue);
+    setTestResult(null);
+  };
 
   return (
     <div className="p-6 space-y-8 bg-slate-50/30 dark:bg-slate-900/20">
@@ -164,18 +275,18 @@ export const SettingsPageAI = ({
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon name="Sparkles" size={12} className="text-blue-500" />
-            AI Agent
+            AI agent
           </div>
-          {settings.totalTokenUsage > 0 && (
+          {totalTokenUsage > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] text-slate-500 font-mono">
               <Icon name="Cpu" size={10} />
-              <span>{settings.totalTokenUsage.toLocaleString()} tokens</span>
+              <span>{totalTokenUsage.toLocaleString()} tokens</span>
             </div>
           )}
         </h3>
 
         {/* Token Usage Stats Table */}
-        {Object.keys(settings.tokenUsageByModel).length > 0 && (
+        {Object.keys(tokenUsageByModel).length > 0 && (
           <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
             <table className="w-full text-xs">
               <thead>
@@ -196,39 +307,36 @@ export const SettingsPageAI = ({
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(settings.tokenUsageByModel).map(
-                  ([key, record]) => {
-                    const separatorIndex = key.indexOf(":");
-                    const provider =
-                      separatorIndex > -1 ? key.slice(0, separatorIndex) : key;
-                    const model =
-                      separatorIndex > -1 ? key.slice(separatorIndex + 1) : "";
-                    const capitalizedProvider =
-                      provider.charAt(0).toUpperCase() + provider.slice(1);
-                    return (
-                      <tr
-                        key={key}
-                        className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
-                      >
-                        <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
-                          {capitalizedProvider}
-                        </td>
-                        <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-mono">
-                          {model}
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
-                          {record.inputTokens.toLocaleString()}
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
-                          {record.outputTokens.toLocaleString()}
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
-                          {record.totalTokens.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
+                {Object.entries(tokenUsageByModel).map(([key, record]) => {
+                  const separatorIndex = key.indexOf(":");
+                  const provider =
+                    separatorIndex > -1 ? key.slice(0, separatorIndex) : key;
+                  const model =
+                    separatorIndex > -1 ? key.slice(separatorIndex + 1) : "";
+                  const providerLabel = getProviderLabel(provider);
+                  return (
+                    <tr
+                      key={key}
+                      className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
+                    >
+                      <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
+                        {providerLabel}
+                      </td>
+                      <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-mono">
+                        {model}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                        {record.inputTokens.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-slate-600 dark:text-slate-400">
+                        {record.outputTokens.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                        {record.totalTokens.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {/* Grand Total Row */}
                 <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800">
                   <td
@@ -238,17 +346,17 @@ export const SettingsPageAI = ({
                     Total
                   </td>
                   <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
-                    {Object.values(settings.tokenUsageByModel)
+                    {Object.values(tokenUsageByModel)
                       .reduce((sum, r) => sum + r.inputTokens, 0)
                       .toLocaleString()}
                   </td>
                   <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
-                    {Object.values(settings.tokenUsageByModel)
+                    {Object.values(tokenUsageByModel)
                       .reduce((sum, r) => sum + r.outputTokens, 0)
                       .toLocaleString()}
                   </td>
                   <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
-                    {Object.values(settings.tokenUsageByModel)
+                    {Object.values(tokenUsageByModel)
                       .reduce((sum, r) => sum + r.totalTokens, 0)
                       .toLocaleString()}
                   </td>
@@ -257,6 +365,7 @@ export const SettingsPageAI = ({
             </table>
             <div className="flex justify-end px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
               <button
+                type="button"
                 onClick={() =>
                   onUpdateSettings({
                     ...settings,
@@ -267,7 +376,7 @@ export const SettingsPageAI = ({
                 className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <Icon name="RotateCcw" size={10} />
-                Reset Stats
+                Reset stats
               </button>
             </div>
           </div>
@@ -279,27 +388,17 @@ export const SettingsPageAI = ({
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-sm font-medium text-slate-700">
-                Enable AI Agent
+                Enable AI agent
               </span>
               <span className="text-xs text-slate-400">
                 Allow AI to manage your tasks
               </span>
             </div>
-            <button
+            <SwitchButton
+              ariaLabel="Enable AI agent"
+              enabled={settings.aiConfig.enabled}
               onClick={toggleAIEnabled}
-              className={cn(
-                "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                settings.aiConfig.enabled
-                  ? "bg-blue-500"
-                  : "bg-slate-200 dark:bg-slate-700",
-              )}
-            >
-              <MotionSpan
-                layout
-                className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm block"
-                animate={{ x: settings.aiConfig.enabled ? 16 : 0 }}
-              />
-            </button>
+            />
           </div>
 
           <AnimatePresence>
@@ -320,40 +419,30 @@ export const SettingsPageAI = ({
                       Use AI for all inputs by default
                     </span>
                   </div>
-                  <button
+                  <SwitchButton
+                    ariaLabel="Use AI by default"
+                    enabled={settings.aiConfig.defaultMode}
                     onClick={toggleAIDefault}
-                    className={cn(
-                      "relative w-10 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                      settings.aiConfig.defaultMode
-                        ? "bg-blue-500"
-                        : "bg-slate-200 dark:bg-slate-700",
-                    )}
-                  >
-                    <MotionSpan
-                      layout
-                      className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm block"
-                      animate={{ x: settings.aiConfig.defaultMode ? 16 : 0 }}
-                    />
-                  </button>
+                  />
                 </div>
 
                 {/* AI Provider Selector */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-lg">
-                    {(
-                      [
-                        "gemini",
-                        "openai",
-                        "anthropic",
-                        "openai-compatible",
-                      ] as AIProvider[]
-                    ).map((p) => (
+                  <div
+                    className="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-lg"
+                    role="group"
+                    aria-label="AI provider"
+                  >
+                    {AI_PROVIDER_ORDER.map((p) => (
                       <button
+                        type="button"
                         key={p}
                         onClick={() => setAIProvider(p)}
+                        aria-label={`Use ${AI_PROVIDER_LABELS[p]} provider`}
+                        aria-pressed={activeProvider === p}
                         className={cn(
                           "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
-                          settings.aiConfig.activeProvider === p
+                          activeProvider === p
                             ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
                         )}
@@ -367,10 +456,14 @@ export const SettingsPageAI = ({
                   <div className="space-y-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                     {/* API Key Input */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-500 uppercase">
-                        API Key
+                      <label
+                        htmlFor={apiKeyInputId}
+                        className="text-[10px] font-semibold text-slate-500 uppercase"
+                      >
+                        API key
                       </label>
                       <input
+                        id={apiKeyInputId}
                         type="password"
                         value={activeProviderConfig.apiKey}
                         onChange={(e) => {
@@ -384,14 +477,30 @@ export const SettingsPageAI = ({
                         className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500 font-mono tracking-wide"
                         placeholder={placeholders.apiKey}
                       />
+                      <p className="text-[10px] text-slate-400">
+                        Required for test connection and AI requests.
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
-                          Model
-                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <label
+                            htmlFor={modelInputId}
+                            className="text-[10px] font-semibold text-slate-500 uppercase"
+                          >
+                            Model
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => resetProviderField("model")}
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          >
+                            Use default
+                          </button>
+                        </div>
                         <input
+                          id={modelInputId}
                           type="text"
                           value={activeProviderConfig.model}
                           onChange={(e) => {
@@ -405,12 +514,30 @@ export const SettingsPageAI = ({
                           placeholder={placeholders.model}
                           className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500"
                         />
+                        <p className="text-[10px] text-slate-400">
+                          {activeProvider === "openai-compatible"
+                            ? "Required for custom providers."
+                            : `Blank uses ${placeholders.model}.`}
+                        </p>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
-                          Base URL
-                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <label
+                            htmlFor={baseUrlInputId}
+                            className="text-[10px] font-semibold text-slate-500 uppercase"
+                          >
+                            Base URL
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => resetProviderField("baseUrl")}
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          >
+                            Use default
+                          </button>
+                        </div>
                         <input
+                          id={baseUrlInputId}
                           type="text"
                           value={activeProviderConfig.baseUrl}
                           onChange={(e) => {
@@ -424,6 +551,11 @@ export const SettingsPageAI = ({
                           placeholder={placeholders.baseUrl}
                           className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500"
                         />
+                        <p className="text-[10px] text-slate-400">
+                          {activeProvider === "openai-compatible"
+                            ? "Required for custom providers."
+                            : "Blank uses the provider default."}
+                        </p>
                       </div>
                     </div>
 
@@ -434,8 +566,7 @@ export const SettingsPageAI = ({
                             Responses API
                           </span>
                           <span className="text-[10px] text-slate-400">
-                            {settings.aiConfig.activeProvider ===
-                            "openai-compatible"
+                            {activeProvider === "openai-compatible"
                               ? "Enable only if this provider supports /responses."
                               : "Turn off to use Chat Completions."}
                           </span>
@@ -444,12 +575,13 @@ export const SettingsPageAI = ({
                           type="button"
                           onClick={() => {
                             updateProviderResponsesApi(
-                              settings.aiConfig.activeProvider,
+                              activeProvider,
                               !responsesApiEnabled,
                             );
                             setTestResult(null);
                           }}
                           aria-label="Toggle Responses API"
+                          aria-pressed={responsesApiEnabled}
                           className={cn(
                             "relative h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
                             responsesApiEnabled
@@ -469,6 +601,7 @@ export const SettingsPageAI = ({
                     {/* Test Connection Button */}
                     <div className="flex items-center gap-2 pt-1">
                       <button
+                        type="button"
                         onClick={handleTestConnection}
                         disabled={isTesting}
                         className={cn(
@@ -478,12 +611,13 @@ export const SettingsPageAI = ({
                             : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300",
                         )}
                       >
-                        {isTesting ? "Testing..." : "Test Connection"}
+                        {isTesting ? "Testing..." : "Test connection"}
                       </button>
                       {testResult && (
-                        <span
+                        <div
+                          role={testResult.success ? "status" : "alert"}
                           className={cn(
-                            "text-[10px] flex items-center gap-1",
+                            "min-w-0 flex flex-1 items-start gap-1 text-[10px]",
                             testResult.success
                               ? "text-emerald-600"
                               : "text-red-500",
@@ -494,11 +628,12 @@ export const SettingsPageAI = ({
                               testResult.success ? "CheckCircle2" : "XCircle"
                             }
                             size={12}
+                            className="mt-0.5 shrink-0"
                           />
-                          {testResult.message.length > 60
-                            ? testResult.message.slice(0, 60) + "..."
-                            : testResult.message}
-                        </span>
+                          <span className="min-w-0 whitespace-pre-wrap break-words">
+                            {testResult.message}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -506,10 +641,14 @@ export const SettingsPageAI = ({
 
                 {/* Custom System Prompt */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold text-slate-500 uppercase">
-                    Custom System Prompt
+                  <label
+                    htmlFor={systemPromptInputId}
+                    className="text-[10px] font-semibold text-slate-500 uppercase"
+                  >
+                    Custom system prompt
                   </label>
                   <textarea
+                    id={systemPromptInputId}
                     value={settings.aiConfig.systemPrompt}
                     onChange={(e) =>
                       onUpdateSettings({
@@ -538,34 +677,26 @@ export const SettingsPageAI = ({
       <section>
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
           <Icon name="Mic" size={12} className="text-blue-500" />
-          Voice Input
+          Voice input
         </h3>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-sm font-medium text-slate-700">
-                Voice Input
+                Voice input
               </span>
               <span className="text-xs text-slate-400">
                 Enable microphone input
               </span>
             </div>
-            <button
+            <SwitchButton
+              ariaLabel="Enable voice input"
+              enabled={settings.voiceConfig.enabled}
               onClick={toggleVoiceInput}
-              className={cn(
-                "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                settings.voiceConfig.enabled
-                  ? "bg-emerald-500"
-                  : "bg-slate-200 dark:bg-slate-700",
-              )}
-            >
-              <MotionSpan
-                layout
-                className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow-sm block"
-                animate={{ x: settings.voiceConfig.enabled ? 16 : 0 }}
-              />
-            </button>
+              enabledClassName="bg-emerald-500"
+              size="sm"
+            />
           </div>
 
           {/* Voice Provider Config */}
@@ -573,14 +704,21 @@ export const SettingsPageAI = ({
             <div className="pt-2 space-y-4">
               <div>
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
-                  Voice Provider
+                  Voice provider
                 </label>
-                <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1">
+                <div
+                  className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1"
+                  role="group"
+                  aria-label="Voice provider"
+                >
                   {(["browser", "openai", "gemini"] as VoiceProvider[]).map(
                     (p) => (
                       <button
+                        type="button"
                         key={p}
                         onClick={() => setVoiceProvider(p)}
+                        aria-label={`Use ${VOICE_PROVIDER_LABELS[p]} voice provider`}
+                        aria-pressed={settings.voiceConfig.activeProvider === p}
                         className={cn(
                           "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
                           settings.voiceConfig.activeProvider === p
@@ -588,11 +726,7 @@ export const SettingsPageAI = ({
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
                         )}
                       >
-                        {p === "openai"
-                          ? "OpenAI"
-                          : p === "gemini"
-                            ? "Gemini"
-                            : "Browser"}
+                        {VOICE_PROVIDER_LABELS[p]}
                       </button>
                     ),
                   )}
@@ -611,10 +745,14 @@ export const SettingsPageAI = ({
               {settings.voiceConfig.activeProvider === "openai" && (
                 <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                      OpenAI API Key
+                    <label
+                      htmlFor={voiceOpenAiApiKeyInputId}
+                      className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5"
+                    >
+                      OpenAI API key
                     </label>
                     <input
+                      id={voiceOpenAiApiKeyInputId}
                       type="password"
                       value={settings.voiceConfig.providers.openai.apiKey}
                       onChange={(e) =>
@@ -629,10 +767,14 @@ export const SettingsPageAI = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                    <label
+                      htmlFor={voiceOpenAiModelInputId}
+                      className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5"
+                    >
                       Model
                     </label>
                     <input
+                      id={voiceOpenAiModelInputId}
                       type="text"
                       value={settings.voiceConfig.providers.openai.model}
                       onChange={(e) =>
@@ -647,10 +789,14 @@ export const SettingsPageAI = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                    <label
+                      htmlFor={voiceOpenAiBaseUrlInputId}
+                      className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5"
+                    >
                       Base URL (optional)
                     </label>
                     <input
+                      id={voiceOpenAiBaseUrlInputId}
                       type="text"
                       value={settings.voiceConfig.providers.openai.baseUrl}
                       onChange={(e) =>
@@ -671,10 +817,14 @@ export const SettingsPageAI = ({
               {settings.voiceConfig.activeProvider === "gemini" && (
                 <div className="space-y-3 pl-3 border-l-2 border-purple-200 dark:border-purple-800">
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                      Gemini API Key
+                    <label
+                      htmlFor={voiceGeminiApiKeyInputId}
+                      className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5"
+                    >
+                      Gemini API key
                     </label>
                     <input
+                      id={voiceGeminiApiKeyInputId}
                       type="password"
                       value={settings.voiceConfig.providers.gemini.apiKey}
                       onChange={(e) =>
@@ -689,10 +839,14 @@ export const SettingsPageAI = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
+                    <label
+                      htmlFor={voiceGeminiModelInputId}
+                      className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5"
+                    >
                       Model
                     </label>
                     <input
+                      id={voiceGeminiModelInputId}
                       type="text"
                       value={settings.voiceConfig.providers.gemini.model}
                       onChange={(e) =>
@@ -710,10 +864,14 @@ export const SettingsPageAI = ({
               )}
 
               <div>
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2">
-                  Voice Language
+                <label
+                  htmlFor={voiceLanguageInputId}
+                  className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-2"
+                >
+                  Voice language
                 </label>
                 <input
+                  id={voiceLanguageInputId}
                   type="text"
                   value={settings.voiceConfig.language}
                   onChange={(e) =>
