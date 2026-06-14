@@ -346,22 +346,24 @@
    COMPONENT RESETS & GLOBAL STYLES
    ============================================================================ */
 
-:where(.tasks-timeline-app button),
-:where(.tasks-timeline-app input[type="text"]),
-:where(.tasks-timeline-app input[type="search"]),
-:where(.tasks-timeline-app input[type="number"]),
-:where(.tasks-timeline-app input[type="date"]),
-:where(.tasks-timeline-app input[type="datetime-local"]) {
-  /* Reset to transparent/initial so Tailwind can take over fully */
-  background-image: none;
-  border: 1px solid transparent;
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background-color: transparent;
-  color: inherit;
-  font-family: inherit;
-  appearance: none; /* Removes default OS/Obsidian styling */
+@layer base {
+  :where(.tasks-timeline-app button),
+  :where(.tasks-timeline-app input[type="text"]),
+  :where(.tasks-timeline-app input[type="search"]),
+  :where(.tasks-timeline-app input[type="number"]),
+  :where(.tasks-timeline-app input[type="date"]),
+  :where(.tasks-timeline-app input[type="datetime-local"]) {
+    /* Reset host-app defaults without outranking Tailwind utilities. */
+    background-image: none;
+    border: 1px solid transparent;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    appearance: none; /* Removes default OS/Obsidian styling */
+  }
 }
 
 .tasks-timeline-app {
