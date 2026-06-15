@@ -1,0 +1,10 @@
+import{S as t}from"./SettingsModal-ClLbEic3.js";import"./jsx-runtime-u17CrQMm.js";import"./iframe-CIjpM8u1.js";import"./preload-helper-PPVm8Dsz.js";import"./Motion-B3aeriiO.js";import"./proxy-El9xXo_1.js";import"./SettingsPage-3Xnf5mGp.js";import"./Icon-CqmLOYJv.js";import"./chevron-right-Dkzu5Za9.js";import"./rruleset-Bu4wjl4G.js";import"./logger-CDMKXnH4.js";import"./SettingsPageGeneral-D5C5lx0_.js";import"./SettingsPageAI-CIE-ndtl.js";import"./index-BzJDzgJs.js";import"./index-DivfjLW_.js";import"./index-BnKTyCDE.js";import"./index-DpuRrbSZ.js";const U={title:"Settings/SettingsModal",component:t,parameters:{layout:"fullscreen"},tags:["autodocs"]},a={theme:"light",dateFormat:"MM, DD",showCompleted:!0,showProgressBar:!0,soundEnabled:!0,fontSize:"base",useRelativeDates:!0,groupingStrategy:["dueAt"],aiConfig:{enabled:!0,defaultMode:!0,activeProvider:"gemini",providers:{gemini:{apiKey:"",baseUrl:"",model:""},anthropic:{apiKey:"",baseUrl:"",model:""},openai:{apiKey:"",baseUrl:"",model:""},"openai-compatible":{apiKey:"",model:"",baseUrl:""}},systemPrompt:""},voiceConfig:{enabled:!0,activeProvider:"browser",language:"",providers:{browser:{},openai:{apiKey:"",baseUrl:"https://api.openai.com/v1/audio/transcriptions",model:"whisper-1"},gemini:{apiKey:"",model:"gemini-1.5-flash"}}},defaultFocusMode:!0,totalTokenUsage:0,tokenUsageByModel:{},defaultCategory:"",filters:{tags:{include:["#"],exclude:[]},categories:{include:[],exclude:[]},priorities:{include:[],exclude:[]},statuses:{include:[],exclude:[]},enableScript:!1,script:""},sort:{field:"createdAt",direction:"asc",script:""}},e={args:{isOpen:!0,onClose:()=>{},settings:a,onUpdateSettings:()=>{},availableCategories:[],availableTags:[]}};e.parameters={...e.parameters,docs:{...e.parameters?.docs,source:{originalSource:`{
+  args: {
+    isOpen: true,
+    onClose: () => {},
+    settings,
+    onUpdateSettings: () => {},
+    availableCategories: [],
+    availableTags: []
+  }
+}`,...e.parameters?.docs?.source}}};const h=["Default"];export{e as Default,h as __namedExportsOrder,U as default};
