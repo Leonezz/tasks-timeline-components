@@ -18,16 +18,18 @@ export const AppProvider: React.FC<{
       data-theme={theme}
     >
       <style>{styles}</style>
-      <PortalContext.Provider value={{ portalContainer }}>
-        {children}
-        {/* Portal container inside Shadow DOM for popovers/modals */}
-        <div
-          ref={setPortalContainer}
-          id="portal-root"
-          className="tasks-timeline-app"
-          data-theme={theme}
-        />
-      </PortalContext.Provider>
+      <div className="tasks-timeline-app contents" data-theme={theme}>
+        <PortalContext.Provider value={{ portalContainer }}>
+          {children}
+          {/* Portal container inside Shadow DOM for popovers/modals */}
+          <div
+            ref={setPortalContainer}
+            id="portal-root"
+            className="tasks-timeline-app"
+            data-theme={theme}
+          />
+        </PortalContext.Provider>
+      </div>
     </root.div>
   );
 };
