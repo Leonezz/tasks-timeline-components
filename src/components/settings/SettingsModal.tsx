@@ -1,6 +1,10 @@
 import React from "react";
 import { AnimatePresence } from "framer-motion";
-import type { AppSettings, CustomSettingsTab } from "../../types";
+import type {
+  AppSettings,
+  CustomSettingsTab,
+  SecretFieldRenderer,
+} from "../../types";
 import { MotionDiv } from "../Motion";
 import { SettingsPage } from "./SettingsPage";
 
@@ -14,6 +18,8 @@ interface SettingsModalProps {
   availableCategories: string[];
   /** Custom tabs injected by host applications */
   customTabs?: CustomSettingsTab[];
+  /** Host-provided renderer for secret selector controls. */
+  renderSecretField?: SecretFieldRenderer;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -25,6 +31,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   availableTags,
   availableCategories,
   customTabs,
+  renderSecretField,
 }) => (
   <AnimatePresence>
     {isOpen && (
@@ -52,6 +59,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClose={onClose}
             inSeperatePage={false}
             customTabs={customTabs}
+            renderSecretField={renderSecretField}
           />
         </MotionDiv>
       </>

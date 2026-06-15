@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
-import type { AppSettings, CustomSettingsTab } from "../../types";
+import type {
+  AppSettings,
+  CustomSettingsTab,
+  SecretFieldRenderer,
+} from "../../types";
 import { cn } from "../../utils";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAI } from "./SettingsPageAI";
@@ -25,6 +29,8 @@ interface SettingsPageProps {
   inDarkMode?: boolean;
   /** Custom tabs injected by host applications */
   customTabs?: CustomSettingsTab[];
+  /** Host-provided renderer for secret selector controls. */
+  renderSecretField?: SecretFieldRenderer;
 }
 
 type BuiltInTab = "general" | "filters" | "ai" | "docs" | "about";
@@ -38,6 +44,7 @@ export const SettingsPage = ({
   inSeperatePage,
   inDarkMode,
   customTabs = [],
+  renderSecretField,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<BuiltInTab | string>("general"),
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
@@ -199,6 +206,7 @@ export const SettingsPage = ({
           <SettingsPageAI
             settings={settings}
             onUpdateSettings={onUpdateSettings}
+            renderSecretField={renderSecretField}
           />
         )}
         {activeTab === "docs" && <Documentation />}

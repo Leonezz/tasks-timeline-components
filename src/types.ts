@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type Priority = "low" | "medium" | "high";
 export type TaskStatus =
   | "done"
@@ -177,8 +179,31 @@ export interface CustomSettingsTab {
    */
   icon?: LucideIconName;
   /** The content to render when tab is active */
-  content: React.ReactNode;
+  content: ReactNode;
 }
+
+export type SecretFieldScope = "ai" | "voice";
+
+export interface SecretFieldContext {
+  /** Settings area that owns this secret field. */
+  scope: SecretFieldScope;
+  /** Provider key from AIConfig or VoiceConfig. */
+  provider: AIProvider | Extract<VoiceProvider, "openai" | "gemini">;
+  /** Stable DOM id for labelling the rendered control. */
+  id: string;
+  /** Human-readable field label. */
+  label: string;
+  /** Current resolved value used by the component runtime. */
+  value: string;
+  /** Placeholder used by the default input renderer. */
+  placeholder: string;
+  /** Supporting text shown below the control. */
+  description?: string;
+  /** Update the runtime settings value after the host secret selector changes. */
+  onChange: (value: string) => void;
+}
+
+export type SecretFieldRenderer = (context: SecretFieldContext) => ReactNode;
 
 // --- Agent Interaction Types ---
 

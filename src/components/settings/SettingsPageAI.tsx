@@ -3,6 +3,7 @@ import type {
   AIProvider,
   AppSettings,
   ProviderConfig,
+  SecretFieldRenderer,
   VoiceProvider,
 } from "@/types";
 import { Icon } from "../Icon";
@@ -129,10 +130,12 @@ const SwitchButton = ({
 interface SettingsPageAIProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
+  renderSecretField?: SecretFieldRenderer;
 }
 export const SettingsPageAI = ({
   settings,
   onUpdateSettings,
+  renderSecretField,
 }: SettingsPageAIProps) => {
   const inputIdPrefix = useId(),
     tokenUsageByModel = settings.tokenUsageByModel ?? {},
@@ -266,6 +269,57 @@ export const SettingsPageAI = ({
       activeProvider === "openai-compatible" ? placeholders[field] : "";
     updateProviderConfig(activeProvider, field, fallbackValue);
     setTestResult(null);
+  };
+
+  const renderApiKeyField = ({
+    scope,
+    provider,
+    id,
+    label,
+    value,
+    placeholder,
+    description,
+    onChange,
+    inputClassName,
+  }: {
+    scope: "ai" | "voice";
+    provider: AIProvider | "openai" | "gemini";
+    id: string;
+    label: string;
+    value: string;
+    placeholder: string;
+    description?: string;
+    onChange: (value: string) => void;
+    inputClassName: string;
+  }) => {
+    if (renderSecretField) {
+      return renderSecretField({
+        scope,
+        provider,
+        id,
+        label,
+        value,
+        placeholder,
+        description,
+        onChange,
+      });
+    }
+
+    return (
+      <>
+        <input
+          id={id}
+          type="password"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClassName}
+          placeholder={placeholder}
+        />
+        {description && (
+          <p className="text-[10px] text-slate-400">{description}</p>
+        )}
+      </>
+    );
   };
 
   return (
@@ -462,24 +516,26 @@ export const SettingsPageAI = ({
                       >
                         API key
                       </label>
-                      <input
-                        id={apiKeyInputId}
-                        type="password"
-                        value={activeProviderConfig.apiKey}
-                        onChange={(e) => {
+                      {renderApiKeyField({
+                        scope: "ai",
+                        provider: activeProvider,
+                        id: apiKeyInputId,
+                        label: "API key",
+                        value: activeProviderConfig.apiKey,
+                        placeholder: placeholders.apiKey,
+                        description:
+                          "Required for test connection and AI requests.",
+                        inputClassName:
+                          "w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500 font-mono tracking-wide",
+                        onChange: (value) => {
                           updateProviderConfig(
                             settings.aiConfig.activeProvider,
                             "apiKey",
-                            e.target.value,
+                            value,
                           );
                           setTestResult(null);
-                        }}
-                        className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs outline-none focus:border-blue-500 font-mono tracking-wide"
-                        placeholder={placeholders.apiKey}
-                      />
-                      <p className="text-[10px] text-slate-400">
-                        Required for test connection and AI requests.
-                      </p>
+                        },
+                      })}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -751,20 +807,22 @@ export const SettingsPageAI = ({
                     >
                       OpenAI API key
                     </label>
-                    <input
-                      id={voiceOpenAiApiKeyInputId}
-                      type="password"
-                      value={settings.voiceConfig.providers.openai.apiKey}
-                      onChange={(e) =>
+                    {renderApiKeyField({
+                      scope: "voice",
+                      provider: "openai",
+                      id: voiceOpenAiApiKeyInputId,
+                      label: "OpenAI API key",
+                      value: settings.voiceConfig.providers.openai.apiKey,
+                      placeholder: "sk-...",
+                      inputClassName:
+                        "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
+                      onChange: (value) =>
                         updateVoiceProviderConfig(
                           "openai",
                           "apiKey",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="sk-..."
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                    />
+                          value,
+                        ),
+                    })}
                   </div>
                   <div>
                     <label
@@ -823,20 +881,22 @@ export const SettingsPageAI = ({
                     >
                       Gemini API key
                     </label>
-                    <input
-                      id={voiceGeminiApiKeyInputId}
-                      type="password"
-                      value={settings.voiceConfig.providers.gemini.apiKey}
-                      onChange={(e) =>
+                    {renderApiKeyField({
+                      scope: "voice",
+                      provider: "gemini",
+                      id: voiceGeminiApiKeyInputId,
+                      label: "Gemini API key",
+                      value: settings.voiceConfig.providers.gemini.apiKey,
+                      placeholder: "AIza...",
+                      inputClassName:
+                        "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
+                      onChange: (value) =>
                         updateVoiceProviderConfig(
                           "gemini",
                           "apiKey",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="AIza..."
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                    />
+                          value,
+                        ),
+                    })}
                   </div>
                   <div>
                     <label

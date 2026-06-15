@@ -24,6 +24,7 @@ import type {
   FilterState,
   Priority,
   SettingsRepository,
+  SecretFieldRenderer,
   SortState,
   Task,
   TaskStatus,
@@ -206,6 +207,8 @@ export interface TasksTimelineAppProps {
   onItemClick?: (item: Task) => void;
   /** Custom tabs to inject into the Settings page */
   customSettingsTabs?: CustomSettingsTab[];
+  /** Host-provided renderer for secret selector controls. */
+  renderSecretField?: SecretFieldRenderer;
   /** Custom renderer for task titles. When provided, replaces the default plain-text display. */
   renderTitle?: (title: string) => React.ReactNode;
   /** Additional system prompt injected by the host application */
@@ -233,6 +236,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   systemInDarkMode,
   onItemClick,
   customSettingsTabs,
+  renderSecretField,
   renderTitle,
   aiSystemPrompt,
   aiProviderFactory,
@@ -1036,6 +1040,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 availableTags={uniqueTags}
                 availableCategories={uniqueCategories}
                 customTabs={customSettingsTabs}
+                renderSecretField={renderSecretField}
               />
 
               <ErrorBoundary
