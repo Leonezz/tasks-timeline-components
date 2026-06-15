@@ -30,6 +30,8 @@ interface TaskItemProps {
   dateValidation?: DateValidationState;
 }
 
+const MAX_INLINE_TAGS = 2;
+
 /** Check if a date string is valid ISO format */
 const isValidDate = (dateStr?: string): boolean => {
   if (!dateStr) return false;
@@ -82,8 +84,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
         {
           sm: "text-[10px]",
           base: "text-[11px]",
-          lg: "text-xs",
-          xl: "text-sm",
+          lg: "text-[11px]",
+          xl: "text-xs",
         }[settings.fontSize] || "text-[11px]";
 
     useEffect(() => {
@@ -149,23 +151,23 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       },
       getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
         if (status === "done" || status === "cancelled") {
-          return "text-emerald-600 bg-emerald-50 border-emerald-200";
+          return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
         }
         if (!dateStr) {
           return "text-slate-400";
         }
 
         if (status === "overdue") {
-          return "text-rose-600 bg-rose-50 border-rose-200";
+          return "text-rose-700 bg-rose-50/90 border-rose-100";
         }
         if (dateStr < today) {
-          return "text-rose-600 bg-rose-50 border-rose-200";
+          return "text-rose-700 bg-rose-50/90 border-rose-100";
         }
         if (dateStr === today) {
-          return "text-amber-600 bg-amber-50 border-amber-200";
+          return "text-amber-700 bg-amber-50/90 border-amber-100";
         }
 
-        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+        return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
       },
       getLineColor = (status: TaskStatus) => {
         switch (status) {
@@ -248,8 +250,10 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       dueTime = task.dueAt ? formatTime(task.dueAt) : null,
       startTime = task.startAt ? formatTime(task.startAt) : null,
       displayTime = dueTime || startTime,
+      visibleTags = task.tags.slice(0, MAX_INLINE_TAGS),
+      overflowTags = task.tags.slice(MAX_INLINE_TAGS),
       badgeClass =
-        "flex min-h-7 items-center gap-1 min-[400px]:gap-1.5 px-1.5 min-[400px]:px-2 rounded-full border font-medium leading-none cursor-pointer hover:bg-slate-50 transition-colors select-none text-[length:inherit] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
+        "inline-flex h-5 max-w-[13rem] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap rounded-md border px-1.5 min-[400px]:px-2 font-medium leading-none cursor-pointer transition-all select-none text-[length:inherit] outline-none hover:-translate-y-px hover:shadow-sm hover:shadow-slate-900/5 focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
     return (
       <MotionDiv
@@ -299,7 +303,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                     ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
                     : "bg-white hover:bg-slate-50",
                 )}
-                title={`Change Status (Current: ${task.status})`}
+                title={`Change status (current: ${task.status})`}
                 aria-label={`Change status for ${task.title}. Current status: ${task.status}`}
               >
                 {renderStatusIcon(task.status, 18)}
@@ -311,14 +315,22 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               align="start"
               sideOffset={5}
               collisionPadding={10}
-              className="z-9999 outline-none w-44 p-1.5"
+              className="z-9999 w-56 rounded-xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl shadow-slate-900/10 outline-none backdrop-blur"
             >
               <MotionDiv
-                initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                initial={{ opacity: 0, scale: 0.98, y: -4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: -5 }}
-                transition={{ duration: 0.15 }}
+                exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                transition={{ duration: 0.12 }}
               >
+                <div className="flex items-center justify-between border-b border-slate-100 px-2.5 pb-2 pt-1.5">
+                  <span className="text-xs font-semibold text-slate-700">
+                    Status
+                  </span>
+                  <span className="text-[10px] font-medium text-slate-400">
+                    Current: {task.status}
+                  </span>
+                </div>
                 <div className="flex flex-col gap-0.5">
                   {statusOptions.map((option) => (
                     <PopoverClose key={option} asChild>
@@ -331,13 +343,10 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       >
                         <div
                           className={cn(
-                            // Base styles: removed justify-start! for better standard behavior
-                            "w-full flex min-h-8 items-center gap-2.5 px-3 py-2 text-xs font-medium font-mono rounded-lg transition-all hover:bg-slate-300 text-left outline-none",
-                            "justify-start! text-left!",
-                            // Active (Selected) State: A solid, subtle background
+                            "grid min-h-8 w-full grid-cols-[1rem_1fr_1rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors",
                             task.status === option
-                              ? "bg-slate-200/60 text-slate-900 font-semibold"
-                              : "text-slate-600 hover:text-slate-900 hover:opacity-80 active:scale-[0.98]",
+                              ? "bg-blue-50/80 text-blue-700"
+                              : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
                           )}
                         >
                           <div
@@ -351,11 +360,18 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                             {renderStatusIcon(option, 14)}
                           </div>
                           <span className="capitalize">{option}</span>
+                          {task.status === option && (
+                            <Icon
+                              name="Check"
+                              size={13}
+                              className="justify-self-end"
+                            />
+                          )}
                         </div>
                       </button>
                     </PopoverClose>
                   ))}
-                  <div className="h-px bg-slate-100 my-1 mx-1" />
+                  <div className="my-1 h-px bg-slate-100" />
                   <PopoverClose asChild>
                     <button
                       type="button"
@@ -363,9 +379,9 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       aria-label={`Edit details for ${task.title}`}
                       className="w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                     >
-                      <div className="w-full flex min-h-8 items-center justify-start! gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:text-blue-600 hover:opacity-80 hover:bg-slate-300 transition-all text-left outline-none rounded-lg">
+                      <div className="flex min-h-8 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100/80 hover:text-blue-600">
                         <Icon name="Pencil" size={14} className="opacity-70" />
-                        <span>Edit Details</span>
+                        <span>Edit details</span>
                       </div>
                     </button>
                   </PopoverClose>
@@ -434,7 +450,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           {/* Tags, Priority, Etc */}
           <div
             className={cn(
-              "flex flex-wrap items-center gap-1 min-[400px]:gap-1.5 sm:gap-2 font-medium text-slate-500",
+              "flex flex-wrap items-center gap-1 font-medium text-slate-500",
               metadataSizeClass,
             )}
             onClick={(e) => {
@@ -457,23 +473,23 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
             {dateValidation &&
               (dateValidation.hasInvalidDates ? (
                 <div
-                  className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-rose-600 bg-rose-50 border-rose-200"
+                  className="inline-flex h-5 items-center gap-1 rounded-md border border-rose-100 bg-rose-50/90 px-1.5 font-medium leading-none text-rose-700"
                   title="One or more dates have an invalid format"
                   role="img"
                   aria-label="One or more dates have an invalid format"
                 >
                   <Icon name="AlertTriangle" size={10} />
-                  <span className="text-[10px]">Invalid Date</span>
+                  <span>Invalid date</span>
                 </div>
               ) : dateValidation.hasMissingDates ? (
                 <div
-                  className="flex items-center gap-1.5 px-2 h-5 rounded-full border font-medium leading-none text-amber-600 bg-amber-50 border-amber-200"
+                  className="inline-flex h-5 items-center gap-1 rounded-md border border-amber-100 bg-amber-50/90 px-1.5 font-medium leading-none text-amber-700"
                   title="This task has no dates set"
                   role="img"
                   aria-label="This task has no dates set"
                 >
                   <Icon name="AlertCircle" size={10} />
-                  <span className="text-[10px]">No Dates</span>
+                  <span>No dates</span>
                 </div>
               ) : null)}
 
@@ -501,8 +517,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   icon="Plus"
                   className={cn(
                     badgeClass,
-                    "text-slate-500 bg-slate-50 border-slate-200",
-                    "hidden min-[400px]:flex",
+                    "border-transparent bg-transparent text-slate-400 hover:border-slate-200 hover:bg-slate-50",
+                    "hidden sm:inline-flex",
                   )}
                 />
               )}
@@ -520,7 +536,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 onUpdate={onUpdateTask}
                 className={cn(
                   badgeClass,
-                  "text-slate-500 bg-slate-50 border-slate-200",
+                  "border-transparent bg-slate-50/70 text-slate-500 hover:border-slate-200 hover:bg-white",
                 )}
               />
             )}
@@ -556,7 +572,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 onUpdate={onUpdateTask}
                 className={cn(
                   badgeClass,
-                  "text-emerald-600 bg-emerald-50 border-emerald-200",
+                  "border-emerald-100 bg-emerald-50/80 text-emerald-700",
                 )}
               />
             )}
@@ -564,7 +580,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <div
                 className={cn(
                   badgeClass,
-                  "text-slate-500 bg-slate-100 border-slate-200 cursor-default",
+                  "cursor-default border-transparent bg-slate-50/70 text-slate-500 hover:translate-y-0 hover:border-slate-200",
                 )}
                 title={formatRecurrence(task.recurringInterval)}
                 role="img"
@@ -576,7 +592,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 <span className="capitalize">Recurring</span>
               </div>
             )}
-            {task.tags.map((tag, index) => (
+            {visibleTags.map((tag, index) => (
               <TagBadge
                 key={`${task.id}-tag-${index}`}
                 tag={tag}
@@ -585,6 +601,65 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 badgeClass={badgeClass}
               />
             ))}
+            {overflowTags.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      badgeClass,
+                      "border-purple-100 bg-purple-50/80 text-purple-700",
+                    )}
+                    aria-label={`Show ${overflowTags.length} more tags for ${task.title}`}
+                    title={`${overflowTags.length} more tags`}
+                  >
+                    +{overflowTags.length}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  align="start"
+                  sideOffset={5}
+                  className="z-9999 w-56 rounded-xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl shadow-slate-900/10 outline-none backdrop-blur"
+                >
+                  <MotionDiv
+                    initial={{ opacity: 0, scale: 0.98, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    <div className="border-b border-slate-100 px-2.5 pb-2 pt-1.5 text-xs font-semibold text-slate-700">
+                      Tags
+                    </div>
+                    <div className="flex flex-col gap-0.5 pt-1">
+                      {overflowTags.map((tag) => (
+                        <PopoverClose key={tag.id} asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onUpdateTask({
+                                ...task,
+                                tags: task.tags.filter((t) => t.id !== tag.id),
+                              })
+                            }
+                            className="grid min-h-8 w-full grid-cols-[1rem_1fr_1rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-slate-600 transition-colors hover:bg-rose-50/80 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                            aria-label={`Remove tag ${tag.name} from ${task.title}`}
+                          >
+                            <Icon name="Tag" size={13} />
+                            <span className="truncate">{tag.name}</span>
+                            <Icon
+                              name="X"
+                              size={13}
+                              className="justify-self-end opacity-60"
+                            />
+                          </button>
+                        </PopoverClose>
+                      ))}
+                    </div>
+                  </MotionDiv>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           {task.description && (
