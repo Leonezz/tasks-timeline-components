@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "./ui/popover";
+import { MarkdownText } from "./MarkdownText";
 
 interface TaskItemProps {
   task: Task;
@@ -192,19 +193,19 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
         switch (status) {
           case "done":
-            return "CheckCircle2";
+            return "Check";
           case "doing":
-            return "PlayCircle";
+            return "Play";
           case "scheduled":
-            return "Clock";
+            return "CalendarClock";
           case "due":
-            return "AlertCircle";
+            return "Bell";
           case "overdue":
             return "AlertTriangle";
           case "cancelled":
-            return "XCircle";
+            return "X";
           case "unplanned":
-            return "Zap";
+            return "Sparkles";
           default:
             return "Circle";
         }
@@ -234,7 +235,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           name={getStatusIconName(status)}
           size={size}
           className={getStatusColor(status)}
-          strokeWidth={status === "done" ? 2.5 : 2}
+          strokeWidth={status === "done" || status === "cancelled" ? 2.5 : 2}
         />
       ),
       statusOptions: TaskStatus[] = [
@@ -298,15 +299,13 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <button
                 type="button"
                 className={cn(
-                  "relative z-10 -m-1 min-h-8 min-w-8 w-6 h-6 flex items-center justify-center transition-transform active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1 rounded-full",
-                  isUrgent
-                    ? "bg-rose-50 hover:bg-rose-100 shadow-sm"
-                    : "bg-white hover:bg-slate-50",
+                  "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-transparent transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
+                  isUrgent ? "hover:bg-rose-50/80" : "hover:bg-slate-50/80",
                 )}
                 title={`Change status (current: ${task.status})`}
                 aria-label={`Change status for ${task.title}. Current status: ${task.status}`}
               >
-                {renderStatusIcon(task.status, 18)}
+                {renderStatusIcon(task.status, 17)}
               </button>
             </PopoverTrigger>
 
@@ -429,7 +428,18 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   title={task.title}
                   aria-label={`Edit task title: ${task.title}`}
                 >
-                  {renderTitle ? renderTitle(task.title) : task.title}
+                  {renderTitle ? (
+                    renderTitle(task.title)
+                  ) : (
+                    <MarkdownText
+                      content={task.title}
+                      inline
+                      compact
+                      className="min-w-0"
+                      paragraphClassName="inline whitespace-pre-wrap"
+                      codeClassName="rounded bg-slate-100/80 px-1 py-0 font-mono text-[0.9em] text-slate-700"
+                    />
+                  )}
                 </MotionButton>
               </>
             )}
@@ -665,14 +675,16 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           {task.description && (
             <div className="mt-1 flex items-start gap-1.5 text-slate-400">
               <Icon name="FileText" size={10} className="mt-0.5 shrink-0" />
-              <p
+              <MarkdownText
+                content={task.description}
+                compact
                 className={cn(
-                  "leading-relaxed line-clamp-2",
+                  "line-clamp-2 min-w-0 leading-relaxed",
                   metadataSizeClass,
                 )}
-              >
-                {task.description}
-              </p>
+                paragraphClassName="leading-relaxed"
+                codeClassName="rounded bg-slate-100/80 px-1 py-0 font-mono text-[0.9em] text-slate-600"
+              />
             </div>
           )}
         </div>

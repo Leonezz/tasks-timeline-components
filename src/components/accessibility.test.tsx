@@ -112,6 +112,20 @@ describe("component accessibility affordances", () => {
     expect(html).toContain(`aria-label="Delete ${task.title}"`);
   });
 
+  it("renders task title and description markdown", () => {
+    const task = createTask({
+      title: "**Commit fixes** with `tracing`",
+      description: "Use **structured** logging.",
+    });
+    const html = renderWithProviders(<TaskItem task={task} />, {
+      tasks: [task],
+    });
+
+    expect(html).toContain("<strong");
+    expect(html).toContain("<code");
+    expect(html).toContain("structured");
+  });
+
   it("surfaces focus-mode empty CTA and hidden backlog notice", () => {
     const backlogTask = createTask({
       createdAt: undefined,

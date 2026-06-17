@@ -30,6 +30,21 @@ describe("MarkdownText", () => {
     expect(html).toContain('href="https://example.com"');
   });
 
+  it("renders inline markdown without paragraph wrappers", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText
+        content="**Bold** and `code`"
+        inline
+        paragraphClassName="inline"
+      />,
+    );
+
+    expect(html).toContain("<span");
+    expect(html).not.toContain("<p");
+    expect(html).toContain("<strong");
+    expect(html).toContain("<code");
+  });
+
   it("drops unsafe link hrefs", () => {
     const html = renderToStaticMarkup(
       <MarkdownText content="[bad](javascript:alert(1))" />,

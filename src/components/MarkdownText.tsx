@@ -16,10 +16,33 @@ export interface MarkdownTextProps {
   codeClassName?: string;
   linkClassName?: string;
   compact?: boolean;
+  inline?: boolean;
 }
 
 const REMARK_PLUGINS = [remarkGfm];
 const DISALLOWED_ELEMENTS = ["img"];
+const INLINE_DISALLOWED_ELEMENTS = [
+  "img",
+  "blockquote",
+  "ul",
+  "ol",
+  "li",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "pre",
+  "hr",
+  "input",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+];
 
 function getSafeUrl(url: string, key: string): string | undefined {
   if (key !== "href" && key !== "src") {
@@ -100,10 +123,22 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
   codeClassName,
   linkClassName,
   compact = false,
+  inline = false,
 }) => {
   const components = useMemo<Components>(
     () => ({
       p({ children, ...props }) {
+        if (inline) {
+          return (
+            <span
+              {...omitMarkdownNode(props)}
+              className={cn("whitespace-pre-wrap", paragraphClassName)}
+            >
+              {children}
+            </span>
+          );
+        }
+
         return (
           <p
             {...omitMarkdownNode(props)}
@@ -385,6 +420,7 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
     [
       codeClassName,
       compact,
+      inline,
       linkClassName,
       listClassName,
       listItemClassName,
@@ -397,18 +433,28 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
     return null;
   }
 
+  const markdown = (
+    <ReactMarkdown
+      remarkPlugins={REMARK_PLUGINS}
+      skipHtml
+      disallowedElements={
+        inline ? INLINE_DISALLOWED_ELEMENTS : DISALLOWED_ELEMENTS
+      }
+      unwrapDisallowed
+      urlTransform={safeUrlTransform}
+      components={components}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+
+  if (inline) {
+    return <span className={className}>{markdown}</span>;
+  }
+
   return (
     <div className={cn(compact ? "space-y-1" : "space-y-2", className)}>
-      <ReactMarkdown
-        remarkPlugins={REMARK_PLUGINS}
-        skipHtml
-        disallowedElements={DISALLOWED_ELEMENTS}
-        unwrapDisallowed
-        urlTransform={safeUrlTransform}
-        components={components}
-      >
-        {content}
-      </ReactMarkdown>
+      {markdown}
     </div>
   );
 };
