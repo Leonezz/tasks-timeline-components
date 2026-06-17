@@ -231,16 +231,8 @@ export const useAIAgent = (
         logger.debug("AI", "Token Usage", { tokenUsage });
       }
 
-      let loopCount = 0;
-      const maxLoops = 5;
       // Process tool calls in a loop
-      while (
-        response.toolCalls &&
-        response.toolCalls.length > 0 &&
-        loopCount < maxLoops
-      ) {
-        loopCount++;
-
+      while (response.toolCalls && response.toolCalls.length > 0) {
         // Record assistant response with tool calls in history
         history.push({
           role: "assistant",
