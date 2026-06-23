@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import root from "react-shadow";
 import styles from "../index.css?inline";
 import { PortalContext } from "../hooks/usePortalContainer";
 
@@ -12,7 +11,7 @@ export const AppProvider: React.FC<{
   );
 
   return (
-    <root.div
+    <div
       id="tasks-timeline-app"
       className="tasks-timeline-app"
       data-theme={theme}
@@ -30,6 +29,6 @@ export const AppProvider: React.FC<{
           />
         </PortalContext.Provider>
       </div>
-    </root.div>
+    </div>
   );
 };

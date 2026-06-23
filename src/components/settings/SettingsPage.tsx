@@ -10,7 +10,6 @@ import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
 import { Documentation } from "./Documentation";
-import root from "react-shadow";
 import styles from "../../index.css?inline";
 import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
@@ -233,10 +232,10 @@ export const SettingsPage = ({
           width: "100%",
         }}
       >
-        <root.div>
+        <div>
           <style>{styles}</style>
           {renderContent()}
-        </root.div>
+        </div>
       </div>
     );
   }
