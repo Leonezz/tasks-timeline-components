@@ -2,7 +2,7 @@
   "name": "@tasks-timeline/components",
   "description": "A comprehensive React component library for task management and timeline visualization",
   "private": false,
-  "version": "0.4.25",
+  "version": "0.4.26",
   "type": "module",
   "license": "MIT",
   "author": "Leonezz <zhwuenqa@outlook.com>",
@@ -104,8 +104,8 @@
     "tailwind-merge": "^3.4.0"
   },
   "peerDependencies": {
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react": "^18.3.1 || ^19.0.0",
+    "react-dom": "^18.3.1 || ^19.0.0"
   },
   "pnpm": {
     "overrides": {
