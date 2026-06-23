@@ -38,6 +38,8 @@ export default defineConfig({
       external: [
         "react",
         "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
         "ai",
         "@ai-sdk/anthropic",
         "@ai-sdk/google",
@@ -47,6 +49,8 @@ export default defineConfig({
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
+          "react/jsx-runtime": "ReactJSXRuntime",
+          "react/jsx-dev-runtime": "ReactJSXRuntime",
           ai: "AI",
           "@ai-sdk/anthropic": "AISDKAnthropic",
           "@ai-sdk/google": "AISDKGoogle",
