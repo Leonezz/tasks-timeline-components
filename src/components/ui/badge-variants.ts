@@ -1,6 +1,14 @@
 import { cva } from "class-variance-authority";
 
-export const badgeVariants = cva(
+export type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+export interface BadgeVariantProps {
+  variant?: BadgeVariant | null;
+}
+
+type BadgeVariantsInput = BadgeVariantProps;
+
+export const badgeVariants: (props?: BadgeVariantsInput) => string = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {

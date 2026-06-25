@@ -1,6 +1,23 @@
 import { cva } from "class-variance-authority";
 
-export const buttonVariants = cva(
+export type ButtonVariant =
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link";
+
+export type ButtonSize = "default" | "sm" | "lg" | "icon";
+
+export interface ButtonVariantProps {
+  variant?: ButtonVariant | null;
+  size?: ButtonSize | null;
+}
+
+type ButtonVariantsInput = ButtonVariantProps;
+
+export const buttonVariants: (props?: ButtonVariantsInput) => string = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
