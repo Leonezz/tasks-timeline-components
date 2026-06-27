@@ -477,7 +477,9 @@
    Maps HSL CSS variables to Tailwind utilities
    ============================================================================ */
 
-@theme {
+/* Inline theme values keep shadow-root consumers tied to the scoped
+   .tasks-timeline-app runtime tokens instead of global --color-* variables. */
+@theme inline {
   /* Fonts */
   --font-sans: Inter, sans-serif;
   --font-mono: "JetBrains Mono", monospace;

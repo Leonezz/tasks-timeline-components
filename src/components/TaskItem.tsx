@@ -299,7 +299,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <button
                 type="button"
                 className={cn(
-                  "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-transparent transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
+                  "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-background transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
                   isUrgent ? "hover:bg-rose-50/80" : "hover:bg-slate-50/80",
                 )}
                 title={`Change status (current: ${task.status})`}
