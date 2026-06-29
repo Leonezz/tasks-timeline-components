@@ -280,7 +280,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           {/* Head Line */}
           <div
             className={cn(
-              "absolute -top-1 h-6.5 w-px left-1/2 -translate-x-1/2 group-first:hidden",
+              "absolute -top-1 h-2 w-px left-1/2 -translate-x-1/2 group-first:hidden",
               "bg-slate-200",
             )}
           />
@@ -288,7 +288,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           {/* Tail Line */}
           <div
             className={cn(
-              "absolute top-5 -bottom-1 w-px left-1/2 -translate-x-1/2",
+              "absolute top-7 -bottom-1 w-px left-1/2 -translate-x-1/2",
               getLineColor(task.status),
             )}
           />
@@ -299,7 +299,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <button
                 type="button"
                 className={cn(
-                  "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-background transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
+                  "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-transparent transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
                   isUrgent ? "hover:bg-rose-50/80" : "hover:bg-slate-50/80",
                 )}
                 title={`Change status (current: ${task.status})`}
