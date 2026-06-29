@@ -1,15 +1,16 @@
 import type { ReactNode } from "react";
 
 export type Priority = "low" | "medium" | "high";
-export type TaskStatus =
-  | "done"
+export type WorkflowStatus = "todo" | "doing" | "done" | "cancelled";
+export type RepresentationStatus =
   | "scheduled"
-  | "todo"
   | "due"
   | "overdue"
-  | "cancelled"
-  | "unplanned"
-  | "doing";
+  | "unplanned";
+export type TaskStatus = WorkflowStatus | RepresentationStatus;
+export type TemporalStatus = "none" | "due" | "overdue";
+export type PlanningStatus = "planned" | "scheduled" | "unplanned";
+export type PrimaryVisualStatus = WorkflowStatus | RepresentationStatus;
 
 export type ISO8601String = string;
 
@@ -305,6 +306,7 @@ export type DetailBlock =
       data: {
         total: number;
         byStatus: Record<string, number>;
+        byDisplayStatus?: Record<string, number>;
         byPriority: Record<string, number>;
       };
     }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CapabilityContext } from "../../types";
 import type { Task } from "../../../types";
 import { createQueryTasksTool } from "../../tools/query-tasks";
@@ -75,11 +75,17 @@ describe("query_tasks tool", () => {
   let mockShowToast: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-22T12:00:00Z"));
     mockShowToast = vi.fn();
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue(SAMPLE_TASKS),
       showToast: mockShowToast as CapabilityContext["showToast"],
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("has correct name and schema properties", () => {
@@ -129,6 +135,7 @@ describe("query_tasks tool", () => {
     expect(task).toHaveProperty("id");
     expect(task).toHaveProperty("title");
     expect(task).toHaveProperty("status");
+    expect(task).toHaveProperty("displayStatus");
     expect(task).toHaveProperty("priority");
     expect(task).toHaveProperty("dueAt");
     expect(task).toHaveProperty("startAt");
@@ -156,7 +163,7 @@ describe("query_tasks tool", () => {
     expect(task2.tags).toEqual(["Writing", "Reports"]);
   });
 
-  it("filters by status", async () => {
+  it("filters by workflow status", async () => {
     const tool = createQueryTasksTool(ctx);
     const result = await tool.execute({ status: "todo" });
 
@@ -164,8 +171,22 @@ describe("query_tasks tool", () => {
       tasks: Array<Record<string, unknown>>;
       count: number;
     };
-    expect(data.count).toBe(1);
+    expect(data.count).toBe(2);
     expect(data.tasks[0].id).toBe("task-1");
+  });
+
+  it("filters by derived display status", async () => {
+    const tool = createQueryTasksTool(ctx);
+    const result = await tool.execute({ status: "overdue" });
+
+    const data = result.result as {
+      tasks: Array<Record<string, unknown>>;
+      count: number;
+    };
+    expect(data.count).toBe(1);
+    expect(data.tasks[0].id).toBe("task-3");
+    expect(data.tasks[0].status).toBe("todo");
+    expect(data.tasks[0].displayStatus).toBe("overdue");
   });
 
   it("filters by search (case-insensitive, matches title)", async () => {

@@ -1,4 +1,5 @@
 import type { CapabilityContext, PromptSpec } from "../types";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createWeeklyReviewPrompt(ctx: CapabilityContext): PromptSpec {
   return {
@@ -16,14 +17,20 @@ export function createWeeklyReviewPrompt(ctx: CapabilityContext): PromptSpec {
     async render() {
       const tasks = await ctx.getTasks();
 
-      const completedTasks = tasks.filter((t) => t.status === "done");
-      const overdueTasks = tasks.filter((t) => t.status === "overdue");
-      const activeTasks = tasks.filter(
-        (t) =>
-          t.status !== "done" &&
-          t.status !== "cancelled" &&
-          t.status !== "overdue",
+      const completedTasks = tasks.filter(
+        (t) => deriveTaskRenderState(t).workflowStatus === "done",
       );
+      const overdueTasks = tasks.filter(
+        (t) => deriveTaskRenderState(t).temporalStatus === "overdue",
+      );
+      const activeTasks = tasks.filter((t) => {
+        const renderState = deriveTaskRenderState(t);
+        return (
+          renderState.workflowStatus !== "done" &&
+          renderState.workflowStatus !== "cancelled" &&
+          renderState.temporalStatus !== "overdue"
+        );
+      });
       const total = tasks.length;
 
       const lines: string[] = [
@@ -46,8 +53,11 @@ export function createWeeklyReviewPrompt(ctx: CapabilityContext): PromptSpec {
       lines.push("## Still Active");
 
       for (const t of [...overdueTasks, ...activeTasks]) {
+        const renderState = deriveTaskRenderState(t);
         const dueInfo = t.dueAt ? ` — due ${t.dueAt}` : "";
-        lines.push(`- [${t.status}] ${t.title} (${t.priority})${dueInfo}`);
+        lines.push(
+          `- [${renderState.workflowStatus}/${renderState.primaryStatus}] ${t.title} (${t.priority})${dueInfo}`,
+        );
       }
 
       lines.push("");

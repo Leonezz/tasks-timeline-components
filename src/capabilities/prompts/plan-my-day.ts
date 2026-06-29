@@ -1,5 +1,6 @@
 import type { CapabilityContext, PromptSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createPlanMyDayPrompt(ctx: CapabilityContext): PromptSpec {
   return {
@@ -18,14 +19,18 @@ export function createPlanMyDayPrompt(ctx: CapabilityContext): PromptSpec {
       const tasks = await ctx.getTasks();
       const today = getTodayISO();
 
-      const todayTasks = tasks.filter(
-        (t) =>
+      const todayTasks = tasks.filter((t) => {
+        const renderState = deriveTaskRenderState(t);
+        return (
           t.dueAt?.startsWith(today) &&
-          t.status !== "done" &&
-          t.status !== "cancelled",
-      );
+          renderState.workflowStatus !== "done" &&
+          renderState.workflowStatus !== "cancelled"
+        );
+      });
 
-      const overdueTasks = tasks.filter((t) => t.status === "overdue");
+      const overdueTasks = tasks.filter(
+        (t) => deriveTaskRenderState(t).temporalStatus === "overdue",
+      );
 
       const lines: string[] = [
         "Review my tasks for today and create a prioritized plan.",
@@ -38,7 +43,10 @@ export function createPlanMyDayPrompt(ctx: CapabilityContext): PromptSpec {
       lines.push("");
       lines.push(`## Today's Tasks (${todayTasks.length})`);
       for (const t of todayTasks) {
-        lines.push(`- [${t.status}] ${t.title} (${t.priority})`);
+        const renderState = deriveTaskRenderState(t);
+        lines.push(
+          `- [${renderState.workflowStatus}/${renderState.primaryStatus}] ${t.title} (${t.priority})`,
+        );
       }
 
       lines.push("");

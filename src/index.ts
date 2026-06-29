@@ -14,7 +14,12 @@ export * from "./hooks/index";
 // Export all types
 export type {
   Priority,
+  WorkflowStatus,
+  RepresentationStatus,
   TaskStatus,
+  TemporalStatus,
+  PlanningStatus,
+  PrimaryVisualStatus,
   ISO8601String,
   Tag,
   Task,
@@ -49,7 +54,15 @@ export type {
 } from "./types";
 
 // Export utilities
-export { cn, deriveTaskStatus } from "./utils";
+export {
+  cn,
+  deriveWorkflowStatus,
+  deriveTaskStatus,
+  deriveTaskRenderState,
+  isWorkflowStatus,
+  taskMatchesStatus,
+} from "./utils";
+export type { TaskRenderState } from "./utils";
 export type {
   VoiceRuntime,
   VoiceRuntimeRequest,

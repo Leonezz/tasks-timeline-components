@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from "react";
 import { DateTime } from "luxon";
 import type { DateGroupBy, DayGroup, Task } from "../types";
 import { groupTasksByYearAndDate } from "../utils";
+import { deriveWorkflowStatus } from "../utils/task";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
 import { BacklogSection } from "./BacklogSection";
@@ -27,9 +28,12 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
         // 1. Filter based on "Show Completed" setting
         visibleTasks = settings.showCompleted
           ? tasks
-          : tasks.filter(
-              (t) => t.status !== "done" && t.status !== "cancelled",
-            ),
+          : tasks.filter((t) => {
+              const workflowStatus = deriveWorkflowStatus(t);
+              return (
+                workflowStatus !== "done" && workflowStatus !== "cancelled"
+              );
+            }),
         // 2. Identify "Dated" vs "Truly Undated" tasks
         datedTasks: Task[] = [],
         trulyUndatedTasks: Task[] = [],

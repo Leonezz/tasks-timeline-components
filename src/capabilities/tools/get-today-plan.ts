@@ -1,12 +1,14 @@
 import type { Priority, Task, DetailBlock } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
+import { deriveTaskRenderState } from "../../utils/task";
 
 interface TaskSummary {
   id: string;
   title: string;
   priority: Priority;
   status: string;
+  displayStatus: string;
   category?: string;
   tags: string[];
   isRecurring?: boolean;
@@ -50,12 +52,14 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
       const overdueFullTasks: Task[] = [];
 
       for (const task of tasks) {
+        const renderState = deriveTaskRenderState(task);
         // Create summary object
         const summary: TaskSummary = {
           id: task.id,
           title: task.title,
           priority: task.priority,
-          status: task.status,
+          status: renderState.workflowStatus,
+          displayStatus: renderState.primaryStatus,
           ...(task.category ? { category: task.category } : {}),
           tags: task.tags.map((t) => t.name),
           ...(task.isRecurring !== undefined
@@ -66,15 +70,14 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
         // Today's tasks: dueAt === today, not done/cancelled
         if (
           task.dueAt === today &&
-          task.status !== "done" &&
-          task.status !== "cancelled"
+          renderState.workflowStatus !== "done" &&
+          renderState.workflowStatus !== "cancelled"
         ) {
           todayTasks.push(summary);
           todayFullTasks.push(task);
         }
 
-        // Overdue tasks: status === "overdue"
-        if (task.status === "overdue") {
+        if (renderState.temporalStatus === "overdue") {
           overdueTasks.push(summary);
           overdueFullTasks.push(task);
         }

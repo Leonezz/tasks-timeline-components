@@ -24,14 +24,14 @@ const GROUPING_FIELDS: DateGroupBy[] = [
 ];
 const PRIORITIES: Priority[] = ["low", "medium", "high"];
 const STATUSES: TaskStatus[] = [
-  "done",
-  "scheduled",
   "todo",
+  "doing",
+  "done",
+  "cancelled",
   "due",
   "overdue",
-  "cancelled",
+  "scheduled",
   "unplanned",
-  "doing",
 ];
 const SORT_FIELDS: SortField[] = [
   "createdAt",

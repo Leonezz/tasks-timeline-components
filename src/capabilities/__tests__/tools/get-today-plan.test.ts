@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { CapabilityContext } from "../../types";
 import type { Task } from "../../../types";
 import { createGetTodayPlanTool } from "../../tools/get-today-plan";
-import { getTodayISO } from "../../../utils/date-helpers";
+import { getDaysFromNowISO, getTodayISO } from "../../../utils/date-helpers";
 
 function makeContext(
   overrides?: Partial<CapabilityContext>,
@@ -19,6 +19,7 @@ function makeContext(
 }
 
 const TODAY = getTodayISO();
+const FUTURE_DATE = getDaysFromNowISO(30);
 
 const SAMPLE_TASKS: Task[] = [
   {
@@ -95,7 +96,7 @@ const SAMPLE_TASKS: Task[] = [
     priority: "high",
     category: "work",
     tags: [{ id: "t7", name: "future" }],
-    dueAt: "2026-03-01",
+    dueAt: FUTURE_DATE,
     createdAt: "2026-02-10",
     isRecurring: false,
   },
@@ -231,16 +232,17 @@ describe("get_today_plan tool", () => {
     expect(plan.overdueCount).toBe(0);
   });
 
-  it("only includes tasks with status='overdue' in overdueTasks", async () => {
+  it("only includes tasks with displayStatus='overdue' in overdueTasks", async () => {
     const tool = createGetTodayPlanTool(ctx);
     const result = await tool.execute({});
 
     const plan = result.result as Record<string, unknown>;
     const overdueTasks = plan.overdueTasks as Array<Record<string, unknown>>;
 
-    // All should have status overdue
+    // All should have derived overdue display state but workflow status remains editable.
     overdueTasks.forEach((task) => {
-      expect(task.status).toBe("overdue");
+      expect(task.displayStatus).toBe("overdue");
+      expect(task.status).toBe("todo");
     });
   });
 
@@ -251,8 +253,8 @@ describe("get_today_plan tool", () => {
     const plan = result.result as Record<string, unknown>;
     const todayTasks = plan.todayTasks as Array<Record<string, unknown>>;
 
-    // All should be from today and not done/cancelled
-    const expectedStatuses = ["todo", "due", "scheduled", "doing"];
+    // All should be from today and not done/cancelled.
+    const expectedStatuses = ["todo", "doing"];
     todayTasks.forEach((task) => {
       expect(expectedStatuses).toContain(task.status);
       expect(["done", "cancelled"]).not.toContain(task.status);
@@ -305,11 +307,11 @@ describe("get_today_plan tool", () => {
         {
           id: "task-future",
           title: "Future task",
-          status: "scheduled",
+          status: "todo",
           priority: "high",
           category: "work",
           tags: [{ id: "t7", name: "future" }],
-          dueAt: "2026-03-01",
+          dueAt: FUTURE_DATE,
           createdAt: "2026-02-10",
           isRecurring: false,
         },

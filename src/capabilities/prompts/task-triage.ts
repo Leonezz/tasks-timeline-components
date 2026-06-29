@@ -1,4 +1,5 @@
 import type { CapabilityContext, PromptSpec } from "../types";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createTaskTriagePrompt(ctx: CapabilityContext): PromptSpec {
   return {
@@ -9,10 +10,17 @@ export function createTaskTriagePrompt(ctx: CapabilityContext): PromptSpec {
     async render() {
       const tasks = await ctx.getTasks();
 
-      const overdueTasks = tasks.filter((t) => t.status === "overdue");
-      const unscheduledTasks = tasks.filter(
-        (t) => t.status === "unplanned" || (t.status === "todo" && !t.dueAt),
+      const overdueTasks = tasks.filter(
+        (t) => deriveTaskRenderState(t).temporalStatus === "overdue",
       );
+      const unscheduledTasks = tasks.filter((t) => {
+        const renderState = deriveTaskRenderState(t);
+        return (
+          renderState.workflowStatus !== "done" &&
+          renderState.workflowStatus !== "cancelled" &&
+          renderState.planningStatus === "unplanned"
+        );
+      });
 
       const lines: string[] = [
         "Triage my tasks: identify stale items and suggest actions.",

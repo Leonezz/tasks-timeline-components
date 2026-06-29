@@ -1,5 +1,6 @@
 import type { Task, Priority } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
+import { deriveTaskRenderState, taskMatchesStatus } from "../../utils/task";
 
 const PRIORITY_ORDER: Record<Priority, number> = {
   high: 0,
@@ -11,6 +12,7 @@ interface TaskSummary {
   id: string;
   title: string;
   status: string;
+  displayStatus: string;
   priority: string;
   dueAt: string | undefined;
   startAt: string | undefined;
@@ -20,10 +22,12 @@ interface TaskSummary {
 }
 
 function toSummary(task: Task): TaskSummary {
+  const renderState = deriveTaskRenderState(task);
   return {
     id: task.id,
     title: task.title,
-    status: task.status,
+    status: renderState.workflowStatus,
+    displayStatus: renderState.primaryStatus,
     priority: task.priority,
     dueAt: task.dueAt,
     startAt: task.startAt,
@@ -83,7 +87,8 @@ export function createQueryTasksTool(ctx: CapabilityContext): ToolSpec {
       properties: {
         status: {
           type: "string",
-          description: "Filter by exact task status",
+          description:
+            "Filter by explicit workflow status or derived display status",
           enum: [
             "done",
             "scheduled",
@@ -149,7 +154,8 @@ export function createQueryTasksTool(ctx: CapabilityContext): ToolSpec {
       const allTasks = await ctx.getTasks();
 
       const filtered = allTasks.filter((task: Task) => {
-        if (status !== undefined && task.status !== status) return false;
+        if (status !== undefined && !taskMatchesStatus(task, status))
+          return false;
         if (search !== undefined && !matchesSearch(task, search)) return false;
         if (category !== undefined && task.category !== category) return false;
         if (tag !== undefined && !matchesTag(task, tag)) return false;

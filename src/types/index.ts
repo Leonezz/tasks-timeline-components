@@ -8,7 +8,12 @@
 
 export type {
   Priority,
+  WorkflowStatus,
+  RepresentationStatus,
   TaskStatus,
+  TemporalStatus,
+  PlanningStatus,
+  PrimaryVisualStatus,
   ISO8601String,
   Tag,
   Task,

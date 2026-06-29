@@ -1,6 +1,6 @@
 import type { CapabilityContext } from "../src/capabilities/types";
 import type { Task, Priority, TaskStatus } from "../src/types";
-import { deriveTaskStatus } from "../src/utils/task";
+import { deriveWorkflowStatus } from "../src/utils/task";
 import { getNowISO } from "../src/utils/date-helpers";
 
 export interface MockContextState {
@@ -28,13 +28,13 @@ export function createMockContext(seedTasks: Partial<Task>[] = []): {
     getTasks: async () => [...tasks],
     getTask: async (id: string) => tasks.find((t) => t.id === id) || null,
     addTask: async (task: Task) => {
-      const processed = { ...task, status: deriveTaskStatus(task) };
+      const processed = { ...task, status: deriveWorkflowStatus(task) };
       tasks.push(processed);
     },
     updateTask: async (task: Task) => {
       const idx = tasks.findIndex((t) => t.id === task.id);
       if (idx !== -1) {
-        tasks[idx] = { ...task, status: deriveTaskStatus(task) };
+        tasks[idx] = { ...task, status: deriveWorkflowStatus(task) };
       }
     },
     deleteTask: async (id: string) => {

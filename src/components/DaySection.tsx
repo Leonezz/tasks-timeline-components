@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import type { DayGroup } from "../types";
 import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
-import { cn, formatRelativeDate } from "../utils";
+import { cn, deriveTaskRenderState, formatRelativeDate } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { useLazyRender } from "../hooks/useLazyRender";
 import { useTasksContext } from "../contexts/TasksContext";
@@ -78,13 +78,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
       () =>
         group.tasks.reduce(
           (acc, task) => {
-            if (task.status === "done") {
+            const renderState = deriveTaskRenderState(task);
+            if (renderState.workflowStatus === "done") {
               acc.done++;
-            } else if (task.status === "overdue" || task.status === "due") {
+            } else if (renderState.isUrgent) {
               acc.urgent++;
-            } else if (
-              ["todo", "scheduled", "unplanned"].includes(task.status)
-            ) {
+            } else if (renderState.workflowStatus !== "cancelled") {
               acc.open++;
             }
             return acc;

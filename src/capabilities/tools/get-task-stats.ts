@@ -1,5 +1,6 @@
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -17,6 +18,7 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
       const stats = {
         total: tasks.length,
         byStatus: {} as Record<string, number>,
+        byDisplayStatus: {} as Record<string, number>,
         byPriority: {} as Record<string, number>,
         byCategory: {} as Record<string, number>,
         overdue: 0,
@@ -29,8 +31,14 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
       const today = getTodayISO();
 
       for (const task of tasks) {
+        const renderState = deriveTaskRenderState(task);
+
         // Count by status
-        stats.byStatus[task.status] = (stats.byStatus[task.status] ?? 0) + 1;
+        stats.byStatus[renderState.workflowStatus] =
+          (stats.byStatus[renderState.workflowStatus] ?? 0) + 1;
+
+        stats.byDisplayStatus[renderState.primaryStatus] =
+          (stats.byDisplayStatus[renderState.primaryStatus] ?? 0) + 1;
 
         // Count by priority
         stats.byPriority[task.priority] =
@@ -43,7 +51,7 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
         }
 
         // Count overdue tasks
-        if (task.status === "overdue") {
+        if (renderState.temporalStatus === "overdue") {
           stats.overdue += 1;
         }
 
@@ -75,6 +83,7 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
             data: {
               total: stats.total,
               byStatus: stats.byStatus,
+              byDisplayStatus: stats.byDisplayStatus,
               byPriority: stats.byPriority,
             },
           },

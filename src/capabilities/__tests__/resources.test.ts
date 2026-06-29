@@ -31,7 +31,7 @@ const SAMPLE_TASKS: Task[] = [
   {
     id: "task-1",
     title: "Overdue task",
-    status: "overdue",
+    status: "todo",
     priority: "high",
     category: "work",
     tags: [{ id: "t1", name: "Bug" }],
@@ -42,7 +42,7 @@ const SAMPLE_TASKS: Task[] = [
   {
     id: "task-2",
     title: "Due today",
-    status: "due",
+    status: "todo",
     priority: "medium",
     category: "work",
     tags: [{ id: "t2", name: "Feature" }],
@@ -65,7 +65,7 @@ const SAMPLE_TASKS: Task[] = [
   {
     id: "task-4",
     title: "Upcoming task",
-    status: "scheduled",
+    status: "todo",
     priority: "medium",
     category: "work",
     tags: [{ id: "t3", name: "Planning" }],
@@ -76,7 +76,7 @@ const SAMPLE_TASKS: Task[] = [
   {
     id: "task-5",
     title: "Far future task",
-    status: "scheduled",
+    status: "todo",
     priority: "low",
     category: "personal",
     tags: [],
@@ -221,7 +221,7 @@ describe("filtered-tasks resources", () => {
 
     expect(data.tasks).toHaveLength(1);
     expect(data.tasks[0].id).toBe("task-1");
-    expect(data.tasks[0].status).toBe("overdue");
+    expect(data.tasks[0].status).toBe("todo");
     expect(data.count).toBe(1);
     expect(data.generatedAt).toBeDefined();
   });
@@ -297,12 +297,17 @@ describe("stats resource", () => {
     expect(data.total).toBe(6);
     expect(data.generatedAt).toBeDefined();
 
-    // byStatus
-    expect(data.byStatus.overdue).toBe(1);
-    expect(data.byStatus.due).toBe(1);
+    // byStatus is the persisted workflow status.
+    expect(data.byStatus.todo).toBe(4);
     expect(data.byStatus.doing).toBe(1);
-    expect(data.byStatus.scheduled).toBe(2);
     expect(data.byStatus.done).toBe(1);
+
+    // byDisplayStatus is derived from dates and workflow.
+    expect(data.byDisplayStatus.overdue).toBe(1);
+    expect(data.byDisplayStatus.due).toBe(1);
+    expect(data.byDisplayStatus.todo).toBe(2);
+    expect(data.byDisplayStatus.doing).toBe(1);
+    expect(data.byDisplayStatus.done).toBe(1);
 
     // byPriority
     expect(data.byPriority.high).toBe(2);

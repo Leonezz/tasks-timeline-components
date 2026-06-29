@@ -3,6 +3,7 @@ import React from "react";
 interface StatsData {
   total: number;
   byStatus: Record<string, number>;
+  byDisplayStatus?: Record<string, number>;
   byPriority: Record<string, number>;
 }
 
@@ -25,15 +26,16 @@ export const DetailBlockStats: React.FC<{ data: StatsData }> = ({ data }) => (
     {/* Status bar */}
     {data.total > 0 && (
       <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 [.tasks-timeline-app[data-theme='dark']_&]:bg-slate-700">
-        {Object.entries(data.byStatus).map(([status, count]) =>
-          count > 0 ? (
-            <div
-              key={status}
-              className={statusColors[status] || "bg-slate-400"}
-              style={{ width: `${(count / data.total) * 100}%` }}
-              title={`${status}: ${count}`}
-            />
-          ) : null,
+        {Object.entries(data.byDisplayStatus ?? data.byStatus).map(
+          ([status, count]) =>
+            count > 0 ? (
+              <div
+                key={status}
+                className={statusColors[status] || "bg-slate-400"}
+                style={{ width: `${(count / data.total) * 100}%` }}
+                title={`${status}: ${count}`}
+              />
+            ) : null,
         )}
       </div>
     )}

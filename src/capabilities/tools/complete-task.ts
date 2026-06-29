@@ -1,7 +1,7 @@
 import type { Task } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { generateTimestampId, getNowISO } from "../../utils/date-helpers";
-import { deriveTaskStatus } from "../../utils/task";
+import { deriveWorkflowStatus } from "../../utils/task";
 
 export function createCompleteTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -51,8 +51,10 @@ export function createCompleteTaskTool(ctx: CapabilityContext): ToolSpec {
           cancelledAt: undefined,
         };
 
-        const derivedStatus = deriveTaskStatus(nextTask);
-        const finalNextTask: Task = { ...nextTask, status: derivedStatus };
+        const finalNextTask: Task = {
+          ...nextTask,
+          status: deriveWorkflowStatus(nextTask),
+        };
 
         await ctx.addTask(finalNextTask);
         createdNextOccurrence = true;

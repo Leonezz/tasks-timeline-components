@@ -42,7 +42,7 @@ export const getToolDefinitions = (): ToolDefinition[] => [
       properties: {
         status: {
           type: "string",
-          description: "Filter by task status.",
+          description: "Filter by workflow status or derived display status.",
           enum: [
             "done",
             "scheduled",
@@ -79,16 +79,7 @@ export const getToolDefinitions = (): ToolDefinition[] => [
         description: { type: "string" },
         status: {
           type: "string",
-          enum: [
-            "done",
-            "scheduled",
-            "todo",
-            "due",
-            "overdue",
-            "cancelled",
-            "unplanned",
-            "doing",
-          ],
+          enum: ["todo", "doing", "done", "cancelled"],
         },
         priority: { type: "string", enum: ["low", "medium", "high"] },
         dueAt: { type: "string" },

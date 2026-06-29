@@ -33,7 +33,7 @@ import type {
   TokenUsageRecord,
 } from "./types";
 import type { VoiceRuntime } from "./utils/voice-providers";
-import { cn, deriveTaskStatus } from "./utils";
+import { cn, deriveWorkflowStatus } from "./utils";
 import { logger } from "./utils/logger";
 import { BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
@@ -644,10 +644,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         return;
       }
 
-      // Apply auto-status logic whenever a task is updated
+      // Persist only the explicit workflow status; dates drive render state.
       const processed = {
         ...updatedTask,
-        status: deriveTaskStatus(updatedTask),
+        status: deriveWorkflowStatus(updatedTask),
       };
 
       logger.info("Task", "Updated task", {
@@ -711,8 +711,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         return;
       }
 
-      // Auto-evaluate new tasks too (e.g. if added with tomorrow's due date)
-      newTask.status = deriveTaskStatus(newTask);
+      newTask.status = deriveWorkflowStatus(newTask);
 
       logger.info("Task", "Created task", {
         id: newTask.id,

@@ -43,7 +43,12 @@ describe("create_task tool", () => {
       "medium",
       "high",
     ]);
-    expect(tool.schema.properties.status.enum).toEqual(["todo", "scheduled"]);
+    expect(tool.schema.properties.status.enum).toEqual([
+      "todo",
+      "doing",
+      "done",
+      "cancelled",
+    ]);
   });
 
   it("creates task with just a title using defaults", async () => {
@@ -74,7 +79,7 @@ describe("create_task tool", () => {
       title: "Weekly standup",
       description: "Team standup meeting",
       priority: "high",
-      status: "scheduled",
+      status: "doing",
       dueAt: "2026-03-01",
       startAt: "2026-02-25",
       category: "meetings",
@@ -103,7 +108,7 @@ describe("create_task tool", () => {
     expect(addedTask.recurringInterval).toBe("FREQ=WEEKLY;BYDAY=MO");
   });
 
-  it("derives task status via deriveTaskStatus when startAt is in the past", async () => {
+  it("preserves workflow status when dates imply a display state", async () => {
     const tool = createCreateTaskTool(ctx);
     await tool.execute({
       title: "Started task",
@@ -112,7 +117,7 @@ describe("create_task tool", () => {
     });
 
     const addedTask = vi.mocked(ctx.addTask).mock.calls[0][0];
-    expect(addedTask.status).toBe("doing");
+    expect(addedTask.status).toBe("todo");
   });
 
   it("notifies on success", async () => {

@@ -45,7 +45,7 @@ const TASKS: Task[] = [
       { id: "tag2", name: "errands" },
     ],
     createdAt: "2026-01-01",
-    dueAt: "2026-02-01",
+    dueAt: "2027-02-01",
   }),
   makeTask({
     id: "t2",
@@ -55,12 +55,12 @@ const TASKS: Task[] = [
     category: "work",
     tags: [{ id: "tag3", name: "writing" }],
     createdAt: "2026-01-05",
-    dueAt: "2026-02-10",
+    dueAt: "2027-02-10",
   }),
   makeTask({
     id: "t3",
     title: "Fix bug",
-    status: "overdue",
+    status: "todo",
     priority: "high",
     category: "work",
     tags: [{ id: "tag4", name: "coding" }],
@@ -70,11 +70,12 @@ const TASKS: Task[] = [
   makeTask({
     id: "t4",
     title: "Plan vacation",
-    status: "scheduled",
+    status: "todo",
     priority: "low",
     category: "personal",
     tags: [{ id: "tag5", name: "travel" }],
     createdAt: "2026-01-15",
+    startAt: "2027-01-15",
   }),
   makeTask({
     id: "t5",
@@ -264,7 +265,7 @@ describe("filterTasks — statuses", () => {
       statuses: { include: ["todo", "doing"], exclude: [] },
     };
     const result = filterTasks(TASKS, filters);
-    expect(result.map((t) => t.id)).toEqual(["t1", "t2"]);
+    expect(result.map((t) => t.id)).toEqual(["t1", "t2", "t3", "t4"]);
   });
 
   it("excludes tasks matching excluded statuses", () => {
@@ -274,6 +275,15 @@ describe("filterTasks — statuses", () => {
     };
     const result = filterTasks(TASKS, filters);
     expect(result.map((t) => t.id)).toEqual(["t1", "t2", "t4"]);
+  });
+
+  it("includes tasks matching derived display statuses", () => {
+    const filters: FilterState = {
+      ...EMPTY_FILTER,
+      statuses: { include: ["overdue"], exclude: [] },
+    };
+    const result = filterTasks(TASKS, filters);
+    expect(result.map((t) => t.id)).toEqual(["t3"]);
   });
 });
 

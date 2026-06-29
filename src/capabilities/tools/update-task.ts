@@ -1,7 +1,7 @@
 import type { Tag } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { generateTimestampId } from "../../utils/date-helpers";
-import { deriveTaskStatus } from "../../utils/task";
+import { deriveWorkflowStatus } from "../../utils/task";
 
 export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -26,8 +26,8 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
         status: {
           type: "string",
           description:
-            "New status for the task (only terminal/settable states allowed)",
-          enum: ["todo", "done", "cancelled"],
+            "New explicit workflow status. Due, overdue, scheduled, and unplanned are derived from dates.",
+          enum: ["todo", "doing", "done", "cancelled"],
         },
         priority: {
           type: "string",
@@ -128,9 +128,7 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
       // Apply updates immutably
       const merged = { ...existingTask, ...fieldUpdates };
 
-      // Derive status AFTER all updates applied
-      const derivedStatus = deriveTaskStatus(merged);
-      const finalTask = { ...merged, status: derivedStatus };
+      const finalTask = { ...merged, status: deriveWorkflowStatus(merged) };
 
       await ctx.updateTask(finalTask);
       ctx.notify?.("success", `Updated task: ${id}`);

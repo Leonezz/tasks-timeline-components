@@ -16,11 +16,11 @@ const PRIORITY_OPTIONS: Priority[] = ["low", "medium", "high"];
 const STATUS_OPTIONS: TaskStatus[] = [
   "todo",
   "doing",
-  "scheduled",
-  "due",
-  "overdue",
   "done",
   "cancelled",
+  "due",
+  "overdue",
+  "scheduled",
   "unplanned",
 ];
 

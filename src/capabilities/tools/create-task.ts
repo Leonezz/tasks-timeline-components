@@ -1,7 +1,7 @@
 import type { Task, Tag } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { generateTimestampId, getNowISO } from "../../utils/date-helpers";
-import { deriveTaskStatus } from "../../utils/task";
+import { deriveWorkflowStatus } from "../../utils/task";
 
 export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -26,8 +26,9 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
         },
         status: {
           type: "string",
-          description: "Initial task status",
-          enum: ["todo", "scheduled"],
+          description:
+            "Initial explicit workflow status. Due, overdue, scheduled, and unplanned are derived from dates.",
+          enum: ["todo", "doing", "done", "cancelled"],
         },
         dueAt: {
           type: "string",
@@ -59,7 +60,8 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
       const title = args.title as string;
       const description = args.description as string | undefined;
       const priority = (args.priority as "low" | "medium" | "high") ?? "medium";
-      const status = (args.status as "todo" | "scheduled") ?? "todo";
+      const status =
+        (args.status as "todo" | "doing" | "done" | "cancelled") ?? "todo";
       const dueAt = args.dueAt as string | undefined;
       const startAt = args.startAt as string | undefined;
       const category = args.category as string | undefined;
@@ -90,8 +92,7 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
           : {}),
       };
 
-      const derivedStatus = deriveTaskStatus(task);
-      const finalTask: Task = { ...task, status: derivedStatus };
+      const finalTask: Task = { ...task, status: deriveWorkflowStatus(task) };
 
       await ctx.addTask(finalTask);
       ctx.notify?.("success", `Created task: ${title}`);

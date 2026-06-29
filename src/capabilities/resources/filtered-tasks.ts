@@ -1,5 +1,6 @@
 import type { CapabilityContext, ResourceSpec } from "../types";
 import { getTodayISO, getDaysFromNowISO } from "../../utils/date-helpers";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createFilteredTasksResources(
   ctx: CapabilityContext,
@@ -12,7 +13,9 @@ export function createFilteredTasksResources(
 
     async read() {
       const tasks = await ctx.getTasks();
-      const overdueTasks = tasks.filter((t) => t.status === "overdue");
+      const overdueTasks = tasks.filter(
+        (t) => deriveTaskRenderState(t).temporalStatus === "overdue",
+      );
 
       return {
         contents: [

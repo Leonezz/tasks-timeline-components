@@ -4,7 +4,7 @@ import { Frequency, RRule, Weekday } from "rrule";
 import { DateTime } from "luxon";
 import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
-import { cn } from "../utils";
+import { cn, deriveWorkflowStatus } from "../utils";
 import { DatePicker } from "./ui/date-picker";
 
 interface TaskEditModalProps {
@@ -59,6 +59,7 @@ const EditForm: React.FC<EditFormProps> = ({
   availableCategories,
 }) => {
   const [editedTask, setEditedTask] = useState<Task>(task),
+    editedWorkflowStatus = deriveWorkflowStatus(editedTask),
     [isCategoryOpen, setIsCategoryOpen] = useState(false),
     // Initialize Recurrence State lazily
     [recurrenceState, setRecurrenceState] = useState(() => {
@@ -389,8 +390,8 @@ const EditForm: React.FC<EditFormProps> = ({
                 showTime
                 placeholder="Select completed date"
                 disabled={
-                  editedTask.status !== "done" &&
-                  editedTask.status !== "cancelled"
+                  editedWorkflowStatus !== "done" &&
+                  editedWorkflowStatus !== "cancelled"
                 }
               />
             </div>

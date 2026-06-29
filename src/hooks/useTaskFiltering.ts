@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { FilterState, Priority, SortState, Task } from "../types";
 import { logger } from "../utils/logger";
 import { compileSafeExpression } from "../utils/safe-expression";
+import { taskMatchesStatus } from "../utils/task";
 
 /** Extract unique tags and categories from a task list. */
 export function deriveFilterOptions(tasks: Task[]) {
@@ -61,10 +62,17 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
 
   // Statuses: include/exclude
   if (filters.statuses.include.length > 0) {
-    result = result.filter((t) => filters.statuses.include.includes(t.status));
+    result = result.filter((t) =>
+      filters.statuses.include.some((status) => taskMatchesStatus(t, status)),
+    );
   }
   if (filters.statuses.exclude.length > 0) {
-    result = result.filter((t) => !filters.statuses.exclude.includes(t.status));
+    result = result.filter(
+      (t) =>
+        !filters.statuses.exclude.some((status) =>
+          taskMatchesStatus(t, status),
+        ),
+    );
   }
 
   // Script Filtering

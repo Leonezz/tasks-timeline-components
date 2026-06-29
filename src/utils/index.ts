@@ -8,10 +8,15 @@ export {
   formatRecurrence,
 } from "./date";
 export {
+  deriveWorkflowStatus,
   deriveTaskStatus,
+  deriveTaskRenderState,
+  isWorkflowStatus,
+  taskMatchesStatus,
   groupTasksByYearAndDate,
   computeDateValidation,
   type DateValidationState,
+  type TaskRenderState,
 } from "./task";
 export { parseTaskString } from "./parsing";
 export { getToolDefinitions } from "../providers/tools";

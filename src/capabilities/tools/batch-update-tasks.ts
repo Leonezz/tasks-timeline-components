@@ -1,6 +1,6 @@
 import type { Task, Priority } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
-import { deriveTaskStatus } from "../../utils/task";
+import { deriveWorkflowStatus, taskMatchesStatus } from "../../utils/task";
 
 function matchesTag(task: Task, tag: string): boolean {
   const lowerTag = tag.toLowerCase();
@@ -56,8 +56,9 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
           properties: {
             status: {
               type: "string",
-              description: "New status (only terminal/settable states allowed)",
-              enum: ["todo", "done", "cancelled"],
+              description:
+                "New explicit workflow status. Due, overdue, scheduled, and unplanned are derived from dates.",
+              enum: ["todo", "doing", "done", "cancelled"],
             },
             priority: {
               type: "string",
@@ -103,7 +104,8 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
 
       // Filter tasks based on criteria
       const filtered = allTasks.filter((task: Task) => {
-        if (status !== undefined && task.status !== status) return false;
+        if (status !== undefined && !taskMatchesStatus(task, status))
+          return false;
         if (category !== undefined && task.category !== category) return false;
         if (tag !== undefined && !matchesTag(task, tag)) return false;
         if (recurring !== undefined) {
@@ -165,9 +167,7 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
         // Apply updates immutably
         const merged = { ...task, ...fieldUpdates };
 
-        // Derive status AFTER all updates applied
-        const derivedStatus = deriveTaskStatus(merged);
-        const finalTask = { ...merged, status: derivedStatus };
+        const finalTask = { ...merged, status: deriveWorkflowStatus(merged) };
 
         await ctx.updateTask(finalTask);
         updatedIds.push(task.id);

@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
-import type { Task, TaskStatus } from "../types";
+import type {
+  PrimaryVisualStatus,
+  Task,
+  TaskStatus,
+  WorkflowStatus,
+} from "../types";
 import {
   cn,
+  deriveTaskRenderState,
   formatRecurrence,
   formatSmartDate,
   formatTime,
-  getTodayISO,
   type DateValidationState,
 } from "../utils";
 import { Icon } from "./Icon";
@@ -55,17 +60,17 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       [deleteConfirm, setDeleteConfirm] = useState(false),
       deleteTimeoutRef = useRef<number | null>(null),
       inputRef = useRef<HTMLInputElement>(null),
-      isDone = task.status === "done",
-      isCancelled = task.status === "cancelled",
-      today = getTodayISO(),
+      renderState = deriveTaskRenderState(task),
+      workflowStatus = renderState.workflowStatus,
+      primaryStatus = renderState.primaryStatus,
+      isDone = workflowStatus === "done",
+      isCancelled = workflowStatus === "cancelled",
       // Highlight logic
       isUrgent =
         !isDone &&
         !isCancelled &&
         task.priority === "high" &&
-        (task.status === "overdue" ||
-          task.status === "due" ||
-          (task.dueAt && task.dueAt <= today)),
+        renderState.isUrgent,
       // Font size mapping
       fontSizeClass =
         {
@@ -95,15 +100,15 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       }
     }, [isEditing]);
 
-    const handleStatusChange = (newStatus: TaskStatus) => {
+    const handleStatusChange = (newStatus: WorkflowStatus) => {
         const now = DateTime.now().toISO();
         const updates: Partial<Task> = { status: newStatus };
 
-        // Auto-populate startAt when transitioning to doing/scheduled from todo
+        // Auto-populate startAt when transitioning to doing from todo
         if (
-          (newStatus === "doing" || newStatus === "scheduled") &&
+          newStatus === "doing" &&
           !task.startAt &&
-          task.status === "todo"
+          workflowStatus === "todo"
         ) {
           updates.startAt = now || undefined;
         }
@@ -150,27 +155,20 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           }, 2000); // 2 seconds to confirm
         }
       },
-      getDueDateColor = (dateStr?: string, status?: TaskStatus) => {
-        if (status === "done" || status === "cancelled") {
+      getDueDateColor = () => {
+        if (workflowStatus === "done" || workflowStatus === "cancelled") {
           return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
         }
-        if (!dateStr) {
-          return "text-slate-400";
-        }
-
-        if (status === "overdue") {
+        if (renderState.temporalStatus === "overdue") {
           return "text-rose-700 bg-rose-50/90 border-rose-100";
         }
-        if (dateStr < today) {
-          return "text-rose-700 bg-rose-50/90 border-rose-100";
-        }
-        if (dateStr === today) {
+        if (renderState.temporalStatus === "due") {
           return "text-amber-700 bg-amber-50/90 border-amber-100";
         }
 
         return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
       },
-      getLineColor = (status: TaskStatus) => {
+      getLineColor = (status: PrimaryVisualStatus) => {
         switch (status) {
           case "done":
             return "bg-emerald-500";
@@ -238,16 +236,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           strokeWidth={status === "done" || status === "cancelled" ? 2.5 : 2}
         />
       ),
-      statusOptions: TaskStatus[] = [
-        "todo",
-        "doing",
-        "scheduled",
-        "done",
-        "unplanned",
-        "due",
-        "overdue",
-        "cancelled",
-      ],
+      statusOptions: WorkflowStatus[] = ["todo", "doing", "done", "cancelled"],
       dueTime = task.dueAt ? formatTime(task.dueAt) : null,
       startTime = task.startAt ? formatTime(task.startAt) : null,
       displayTime = dueTime || startTime,
@@ -289,7 +278,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           <div
             className={cn(
               "absolute top-7 -bottom-1 w-px left-1/2 -translate-x-1/2",
-              getLineColor(task.status),
+              getLineColor(primaryStatus),
             )}
           />
 
@@ -302,10 +291,10 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   "relative z-10 -m-1 flex h-6 min-h-8 w-6 min-w-8 items-center justify-center rounded-md bg-transparent transition-colors active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1",
                   isUrgent ? "hover:bg-rose-50/80" : "hover:bg-slate-50/80",
                 )}
-                title={`Change status (current: ${task.status})`}
-                aria-label={`Change status for ${task.title}. Current status: ${task.status}`}
+                title={`Change status (current: ${workflowStatus})`}
+                aria-label={`Change status for ${task.title}. Current status: ${workflowStatus}`}
               >
-                {renderStatusIcon(task.status, 17)}
+                {renderStatusIcon(workflowStatus, 17)}
               </button>
             </PopoverTrigger>
 
@@ -327,7 +316,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                     Status
                   </span>
                   <span className="text-[10px] font-medium text-slate-400">
-                    Current: {task.status}
+                    Current: {workflowStatus}
                   </span>
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -336,14 +325,14 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       <button
                         type="button"
                         onClick={() => handleStatusChange(option)}
-                        aria-pressed={task.status === option}
+                        aria-pressed={workflowStatus === option}
                         aria-label={`Set ${task.title} status to ${option}`}
                         className="w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                       >
                         <div
                           className={cn(
                             "grid min-h-8 w-full grid-cols-[1rem_1fr_1rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors",
-                            task.status === option
+                            workflowStatus === option
                               ? "bg-blue-50/80 text-blue-700"
                               : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
                           )}
@@ -351,7 +340,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                           <div
                             className={cn(
                               "shrink-0",
-                              task.status === option
+                              workflowStatus === option
                                 ? "opacity-100"
                                 : "opacity-70",
                             )}
@@ -359,7 +348,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                             {renderStatusIcon(option, 14)}
                           </div>
                           <span className="capitalize">{option}</span>
-                          {task.status === option && (
+                          {workflowStatus === option && (
                             <Icon
                               name="Check"
                               size={13}
@@ -562,10 +551,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 icon="Calendar"
                 task={task}
                 onUpdate={onUpdateTask}
-                className={cn(
-                  badgeClass,
-                  getDueDateColor(task.dueAt!, task.status),
-                )}
+                className={cn(badgeClass, getDueDateColor())}
               />
             )}
             {isValidDate(task.completedAt) && (

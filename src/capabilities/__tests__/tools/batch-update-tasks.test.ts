@@ -127,12 +127,12 @@ describe("batch_update_tasks tool", () => {
     expect(result.name).toBe("batch_update_tasks");
     expect(result.result).toMatchObject({
       success: true,
-      updatedCount: 2, // task-1 and task-2 are "todo"
+      updatedCount: 3, // task-1, task-2, and legacy scheduled task are workflow "todo"
     });
     const resultData = result.result as Record<string, unknown>;
     expect(resultData.taskIds as string[]).toContain("task-1");
     expect(resultData.taskIds as string[]).toContain("task-2");
-    expect(ctx.updateTask).toHaveBeenCalledTimes(2);
+    expect(ctx.updateTask).toHaveBeenCalledTimes(3);
   });
 
   it("updates tasks matching category filter", async () => {
@@ -245,7 +245,7 @@ describe("batch_update_tasks tool", () => {
 
     expect(result.result).toMatchObject({
       success: true,
-      updatedCount: 2,
+      updatedCount: 3,
     });
 
     const calls = vi.mocked(ctx.updateTask).mock.calls;
@@ -276,8 +276,7 @@ describe("batch_update_tasks tool", () => {
     });
   });
 
-  it("calls deriveTaskStatus after applying updates", async () => {
-    // Create a task that will trigger status derivation
+  it("preserves workflow status after applying date updates", async () => {
     const futureTask: Task = {
       ...SAMPLE_TASKS[0],
       id: "task-future",
@@ -292,11 +291,10 @@ describe("batch_update_tasks tool", () => {
 
     const tool = createBatchUpdateTasksTool(ctx);
     await tool.execute({
-      filter: { id: "task-future" }, // This won't match but we just need to test deriveTaskStatus
-      update: { startAt: "2026-02-25" }, // Set start to today/soon
+      filter: { id: "task-future" },
+      update: { startAt: "2026-02-25" },
     });
 
-    // Actually, let's update the start date to trigger "scheduled" status
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue([futureTask]),
     });
@@ -304,13 +302,12 @@ describe("batch_update_tasks tool", () => {
     const tool2 = createBatchUpdateTasksTool(ctx);
     await tool2.execute({
       filter: { status: "todo" },
-      update: { startAt: "2026-03-15" }, // Set start date in future
+      update: { startAt: "2026-03-15" },
     });
 
     expect(ctx.updateTask).toHaveBeenCalledOnce();
     const updatedTask = vi.mocked(ctx.updateTask).mock.calls[0][0];
-    // Status should be derived as "scheduled" since startAt is in future
-    expect(updatedTask.status).toBe("scheduled");
+    expect(updatedTask.status).toBe("todo");
   });
 
   it("preserves unchanged fields in updated tasks", async () => {
@@ -356,14 +353,14 @@ describe("batch_update_tasks tool", () => {
     });
 
     expect(mockConfirm).toHaveBeenCalledWith(
-      expect.stringContaining("2"),
+      expect.stringContaining("3"),
       expect.any(String),
     );
     expect(result.result).toMatchObject({
       success: true,
-      updatedCount: 2,
+      updatedCount: 3,
     });
-    expect(ctx.updateTask).toHaveBeenCalledTimes(2);
+    expect(ctx.updateTask).toHaveBeenCalledTimes(3);
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
         variant: "success",

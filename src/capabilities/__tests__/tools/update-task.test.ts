@@ -58,6 +58,7 @@ describe("update_task tool", () => {
     expect(tool.schema.properties).toHaveProperty("recurrence");
     expect(tool.schema.properties.status.enum).toEqual([
       "todo",
+      "doing",
       "done",
       "cancelled",
     ]);
@@ -84,7 +85,7 @@ describe("update_task tool", () => {
     expect(updatedTask.createdAt).toBe("2026-01-01");
   });
 
-  it("calls deriveTaskStatus after update (past dueAt triggers overdue)", async () => {
+  it("preserves workflow status when dueAt implies overdue display", async () => {
     const tool = createUpdateTaskTool(ctx);
     await tool.execute({
       id: "task-1",
@@ -93,7 +94,7 @@ describe("update_task tool", () => {
 
     expect(ctx.updateTask).toHaveBeenCalledOnce();
     const updatedTask = vi.mocked(ctx.updateTask).mock.calls[0][0];
-    expect(updatedTask.status).toBe("overdue");
+    expect(updatedTask.status).toBe("todo");
   });
 
   it("handles recurrence set (FREQ=DAILY sets isRecurring true)", async () => {

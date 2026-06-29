@@ -48,12 +48,11 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => (
             <section>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Icon name="Activity" size={14} className="text-blue-500" />
-                Task Lifecycle & Auto-Status
+                Task lifecycle and display status
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                The view automatically manages task statuses based on dates to
-                keep your workflow organized. You rarely need to manually set
-                status unless completing a task.
+                The workflow status is set manually, while dates automatically
+                add display states like due, overdue, scheduled, or unplanned.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">

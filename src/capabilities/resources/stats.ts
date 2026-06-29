@@ -1,5 +1,6 @@
 import type { CapabilityContext, ResourceSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
+import { deriveTaskRenderState } from "../../utils/task";
 
 export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
   return {
@@ -16,6 +17,7 @@ export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
       const stats = {
         total: tasks.length,
         byStatus: {} as Record<string, number>,
+        byDisplayStatus: {} as Record<string, number>,
         byPriority: {} as Record<string, number>,
         byCategory: {} as Record<string, number>,
         overdue: 0,
@@ -26,7 +28,12 @@ export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
       };
 
       for (const task of tasks) {
-        stats.byStatus[task.status] = (stats.byStatus[task.status] ?? 0) + 1;
+        const renderState = deriveTaskRenderState(task);
+
+        stats.byStatus[renderState.workflowStatus] =
+          (stats.byStatus[renderState.workflowStatus] ?? 0) + 1;
+        stats.byDisplayStatus[renderState.primaryStatus] =
+          (stats.byDisplayStatus[renderState.primaryStatus] ?? 0) + 1;
 
         stats.byPriority[task.priority] =
           (stats.byPriority[task.priority] ?? 0) + 1;
@@ -36,7 +43,7 @@ export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
             (stats.byCategory[task.category] ?? 0) + 1;
         }
 
-        if (task.status === "overdue") {
+        if (renderState.temporalStatus === "overdue") {
           stats.overdue += 1;
         }
 

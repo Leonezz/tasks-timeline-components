@@ -11,7 +11,7 @@ export const getSystemPrompt = (
 Tasks have these fields:
 - title (string, required): The task name
 - description (string): Additional details
-- status: One of "todo", "doing", "done", "cancelled" (set explicitly), or derived: "overdue", "due", "scheduled", "doing", "unplanned"
+- status: Explicit workflow state. One of "todo", "doing", "done", "cancelled"
 - priority: "low", "medium", or "high"
 - dueAt (string): Due date in YYYY-MM-DD format
 - startAt (string): Start date in YYYY-MM-DD format
@@ -21,15 +21,14 @@ Tasks have these fields:
 
 ## Status Rules
 
-- "done" and "cancelled" are terminal states, set explicitly
-- Other statuses are derived automatically from dates:
+- Only "todo", "doing", "done", and "cancelled" are set explicitly and persisted
+- Display statuses are derived automatically from dates:
   - "overdue": dueAt is in the past
   - "due": dueAt is today or tomorrow
   - "scheduled": startAt is in the future, not yet started
-  - "doing": startAt is in the past, actively working
-  - "unplanned": no dates set
-- When creating tasks, set status to "todo" — the system derives the display status
-- After updating any dates, the system automatically recalculates status
+  - "unplanned": no dueAt or startAt set
+- A task can be both "doing" and visually "overdue"; keep the explicit workflow status and change dates only when the user asks to reschedule
+- When creating tasks, set status to "todo" unless the user explicitly asks for "doing", "done", or "cancelled"
 
 ## Recurrence
 

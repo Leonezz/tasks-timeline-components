@@ -2,8 +2,12 @@ import { DateTime } from "luxon";
 import type {
   DateGroupBy,
   DayGroup,
+  PlanningStatus,
+  PrimaryVisualStatus,
   Task,
   TaskStatus,
+  TemporalStatus,
+  WorkflowStatus,
   YearGroup,
 } from "../types";
 
@@ -65,46 +69,102 @@ const safeDate = (dateStr: string): DateTime => {
   return dt.isValid ? dt : DateTime.invalid("Invalid ISO");
 };
 
-export const deriveTaskStatus = (task: Task): TaskStatus => {
-  // 1. If explicitly Done or Cancelled, preserve status
-  if (task.status === "done" || task.status === "cancelled") {
-    return task.status;
+const WORKFLOW_STATUSES: readonly WorkflowStatus[] = [
+  "todo",
+  "doing",
+  "done",
+  "cancelled",
+];
+
+export interface TaskRenderState {
+  workflowStatus: WorkflowStatus;
+  temporalStatus: TemporalStatus;
+  planningStatus: PlanningStatus;
+  primaryStatus: PrimaryVisualStatus;
+  isActive: boolean;
+  isUrgent: boolean;
+}
+
+export const isWorkflowStatus = (
+  status: TaskStatus | string | undefined,
+): status is WorkflowStatus =>
+  status !== undefined && WORKFLOW_STATUSES.includes(status as WorkflowStatus);
+
+export const deriveWorkflowStatus = (task: Task): WorkflowStatus =>
+  isWorkflowStatus(task.status) ? task.status : "todo";
+
+export const deriveTaskRenderState = (task: Task): TaskRenderState => {
+  const workflowStatus = deriveWorkflowStatus(task),
+    isActive = workflowStatus !== "done" && workflowStatus !== "cancelled";
+
+  if (!isActive) {
+    return {
+      workflowStatus,
+      temporalStatus: "none",
+      planningStatus: "planned",
+      primaryStatus: workflowStatus,
+      isActive,
+      isUrgent: false,
+    };
   }
 
   const now = DateTime.now(),
     today = now.toISODate() || "",
-    tomorrow = now.plus({ days: 1 }).toISODate();
+    tomorrow = now.plus({ days: 1 }).toISODate(),
+    dueDate = task.dueAt ? DateTime.fromISO(task.dueAt).toISODate() : null,
+    startDate = task.startAt ? DateTime.fromISO(task.startAt) : null;
 
-  // 2. Overdue: Due date is strictly in the past
-  if (task.dueAt && task.dueAt < today) {
-    return "overdue";
+  let temporalStatus: TemporalStatus = "none";
+  if (dueDate && dueDate < today) {
+    temporalStatus = "overdue";
+  } else if (dueDate && (dueDate === today || dueDate === tomorrow)) {
+    temporalStatus = "due";
   }
 
-  // 3. Due: Due date is Today or Tomorrow
-  if (task.dueAt && (task.dueAt === today || task.dueAt === tomorrow)) {
-    return "due";
+  let planningStatus: PlanningStatus = "planned";
+  if (startDate?.isValid && startDate > now) {
+    planningStatus = "scheduled";
+  } else if (!task.dueAt && !task.startAt) {
+    planningStatus = "unplanned";
   }
 
-  // 4. Scheduled vs Doing checks on Start Date
-  if (task.startAt) {
-    const startDt = DateTime.fromISO(task.startAt);
-    if (startDt.isValid) {
-      // If start time is in the future relative to now
-      if (startDt > now) {
-        return "scheduled";
-      }
-      // If start time is past or now, it is doing (unless captured by due/overdue above)
-      return "doing";
-    }
+  let primaryStatus: PrimaryVisualStatus = workflowStatus;
+  if (temporalStatus !== "none") {
+    primaryStatus = temporalStatus;
+  } else if (workflowStatus === "doing") {
+    primaryStatus = "doing";
+  } else if (planningStatus === "scheduled") {
+    primaryStatus = "scheduled";
+  } else if (planningStatus === "unplanned") {
+    primaryStatus = "unplanned";
   }
 
-  // 6. Fallbacks: If manual status was set to a state that is no longer valid based on dates, reset to todo
-  // E.g. was 'doing' but user cleared start date
-  if (["due", "overdue", "scheduled", "doing"].includes(task.status)) {
-    return "todo";
-  }
+  return {
+    workflowStatus,
+    temporalStatus,
+    planningStatus,
+    primaryStatus,
+    isActive,
+    isUrgent: temporalStatus === "due" || temporalStatus === "overdue",
+  };
+};
 
-  return task.status;
+export const deriveTaskStatus = (task: Task): TaskStatus =>
+  deriveTaskRenderState(task).primaryStatus;
+
+export const taskMatchesStatus = (
+  task: Task,
+  status: TaskStatus | string,
+): boolean => {
+  const renderState = deriveTaskRenderState(task);
+  if (isWorkflowStatus(status)) {
+    return renderState.workflowStatus === status;
+  }
+  return (
+    renderState.primaryStatus === status ||
+    renderState.temporalStatus === status ||
+    renderState.planningStatus === status
+  );
 };
 
 export const groupTasksByYearAndDate = (
@@ -174,9 +234,10 @@ export const groupTasksByYearAndDate = (
         tasks: yearTasks[date],
       })),
       allTasksInYear = Object.values(yearTasks).flat(),
-      completed = allTasksInYear.filter(
-        (t) => t.status === "done" || t.status === "cancelled",
-      ).length;
+      completed = allTasksInYear.filter((t) => {
+        const workflowStatus = deriveWorkflowStatus(t);
+        return workflowStatus === "done" || workflowStatus === "cancelled";
+      }).length;
 
     return {
       year,

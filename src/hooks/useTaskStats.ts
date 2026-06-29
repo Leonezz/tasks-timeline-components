@@ -1,35 +1,27 @@
 import { useMemo } from "react";
 import type { Task } from "../types";
+import { deriveTaskRenderState } from "../utils/task";
 
 export const useTaskStats = (tasks: Task[]) =>
   useMemo(
     () =>
       tasks.reduce(
         (acc, t) => {
-          if (t.status === "done") {
+          const renderState = deriveTaskRenderState(t);
+          if (renderState.workflowStatus === "done") {
             // We aren't displaying Done count in top bar anymore, but keeping logic
-          } else if (t.status === "cancelled") {
+          } else if (renderState.workflowStatus === "cancelled") {
             // Ignored in active counts
+          } else if (renderState.isUrgent) {
+            acc.urgent++;
+          } else if (renderState.workflowStatus === "doing") {
+            acc.doing++;
+          } else if (renderState.planningStatus === "scheduled") {
+            acc.scheduled++;
+          } else if (renderState.planningStatus === "unplanned") {
+            acc.unplanned++;
           } else {
-            // Active buckets
-            if (t.status === "todo") {
-              acc.todo++;
-            }
-            if (t.status === "unplanned") {
-              acc.unplanned++;
-            }
-
-            if (t.status === "scheduled") {
-              acc.scheduled++;
-            }
-            if (t.status === "doing") {
-              acc.doing++;
-            }
-
-            // "Due & Overdue" bucket
-            if (t.status === "overdue" || t.status === "due") {
-              acc.urgent++;
-            }
+            acc.todo++;
           }
           return acc;
         },

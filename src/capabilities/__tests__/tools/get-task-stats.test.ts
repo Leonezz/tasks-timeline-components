@@ -103,12 +103,18 @@ describe("get_task_stats tool", () => {
     // Check basic counts
     expect(stats.total).toBe(4);
 
-    // Check byStatus aggregation
+    // Check byStatus aggregation. Legacy display statuses are normalized to
+    // workflow status, then counted separately in byDisplayStatus.
     const byStatus = stats.byStatus as Record<string, number>;
-    expect(byStatus.todo).toBe(1);
+    expect(byStatus.todo).toBe(2);
     expect(byStatus.doing).toBe(1);
-    expect(byStatus.overdue).toBe(1);
     expect(byStatus.done).toBe(1);
+
+    const byDisplayStatus = stats.byDisplayStatus as Record<string, number>;
+    expect(byDisplayStatus.todo).toBe(1);
+    expect(byDisplayStatus.doing).toBe(1);
+    expect(byDisplayStatus.overdue).toBe(1);
+    expect(byDisplayStatus.done).toBe(1);
 
     // Check byPriority aggregation
     const byPriority = stats.byPriority as Record<string, number>;
@@ -291,6 +297,11 @@ describe("get_task_stats tool", () => {
             data: expect.objectContaining({
               total: 4,
               byStatus: expect.objectContaining({
+                todo: 2,
+                doing: 1,
+                done: 1,
+              }),
+              byDisplayStatus: expect.objectContaining({
                 todo: 1,
                 doing: 1,
                 overdue: 1,

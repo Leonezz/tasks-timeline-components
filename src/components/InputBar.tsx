@@ -441,11 +441,11 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     [
                       "todo",
                       "doing",
-                      "scheduled",
                       "done",
+                      "cancelled",
                       "due",
                       "overdue",
-                      "cancelled",
+                      "scheduled",
                       "unplanned",
                     ] as TaskStatus[]
                   ).map((s) => (
