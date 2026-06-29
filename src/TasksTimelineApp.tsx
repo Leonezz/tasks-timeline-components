@@ -754,7 +754,12 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         shouldNotifyAgentResponse: () => !agentPanelState.isOpen,
       },
     ),
-    handleInputAICommand = async (input: string) => {
+    handleTopInputAICommand = async (input: string) => {
+      await handleAICommand(input, {
+        sessionId: null,
+      });
+    },
+    handlePanelAICommand = async (input: string) => {
       await handleAICommand(input, {
         sessionId: agentPanelState.activeSessionId,
       });
@@ -797,7 +802,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             onDeleteTask: handleDeleteTask,
             onAddTask: handleAddTask,
             onEditTask: setEditingTask,
-            onAICommand: handleInputAICommand,
+            onAICommand: handleTopInputAICommand,
             onItemClick,
             renderTitle,
           }}
@@ -974,7 +979,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   activeSessionId={agentPanelState.activeSessionId}
                   onSelectSession={selectAgentSession}
                   onStartNewSession={startNewAgentSession}
-                  onSendMessage={handleInputAICommand}
+                  onSendMessage={handlePanelAICommand}
                   onClose={closeAgentPanel}
                   onDeleteSession={deleteAgentPanelSession}
                 />
