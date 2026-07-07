@@ -160,6 +160,11 @@ export class RemoteSettingsRepository implements SettingsRepository {
   }
 
   async saveSettings(settings: AppSettings): Promise<void> {
-    console.log("Cloud Sync: Saving settings: ", settings);
+    console.log(
+      "Cloud Sync: Saving settings to ",
+      this.baseUrl,
+      ", settings: ",
+      settings
+    );
   }
 }

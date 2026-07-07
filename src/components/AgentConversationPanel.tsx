@@ -96,15 +96,15 @@ function getEntryKindLabel(entry: AgentEntry): string {
     case "user":
       return "User message";
     case "assistant":
-      return "Agent reply";
+      return "Answer";
     case "tool-call":
-      return "Tool request";
+      return "Tool call";
     case "tool-result":
-      return "Tool response";
+      return "Tool result";
     case "error":
-      return "Error";
+      return "Run stopped";
     case "status":
-      return "Status update";
+      return "Step update";
   }
 }
 
@@ -196,8 +196,237 @@ function isProcessEntry(entry: AgentEntry): boolean {
   return (
     entry.kind === "status" ||
     entry.kind === "tool-call" ||
-    entry.kind === "tool-result"
+    entry.kind === "tool-result" ||
+    entry.kind === "error"
   );
+}
+
+type ProcessItemStatus = "complete" | "running" | "error";
+
+interface ProcessSummary {
+  title: string;
+  detail: string;
+  stepCount: number;
+  toolCallCount: number;
+  toolResultCount: number;
+  statusCount: number;
+  errorCount: number;
+  progressPercent: number;
+  elapsedLabel: string | null;
+}
+
+function humanizeToolName(value: string): string {
+  const spaced = value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+
+  if (!spaced) {
+    return "tool";
+  }
+
+  return spaced.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatCountLabel(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getElapsedLabel(entries: AgentEntry[]): string | null {
+  const first = entries[0];
+  const last = entries[entries.length - 1];
+
+  if (!first || !last) {
+    return null;
+  }
+
+  const startedAt = new Date(first.timestamp).getTime();
+  const endedAt = new Date(last.timestamp).getTime();
+
+  if (
+    Number.isNaN(startedAt) ||
+    Number.isNaN(endedAt) ||
+    endedAt < startedAt
+  ) {
+    return null;
+  }
+
+  const totalSeconds = Math.max(1, Math.round((endedAt - startedAt) / 1000));
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
+function getProcessStatus(
+  entry: AgentEntry,
+  index: number,
+  totalEntries: number,
+  isRunning: boolean,
+): ProcessItemStatus {
+  if (entry.kind === "error") {
+    return "error";
+  }
+
+  if (isRunning && index === totalEntries - 1) {
+    return "running";
+  }
+
+  return "complete";
+}
+
+function getProcessStatusIcon(status: ProcessItemStatus): LucideIconName {
+  switch (status) {
+    case "running":
+      return "Loader2";
+    case "error":
+      return "AlertCircle";
+    case "complete":
+      return "CheckCircle2";
+  }
+}
+
+function getProcessStatusStyles(status: ProcessItemStatus): string {
+  switch (status) {
+    case "running":
+      return "border-blue-200 bg-blue-50 text-blue-600";
+    case "error":
+      return "border-rose-200 bg-rose-50 text-rose-600";
+    case "complete":
+      return "border-emerald-200 bg-emerald-50 text-emerald-600";
+  }
+}
+
+function getProcessTypeIcon(entry: AgentEntry): LucideIconName {
+  switch (entry.kind) {
+    case "tool-call":
+      return "Wrench";
+    case "tool-result":
+      return "Database";
+    case "error":
+      return "AlertTriangle";
+    case "status":
+      return "Activity";
+    case "assistant":
+      return "Sparkles";
+    case "user":
+      return "User";
+  }
+}
+
+function getProcessTypeLabel(entry: AgentEntry): string {
+  switch (entry.kind) {
+    case "tool-call":
+      return "tool";
+    case "tool-result":
+      return "result";
+    case "error":
+      return "error";
+    case "status":
+      return "step";
+    case "assistant":
+      return "answer";
+    case "user":
+      return "user";
+  }
+}
+
+function getProcessTitle(entry: AgentEntry): string {
+  if (entry.kind === "tool-call" && entry.toolName) {
+    return `Run ${humanizeToolName(entry.toolName)}`;
+  }
+
+  if (entry.kind === "tool-result" && entry.toolName) {
+    return `${humanizeToolName(entry.toolName)} returned`;
+  }
+
+  if (entry.kind === "error") {
+    return "Resolve run error";
+  }
+
+  const titleSource = entry.body || entry.title;
+
+  if (/^connecting to provider$/i.test(titleSource)) {
+    return "Connect provider";
+  }
+
+  if (/^thinking$/i.test(titleSource)) {
+    return "Reason through request";
+  }
+
+  if (/^reviewing tool results$/i.test(titleSource)) {
+    return "Review tool output";
+  }
+
+  if (/^agent started$/i.test(titleSource)) {
+    return "Start agent run";
+  }
+
+  return truncateText(titleSource, 48);
+}
+
+function getProcessPreview(entry: AgentEntry, payload: string | null): string {
+  if (entry.kind === "tool-call") {
+    return payload ? "Input prepared for the capability." : "Capability queued.";
+  }
+
+  if (entry.kind === "tool-result") {
+    return payload ? "Structured output is available." : "Capability finished.";
+  }
+
+  return getEntryPreview(entry, payload);
+}
+
+function getProcessSummary(
+  entries: AgentEntry[],
+  isRunning: boolean,
+): ProcessSummary {
+  const stepCount = entries.length;
+  const toolCallCount = entries.filter(
+    (entry) => entry.kind === "tool-call",
+  ).length;
+  const toolResultCount = entries.filter(
+    (entry) => entry.kind === "tool-result",
+  ).length;
+  const statusCount = entries.filter((entry) => entry.kind === "status").length;
+  const errorCount = entries.filter((entry) => entry.kind === "error").length;
+  const completedCount = entries.filter(
+    (entry, index) =>
+      getProcessStatus(entry, index, entries.length, isRunning) === "complete",
+  ).length;
+  const progressPercent =
+    stepCount === 0 ? 0 : Math.round((completedCount / stepCount) * 100);
+  const elapsedLabel = getElapsedLabel(entries);
+  const countParts = [
+    formatCountLabel(stepCount, "step"),
+    toolCallCount > 0 ? formatCountLabel(toolCallCount, "tool") : undefined,
+    toolResultCount > 0
+      ? formatCountLabel(toolResultCount, "output")
+      : undefined,
+    errorCount > 0 ? formatCountLabel(errorCount, "error") : undefined,
+    elapsedLabel,
+  ].filter(Boolean);
+
+  return {
+    title: errorCount > 0 ? "Needs attention" : isRunning ? "Working" : "Done",
+    detail: countParts.join(" - "),
+    stepCount,
+    toolCallCount,
+    toolResultCount,
+    statusCount,
+    errorCount,
+    progressPercent,
+    elapsedLabel,
+  };
 }
 
 type AgentConversationDisplayItem =
@@ -459,7 +688,9 @@ const AgentEntryRow: React.FC<{
               "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-1",
               entry.kind === "error"
                 ? "bg-rose-50 text-rose-600 ring-rose-100"
-                : "bg-blue-50 text-blue-600 ring-blue-100",
+                : isAssistant
+                  ? "bg-emerald-50 text-emerald-600 ring-emerald-100"
+                  : "bg-blue-50 text-blue-600 ring-blue-100",
             )}
           >
             <Icon name={getEntryIcon(entry)} size={15} />
@@ -471,7 +702,7 @@ const AgentEntryRow: React.FC<{
             isUser &&
               "border-blue-200 bg-blue-50 text-slate-800 shadow-blue-100/50",
             isAssistant &&
-              "border-slate-200 bg-white text-slate-800 shadow-slate-100",
+              "border-emerald-200 bg-white text-slate-800 shadow-emerald-100/40",
             entry.kind === "error" &&
               "border-rose-200 bg-rose-50 text-rose-900 shadow-rose-100/40",
           )}
@@ -483,6 +714,11 @@ const AgentEntryRow: React.FC<{
               </h4>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {isAssistant && (
+                <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600 ring-1 ring-emerald-100">
+                  Result
+                </span>
+              )}
               <span className="font-mono text-[10px] text-slate-400">
                 {formatTime(entry.timestamp)}
               </span>
@@ -510,7 +746,90 @@ const AgentEntryRow: React.FC<{
   return null;
 };
 
-const AgentProcessEntry: React.FC<{
+const ProcessTimelineRow: React.FC<{
+  entry: AgentEntry;
+  status: ProcessItemStatus;
+  isSelected: boolean;
+  onSelect: (entryId: string) => void;
+}> = ({ entry, status, isSelected, onSelect }) => {
+  const payload = stringifyPayload(entry.payload);
+  const preview = getProcessPreview(entry, payload);
+  const typeLabel = getProcessTypeLabel(entry);
+  const statusLabel =
+    status === "running" ? "running" : status === "error" ? "error" : "done";
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(entry.id)}
+      className={cn(
+        "group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-md border px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300",
+        isSelected
+          ? "border-blue-200 bg-blue-50/70"
+          : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50",
+      )}
+      data-testid="agent-process-entry"
+      data-entry-kind={entry.kind}
+      aria-pressed={isSelected}
+    >
+      <div
+        className={cn(
+          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+          getProcessStatusStyles(status),
+        )}
+      >
+        <Icon
+          name={getProcessStatusIcon(status)}
+          size={14}
+          className={status === "running" ? "animate-spin" : undefined}
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-200 bg-white text-slate-500">
+            <Icon name={getProcessTypeIcon(entry)} size={12} />
+          </span>
+          <h4 className="min-w-0 truncate text-xs font-bold text-slate-700">
+            {getProcessTitle(entry)}
+          </h4>
+          <span
+            className={cn(
+              "rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+              entry.kind === "tool-call" &&
+                "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+              entry.kind === "tool-result" &&
+                "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100",
+              entry.kind === "status" &&
+                "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+              entry.kind === "error" &&
+                "bg-rose-50 text-rose-600 ring-1 ring-rose-100",
+            )}
+          >
+            {typeLabel}
+          </span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-500">
+          {preview}
+        </p>
+        {entry.toolName && (
+          <p className="mt-1 truncate font-mono text-[10px] text-slate-400">
+            {entry.toolName}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className="font-mono text-[10px] text-slate-400">
+          {formatTime(entry.timestamp)}
+        </span>
+        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+          {statusLabel}
+        </span>
+      </div>
+    </button>
+  );
+};
+
+const ProcessInspector: React.FC<{
   entry: AgentEntry;
   copyEntryStatus: CopyStatus;
   copyPayloadStatus: CopyStatus;
@@ -524,90 +843,105 @@ const AgentProcessEntry: React.FC<{
   onCopyPayload,
 }) => {
   const payload = stringifyPayload(entry.payload);
-  const preview = getEntryPreview(entry, payload);
   const payloadLabel = getPayloadLabel(entry);
+  const preview = getProcessPreview(entry, payload);
 
   return (
-    <details
-      className="group rounded-md border border-slate-100 bg-white/80 text-slate-600"
-      data-testid="agent-process-entry"
-      data-entry-kind={entry.kind}
+    <aside
+      className="min-w-0 rounded-md border border-slate-200 bg-white p-3"
+      aria-label="Selected processing step details"
+      data-testid="agent-process-inspector"
     >
-      <summary
-        className="flex cursor-pointer list-none items-start gap-2 px-3 py-2 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden"
-        data-testid="agent-process-entry-toggle"
-      >
-        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
-          <Icon name={getEntryIcon(entry)} size={14} />
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Step details
+          </p>
+          <h4 className="mt-0.5 truncate text-sm font-black text-slate-800">
+            {getProcessTitle(entry)}
+          </h4>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="truncate text-[11px] font-semibold text-slate-500">
-              {getEntryKindLabel(entry)}
-            </h4>
-            <span className="shrink-0 font-mono text-[10px] text-slate-400">
-              {formatTime(entry.timestamp)}
-            </span>
+        <CopyActionButton
+          label={getEntryCopyLabel(entry)}
+          status={copyEntryStatus}
+          onCopy={() => onCopyEntry(entry)}
+          compact
+        />
+      </div>
+
+      <dl className="grid grid-cols-2 gap-2 text-[11px]">
+        <div className="rounded-md bg-slate-50 p-2">
+          <dt className="font-bold uppercase tracking-wide text-slate-400">
+            Type
+          </dt>
+          <dd className="mt-0.5 font-semibold text-slate-700">
+            {getEntryKindLabel(entry)}
+          </dd>
+        </div>
+        <div className="rounded-md bg-slate-50 p-2">
+          <dt className="font-bold uppercase tracking-wide text-slate-400">
+            Time
+          </dt>
+          <dd className="mt-0.5 font-mono text-slate-700">
+            {formatTime(entry.timestamp)}
+          </dd>
+        </div>
+        {entry.toolName && (
+          <div className="col-span-2 rounded-md bg-slate-50 p-2">
+            <dt className="font-bold uppercase tracking-wide text-slate-400">
+              Capability
+            </dt>
+            <dd className="mt-0.5 truncate font-mono text-slate-700">
+              {entry.toolName}
+            </dd>
           </div>
-          <p className="mt-0.5 truncate text-xs leading-relaxed text-slate-500">
+        )}
+      </dl>
+
+      <div className="mt-3 rounded-md border border-slate-100 bg-slate-50/70 p-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          Summary
+        </p>
+        {entry.body ? (
+          <MarkdownText
+            content={entry.body}
+            className="mt-1 text-xs leading-relaxed text-slate-600"
+            compact
+          />
+        ) : (
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
             {preview}
           </p>
-        </div>
-        <Icon
-          name="ChevronDown"
-          size={14}
-          className="mt-1 shrink-0 text-slate-300 transition-transform group-open:rotate-180"
-        />
-      </summary>
-      {(entry.body || payload) && (
-        <div className="border-t border-slate-100 px-3 pb-2 pt-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {entry.title}
-            </p>
-            <CopyActionButton
-              label={getEntryCopyLabel(entry)}
-              status={copyEntryStatus}
-              onCopy={() => onCopyEntry(entry)}
-              compact
-            />
+        )}
+      </div>
+
+      {payload && (
+        <details className="mt-3">
+          <summary
+            className="cursor-pointer text-[10px] font-bold uppercase tracking-wide text-slate-500 hover:text-slate-700"
+            data-testid="agent-payload-toggle"
+          >
+            {payloadLabel}
+          </summary>
+          <div className="mt-2 rounded-md border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-2 py-1.5">
+              <span className="text-[10px] font-semibold text-slate-400">
+                {payloadLabel} data
+              </span>
+              <CopyActionButton
+                label={`Copy ${payloadLabel.toLowerCase()}`}
+                status={copyPayloadStatus}
+                onCopy={() => onCopyPayload(entry)}
+                compact
+              />
+            </div>
+            <pre className="max-h-44 overflow-auto overscroll-contain p-2 font-mono text-[10px] leading-relaxed text-slate-600">
+              {payload}
+            </pre>
           </div>
-          {entry.body && (
-            <MarkdownText
-              content={entry.body}
-              className="text-xs leading-relaxed text-slate-500"
-              compact
-            />
-          )}
-          {payload && (
-            <details className={cn(entry.body ? "mt-2" : undefined)}>
-              <summary
-                className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
-                data-testid="agent-payload-toggle"
-              >
-                {payloadLabel}
-              </summary>
-              <div className="mt-1 rounded-md border border-slate-200 bg-white/80">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-2 py-1">
-                  <span className="text-[10px] font-semibold text-slate-400">
-                    {payloadLabel} data
-                  </span>
-                  <CopyActionButton
-                    label={`Copy ${payloadLabel.toLowerCase()}`}
-                    status={copyPayloadStatus}
-                    onCopy={() => onCopyPayload(entry)}
-                    compact
-                  />
-                </div>
-                <pre className="max-h-36 overflow-auto overscroll-contain p-2 font-mono text-[10px] leading-relaxed text-slate-600">
-                  {payload}
-                </pre>
-              </div>
-            </details>
-          )}
-        </div>
+        </details>
       )}
-    </details>
+    </aside>
   );
 };
 
@@ -618,28 +952,29 @@ const AgentProcessBlock: React.FC<{
   onCopyEntry: (entry: AgentEntry) => void;
   onCopyPayload: (entry: AgentEntry) => void;
 }> = ({ entries, isRunning, getCopyStatus, onCopyEntry, onCopyPayload }) => {
-  const toolCount = entries.filter(
-    (entry) => entry.kind === "tool-call",
-  ).length;
-  const lastEntry = entries[entries.length - 1];
-  const statusLabels = entries
-    .filter((entry) => entry.kind === "status")
-    .map((entry) => entry.body)
-    .filter(Boolean)
-    .slice(-2);
-  const summaryParts = [
-    `${entries.length} step${entries.length === 1 ? "" : "s"}`,
-    toolCount > 0
-      ? `${toolCount} tool${toolCount === 1 ? "" : "s"}`
-      : undefined,
-    ...statusLabels,
-  ].filter(Boolean);
+  const summary = useMemo(
+    () => getProcessSummary(entries, isRunning),
+    [entries, isRunning],
+  );
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const selectedEntry = useMemo(
+    () =>
+      entries.find((entry) => entry.id === selectedEntryId) ??
+      entries[entries.length - 1] ??
+      null,
+    [entries, selectedEntryId],
+  );
 
   return (
     <div className="px-4 py-2">
       <details
-        className="group rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-100"
-        open={isRunning || undefined}
+        className={cn(
+          "group rounded-lg border bg-white shadow-sm",
+          summary.errorCount > 0
+            ? "border-rose-200 shadow-rose-100/50"
+            : "border-slate-200 shadow-slate-100",
+        )}
+        open={isRunning || summary.errorCount > 0 || undefined}
         data-testid="agent-process-block"
         data-state={isRunning ? "live" : "logged"}
       >
@@ -647,21 +982,58 @@ const AgentProcessBlock: React.FC<{
           className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-300 [&::-webkit-details-marker]:hidden"
           data-testid="agent-process-block-toggle"
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 ring-1 ring-slate-200">
-            <Icon name="Workflow" size={15} />
+          <div
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
+              summary.errorCount > 0
+                ? "border-rose-200 bg-rose-50 text-rose-600"
+                : isRunning
+                  ? "border-blue-200 bg-blue-50 text-blue-600"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-600",
+            )}
+          >
+            <Icon
+              name={
+                summary.errorCount > 0
+                  ? "AlertCircle"
+                  : isRunning
+                    ? "Loader2"
+                    : "CheckCircle2"
+              }
+              size={16}
+              className={isRunning ? "animate-spin" : undefined}
+            />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <h4 className="truncate text-xs font-bold text-slate-600">
-                {isRunning ? "Live agent activity" : "Agent activity log"}
+                Agent processing
               </h4>
-              <span className="shrink-0 font-mono text-[10px] text-slate-400">
-                {formatTime(lastEntry?.timestamp ?? "")}
+              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                {summary.title}
               </span>
             </div>
-            <p className="mt-0.5 truncate text-[11px] leading-relaxed text-slate-400">
-              {summaryParts.join(" · ")}
-            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-2">
+              <div
+                className="h-1.5 min-w-14 flex-1 overflow-hidden rounded-full bg-slate-100"
+                aria-hidden
+              >
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    summary.errorCount > 0
+                      ? "bg-rose-500"
+                      : isRunning
+                        ? "bg-blue-500"
+                        : "bg-emerald-500",
+                  )}
+                  style={{ width: `${summary.progressPercent}%` }}
+                />
+              </div>
+              <p className="truncate text-[11px] leading-relaxed text-slate-400">
+                {summary.detail}
+              </p>
+            </div>
           </div>
           <Icon
             name="ChevronDown"
@@ -669,17 +1041,65 @@ const AgentProcessBlock: React.FC<{
             className="shrink-0 text-slate-300 transition-transform group-open:rotate-180"
           />
         </summary>
-        <div className="space-y-2 border-t border-slate-100 bg-slate-50/60 p-3">
-          {entries.map((entry) => (
-            <AgentProcessEntry
-              key={entry.id}
-              entry={entry}
-              copyEntryStatus={getCopyStatus(`entry:${entry.id}`)}
-              copyPayloadStatus={getCopyStatus(`payload:${entry.id}`)}
-              onCopyEntry={onCopyEntry}
-              onCopyPayload={onCopyPayload}
-            />
-          ))}
+        <div className="border-t border-slate-100 bg-slate-50/60 p-3">
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+              <Icon name="ListChecks" size={12} />
+              {formatCountLabel(summary.stepCount, "step")}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-blue-600 ring-1 ring-blue-100">
+              <Icon name="Wrench" size={12} />
+              {formatCountLabel(summary.toolCallCount, "tool")}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-emerald-600 ring-1 ring-emerald-100">
+              <Icon name="Database" size={12} />
+              {formatCountLabel(summary.toolResultCount, "output")}
+            </span>
+            {summary.statusCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+                <Icon name="Activity" size={12} />
+                {formatCountLabel(summary.statusCount, "update")}
+              </span>
+            )}
+            {summary.errorCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-rose-600 ring-1 ring-rose-100">
+                <Icon name="AlertCircle" size={12} />
+                {formatCountLabel(summary.errorCount, "error")}
+              </span>
+            )}
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.72fr)]">
+            <div className="space-y-2" role="list" aria-label="Agent steps">
+              {entries.map((entry, index) => {
+                const status = getProcessStatus(
+                  entry,
+                  index,
+                  entries.length,
+                  isRunning,
+                );
+
+                return (
+                  <div key={entry.id} role="listitem">
+                    <ProcessTimelineRow
+                      entry={entry}
+                      status={status}
+                      isSelected={entry.id === selectedEntry?.id}
+                      onSelect={setSelectedEntryId}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {selectedEntry && (
+              <ProcessInspector
+                entry={selectedEntry}
+                copyEntryStatus={getCopyStatus(`entry:${selectedEntry.id}`)}
+                copyPayloadStatus={getCopyStatus(`payload:${selectedEntry.id}`)}
+                onCopyEntry={onCopyEntry}
+                onCopyPayload={onCopyPayload}
+              />
+            )}
+          </div>
         </div>
       </details>
     </div>

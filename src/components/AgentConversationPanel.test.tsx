@@ -72,17 +72,23 @@ function renderPanel(
 }
 
 describe("AgentConversationPanel", () => {
-  it("renders accessible session tabs, composer label, live progress, and copy actions", () => {
+  it("renders accessible session tabs, composer label, agent processing, and copy actions", () => {
     const html = renderPanel();
 
     expect(html).toContain('role="tablist"');
     expect(html).toContain('aria-label="Agent conversation sessions"');
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain('aria-label="Agent conversation message"');
-    expect(html).toContain("Live agent activity");
-    expect(html).toContain("Running: Tool response: query_tasks");
+    expect(html).toContain("Agent processing");
+    expect(html).toContain("Working");
+    expect(html).toContain("Running: Tool result: query_tasks");
     expect(html).toContain('data-testid="agent-process-block"');
+    expect(html).toContain('data-testid="agent-process-inspector"');
+    expect(html).toContain("Run Query Tasks");
+    expect(html).toContain("Query Tasks returned");
     expect(html).toContain("Tool output");
+    expect(html).toContain("Result");
+    expect(html).toContain("Answer");
     expect(html).toContain("Copy reply");
     expect(html).toContain("Copy tool output");
   });
