@@ -83,14 +83,13 @@ describe("AgentConversationPanel", () => {
     expect(html).toContain("Working");
     expect(html).toContain("Running: Tool result: query_tasks");
     expect(html).toContain('data-testid="agent-process-block"');
-    expect(html).toContain('data-testid="agent-process-inspector"');
+    expect(html).not.toContain('data-testid="agent-process-inspector"');
     expect(html).toContain("Run Query Tasks");
     expect(html).toContain("Query Tasks returned");
-    expect(html).toContain("Tool output");
+    expect(html).toContain("Details");
     expect(html).toContain("Result");
     expect(html).toContain("Answer");
     expect(html).toContain("Copy reply");
-    expect(html).toContain("Copy tool output");
   });
 
   it("renders an exit path when drafting a new conversation with existing sessions", () => {

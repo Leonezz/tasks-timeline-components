@@ -750,8 +750,8 @@ const ProcessTimelineRow: React.FC<{
   entry: AgentEntry;
   status: ProcessItemStatus;
   isSelected: boolean;
-  onSelect: (entryId: string) => void;
-}> = ({ entry, status, isSelected, onSelect }) => {
+  onToggle: (entryId: string) => void;
+}> = ({ entry, status, isSelected, onToggle }) => {
   const payload = stringifyPayload(entry.payload);
   const preview = getProcessPreview(entry, payload);
   const typeLabel = getProcessTypeLabel(entry);
@@ -761,7 +761,7 @@ const ProcessTimelineRow: React.FC<{
   return (
     <button
       type="button"
-      onClick={() => onSelect(entry.id)}
+      onClick={() => onToggle(entry.id)}
       className={cn(
         "group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-md border px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300",
         isSelected
@@ -824,6 +824,9 @@ const ProcessTimelineRow: React.FC<{
         <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
           {statusLabel}
         </span>
+        <span className="text-[10px] font-bold text-blue-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          {isSelected ? "Hide details" : "Details"}
+        </span>
       </div>
     </button>
   );
@@ -835,12 +838,14 @@ const ProcessInspector: React.FC<{
   copyPayloadStatus: CopyStatus;
   onCopyEntry: (entry: AgentEntry) => void;
   onCopyPayload: (entry: AgentEntry) => void;
+  onClose: () => void;
 }> = ({
   entry,
   copyEntryStatus,
   copyPayloadStatus,
   onCopyEntry,
   onCopyPayload,
+  onClose,
 }) => {
   const payload = stringifyPayload(entry.payload);
   const payloadLabel = getPayloadLabel(entry);
@@ -848,7 +853,7 @@ const ProcessInspector: React.FC<{
 
   return (
     <aside
-      className="min-w-0 rounded-md border border-slate-200 bg-white p-3"
+      className="ml-8 min-w-0 rounded-md border border-blue-100 bg-white p-3 shadow-sm shadow-blue-100/40"
       aria-label="Selected processing step details"
       data-testid="agent-process-inspector"
     >
@@ -861,12 +866,24 @@ const ProcessInspector: React.FC<{
             {getProcessTitle(entry)}
           </h4>
         </div>
-        <CopyActionButton
-          label={getEntryCopyLabel(entry)}
-          status={copyEntryStatus}
-          onCopy={() => onCopyEntry(entry)}
-          compact
-        />
+        <div className="flex shrink-0 items-center gap-1">
+          <CopyActionButton
+            label={getEntryCopyLabel(entry)}
+            status={copyEntryStatus}
+            onCopy={() => onCopyEntry(entry)}
+            compact
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-[10px] font-semibold text-slate-500 transition-colors hover:border-blue-200 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            aria-label="Hide step details"
+            title="Hide step details"
+          >
+            <Icon name="X" size={12} />
+            <span>Hide</span>
+          </button>
+        </div>
       </div>
 
       <dl className="grid grid-cols-2 gap-2 text-[11px]">
@@ -958,12 +975,12 @@ const AgentProcessBlock: React.FC<{
   );
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const selectedEntry = useMemo(
-    () =>
-      entries.find((entry) => entry.id === selectedEntryId) ??
-      entries[entries.length - 1] ??
-      null,
+    () => entries.find((entry) => entry.id === selectedEntryId) ?? null,
     [entries, selectedEntryId],
   );
+  const toggleSelectedEntry = useCallback((entryId: string) => {
+    setSelectedEntryId((current) => (current === entryId ? null : entryId));
+  }, []);
 
   return (
     <div className="px-4 py-2">
@@ -1068,37 +1085,37 @@ const AgentProcessBlock: React.FC<{
               </span>
             )}
           </div>
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.72fr)]">
-            <div className="space-y-2" role="list" aria-label="Agent steps">
-              {entries.map((entry, index) => {
-                const status = getProcessStatus(
-                  entry,
-                  index,
-                  entries.length,
-                  isRunning,
-                );
+          <div className="space-y-2" role="list" aria-label="Agent steps">
+            {entries.map((entry, index) => {
+              const status = getProcessStatus(
+                entry,
+                index,
+                entries.length,
+                isRunning,
+              );
+              const isSelected = entry.id === selectedEntry?.id;
 
-                return (
-                  <div key={entry.id} role="listitem">
-                    <ProcessTimelineRow
+              return (
+                <div key={entry.id} className="space-y-2" role="listitem">
+                  <ProcessTimelineRow
+                    entry={entry}
+                    status={status}
+                    isSelected={isSelected}
+                    onToggle={toggleSelectedEntry}
+                  />
+                  {isSelected && (
+                    <ProcessInspector
                       entry={entry}
-                      status={status}
-                      isSelected={entry.id === selectedEntry?.id}
-                      onSelect={setSelectedEntryId}
+                      copyEntryStatus={getCopyStatus(`entry:${entry.id}`)}
+                      copyPayloadStatus={getCopyStatus(`payload:${entry.id}`)}
+                      onCopyEntry={onCopyEntry}
+                      onCopyPayload={onCopyPayload}
+                      onClose={() => setSelectedEntryId(null)}
                     />
-                  </div>
-                );
-              })}
-            </div>
-            {selectedEntry && (
-              <ProcessInspector
-                entry={selectedEntry}
-                copyEntryStatus={getCopyStatus(`entry:${selectedEntry.id}`)}
-                copyPayloadStatus={getCopyStatus(`payload:${selectedEntry.id}`)}
-                onCopyEntry={onCopyEntry}
-                onCopyPayload={onCopyPayload}
-              />
-            )}
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </details>
