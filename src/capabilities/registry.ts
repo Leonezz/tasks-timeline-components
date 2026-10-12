@@ -1,6 +1,7 @@
 import type {
   CapabilityContext,
   Capabilities,
+  CreateCapabilitiesOptions,
   ToolSpec,
   ResourceSpec,
   PromptSpec,
@@ -33,8 +34,31 @@ import { createWeeklyReviewPrompt } from "./prompts/weekly-review";
 import { createTaskTriagePrompt } from "./prompts/task-triage";
 import { getSystemPrompt } from "./system-prompt";
 
-export function createCapabilities(ctx: CapabilityContext): Capabilities {
-  const tools: ToolSpec[] = [
+function buildUniqueMap<T extends { name: string }>(
+  kind: string,
+  items: T[],
+): Map<string, T> {
+  const map = new Map<string, T>();
+  for (const item of items) {
+    if (map.has(item.name)) {
+      throw new Error(
+        `createCapabilities: duplicate ${kind} name "${item.name}". Extra ${kind}s must not reuse a built-in or another extra ${kind} name.`,
+      );
+    }
+    map.set(item.name, item);
+  }
+  return map;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export function createCapabilities(
+  ctx: CapabilityContext,
+  options: CreateCapabilitiesOptions = {},
+): Capabilities {
+  const builtInTools: ToolSpec[] = [
     createCreateTaskTool(ctx),
     createQueryTasksTool(ctx),
     createUpdateTaskTool(ctx),
@@ -52,23 +76,32 @@ export function createCapabilities(ctx: CapabilityContext): Capabilities {
     createSetTaskSortTool(ctx),
     createResetViewSettingsTool(ctx),
   ];
+  const tools: ToolSpec[] = [...builtInTools, ...(options.extraTools ?? [])];
 
-  const resources: ResourceSpec[] = [
+  const builtInResources: ResourceSpec[] = [
     createAllTasksResource(ctx),
     createTaskByIdResource(ctx),
     ...createFilteredTasksResources(ctx),
     createStatsResource(ctx),
   ];
+  const resources: ResourceSpec[] = [
+    ...builtInResources,
+    ...(options.extraResources ?? []),
+  ];
 
-  const prompts: PromptSpec[] = [
+  const builtInPrompts: PromptSpec[] = [
     createPlanMyDayPrompt(ctx),
     createWeeklyReviewPrompt(ctx),
     createTaskTriagePrompt(ctx),
   ];
+  const prompts: PromptSpec[] = [
+    ...builtInPrompts,
+    ...(options.extraPrompts ?? []),
+  ];
 
-  const toolMap = new Map(tools.map((t) => [t.name, t]));
-  const resourceMap = new Map(resources.map((r) => [r.name, r]));
-  const promptMap = new Map(prompts.map((p) => [p.name, p]));
+  const toolMap = buildUniqueMap("tool", tools);
+  const resourceMap = buildUniqueMap("resource", resources);
+  const promptMap = buildUniqueMap("prompt", prompts);
 
   return {
     tools,
@@ -90,7 +123,11 @@ export function createCapabilities(ctx: CapabilityContext): Capabilities {
       if (!tool) {
         return { name, result: { error: `Unknown tool: ${name}` } };
       }
-      return tool.execute(args);
+      try {
+        return await tool.execute(args);
+      } catch (error) {
+        return { name, result: { error: errorMessage(error) } };
+      }
     },
   };
 }

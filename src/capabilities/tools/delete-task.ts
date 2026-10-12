@@ -1,4 +1,5 @@
 import type { CapabilityContext, ToolSpec } from "../types";
+import { confirmDestructiveAction } from "./confirm";
 
 export function createDeleteTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -26,11 +27,18 @@ export function createDeleteTaskTool(ctx: CapabilityContext): ToolSpec {
         };
       }
 
-      const confirmed = await ctx.confirm?.(
+      const confirmation = await confirmDestructiveAction(
+        ctx,
         `Delete "${existingTask.title}"?`,
         "This action cannot be undone.",
       );
-      if (confirmed === false || confirmed === null) {
+      if (confirmation.status === "unavailable") {
+        return {
+          name: "delete_task",
+          result: { success: false, error: confirmation.error },
+        };
+      }
+      if (confirmation.status === "cancelled") {
         return {
           name: "delete_task",
           result: { success: false, message: "Cancelled by user" },

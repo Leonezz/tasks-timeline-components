@@ -323,8 +323,27 @@ interface TasksTimelineAppProps {
   onTaskAdded?: (task: Task) => void | Promise<void>;
   onTaskUpdated?: (task: Task, previous: Task) => void | Promise<void>;
   onTaskDeleted?: (taskId: string, previous: Task) => void | Promise<void>;
+
+  // AI agent (see "AI Capabilities" below)
+  aiSystemPrompt?: string;
+  aiProviderFactory?: AIProviderFactory;
+  aiCapabilityContext?: CapabilityContext;
+  aiCapabilities?: Capabilities;
+  aiExtraTools?: ToolSpec[]; // v0.6.0+: host tools appended to the built-ins
+  aiMaxToolRounds?: number; // v0.6.0+: default 16
+  onAgentEvent?: (event: AgentEvent) => void;
 }
 ```
+
+- `aiExtraTools` are appended after the built-in tools. A name that collides with a
+  built-in tool (or another extra tool) throws. Passing both `aiCapabilities` and a
+  non-empty `aiExtraTools` throws — add extra tools via
+  `createCapabilities(ctx, { extraTools })` when you build your own capabilities.
+- `aiMaxToolRounds` bounds the number of tool-call rounds per agent turn. When the
+  limit is reached the agent stops calling the provider and reports
+  `Stopped after N tool rounds without a final answer` as an agent error.
+- `DEFAULT_SETTINGS` (the built-in default `AppSettings`) is exported from the main
+  entry.
 
 **Synchronization Strategy:**
 - If callbacks (`onTaskAdded`, etc.) are provided, they take priority
@@ -360,6 +379,50 @@ const settings: AppSettings = {
   },
 };
 ```
+
+### AI Capabilities
+
+The framework-agnostic capabilities layer can be wired to the built-in agent or to
+any transport (for example an MCP server):
+
+```typescript
+import { createCapabilities } from "@tasks-timeline/components/capabilities";
+import type {
+  CapabilityContext,
+  CreateCapabilitiesOptions,
+} from "@tasks-timeline/components/capabilities";
+
+const ctx: CapabilityContext = {
+  getTasks, getTask, addTask, updateTask, deleteTask,
+  // Optional UI callbacks: notify, showToast, confirm, select, prompt
+  confirm: (title, description) => askUser(title, description),
+  // What destructive tools do when `confirm` is absent (default "require")
+  confirmPolicy: "require",
+};
+
+const options: CreateCapabilitiesOptions = {
+  extraTools: [myHostTool], // appended after built-ins; names must be unique
+  extraResources: [],
+  extraPrompts: [],
+};
+
+const capabilities = createCapabilities(ctx, options);
+await capabilities.executeTool("delete_task", { id: "task-1" });
+```
+
+- `createCapabilities(ctx, options?)` throws at creation time if an extra tool,
+  resource or prompt reuses a built-in name or another extra's name.
+- `executeTool()` never throws for a tool failure: an exception from a tool's
+  `execute` becomes `{ name, result: { error: message } }`. Unknown tools return
+  `{ name, result: { error: "Unknown tool: <name>" } }`.
+- **Confirmation policy (v0.6.0+).** Destructive tools (`delete_task`,
+  `batch_update_tasks`, and the settings-changing tools `update_view_settings`,
+  `set_task_filters`, `set_task_sort`, `reset_view_settings`) ask `ctx.confirm`
+  first. If the host provides no `confirm`:
+  - `confirmPolicy: "require"` (default) — the action is **not** performed and the
+    tool returns `{ success: false, error }` explaining that confirmation is required.
+  - `confirmPolicy: "skip"` — the action proceeds without asking (pre-0.6.0
+    behavior). Headless hosts such as MCP servers should set this explicitly.
 
 ## Development
 

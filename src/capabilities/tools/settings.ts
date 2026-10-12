@@ -13,6 +13,7 @@ import type {
 } from "../../types";
 import type { JSONSchemaProperty } from "../../providers/types";
 import type { CapabilityContext, ToolSpec } from "../types";
+import { confirmDestructiveAction } from "./confirm";
 
 const THEMES: ThemeOption[] = ["light", "dark", "midnight", "coffee", "system"];
 const FONT_SIZES: FontSize[] = ["sm", "base", "lg", "xl"];
@@ -480,7 +481,8 @@ async function applySettings(
   confirmationTitle: string,
 ): Promise<{
   success: boolean;
-  message: string;
+  message?: string;
+  error?: string;
   settings?: ManagedViewSettings;
 }> {
   if (!ctx.updateSettings) {
@@ -490,11 +492,15 @@ async function applySettings(
     };
   }
 
-  const confirmed = await ctx.confirm?.(
+  const confirmation = await confirmDestructiveAction(
+    ctx,
     confirmationTitle,
     `Change: ${changed.join(", ")}`,
   );
-  if (confirmed === false || confirmed === null) {
+  if (confirmation.status === "unavailable") {
+    return { success: false, error: confirmation.error };
+  }
+  if (confirmation.status === "cancelled") {
     return { success: false, message: "Cancelled by user." };
   }
 

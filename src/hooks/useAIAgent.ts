@@ -9,8 +9,16 @@ import type {
 import { createProvider as createDefaultProvider } from "../providers";
 import type { ChatMessage, IAIProvider, ToolResult } from "../providers/types";
 import { createCapabilities } from "../capabilities";
-import type { Capabilities, CapabilityContext } from "../capabilities";
+import type {
+  Capabilities,
+  CapabilityContext,
+  ToolSpec,
+} from "../capabilities";
 import { logger } from "../utils/logger";
+import { createAgentCapabilityContext } from "./agentCapabilityContext";
+
+/** Default maximum number of tool-call rounds per agent turn. */
+export const DEFAULT_AI_MAX_TOOL_ROUNDS = 16;
 
 interface TokenUsageUpdate {
   provider: string;
@@ -28,6 +36,10 @@ export interface UseAIAgentOptions {
   providerFactory?: AIProviderFactory;
   capabilities?: Capabilities;
   capabilityContext?: CapabilityContext;
+  /** Extra host tools appended to the built-in tools. Cannot be combined with `capabilities`. */
+  extraTools?: ToolSpec[];
+  /** Maximum tool-call rounds per agent turn before stopping. Defaults to 16. */
+  maxToolRounds?: number;
   updateSettings?: (settings: AppSettings) => void | Promise<void>;
   onAgentEvent?: (event: AgentEvent) => void;
   shouldNotifyAgentResponse?: () => boolean;
@@ -54,6 +66,22 @@ export function appendAssistantMessageToHistory(
     : history;
 }
 
+function validateAgentOptions(options: UseAIAgentOptions | undefined): number {
+  if (options?.capabilities && options.extraTools?.length) {
+    throw new Error(
+      "useAIAgent: `capabilities` (aiCapabilities) and `extraTools` (aiExtraTools) cannot be combined. " +
+        "Pass extra tools to createCapabilities(ctx, { extraTools }) when building your own capabilities, or drop `capabilities`.",
+    );
+  }
+  const maxToolRounds = options?.maxToolRounds ?? DEFAULT_AI_MAX_TOOL_ROUNDS;
+  if (!Number.isInteger(maxToolRounds) || maxToolRounds < 1) {
+    throw new Error(
+      `useAIAgent: maxToolRounds (aiMaxToolRounds) must be a positive integer, got ${String(maxToolRounds)}.`,
+    );
+  }
+  return maxToolRounds;
+}
+
 export const useAIAgent = (
   tasks: Task[],
   onTaskAdded: (task: Task) => void | Promise<void>,
@@ -77,6 +105,7 @@ export const useAIAgent = (
   onPrompt?: (question: string) => Promise<string | null>,
   options?: UseAIAgentOptions,
 ) => {
+  const maxToolRounds = validateAgentOptions(options);
   const tasksRef = useRef(tasks),
     settingsRef = useRef(settings),
     historiesRef = useRef<Map<string, ChatMessage[]>>(new Map());
@@ -128,64 +157,43 @@ export const useAIAgent = (
       });
     }
 
-    // Build capability context from React callbacks
-    const ctx: CapabilityContext = {
-      getTasks: async () => tasksRef.current,
-      getTask: async (id) => tasksRef.current.find((t) => t.id === id) ?? null,
-      addTask: async (task) => {
-        await onTaskAdded(task);
-      },
-      updateTask: async (task) => {
-        const previous = tasksRef.current.find((t) => t.id === task.id);
-        if (previous) {
-          await onTaskUpdated(task, previous);
-        }
-      },
-      deleteTask: async (id) => {
-        const previous = tasksRef.current.find((t) => t.id === id);
-        if (previous) {
-          await onTaskDeleted(id, previous);
-        }
-      },
-      getSettings: () => settingsRef.current,
-      updateSettings: options?.updateSettings
-        ? async (nextSettings) => {
-            await options.updateSettings?.(nextSettings);
-          }
-        : undefined,
-      notify: (type, message) => onNotify(type, message),
-      showToast: onShowToast
-        ? (toast) =>
-            onShowToast({
-              ...toast,
-              interaction: { kind: "dismiss" },
-              timeout: toast.timeout ?? null,
-            })
-        : undefined,
-      confirm: onConfirm,
-      select: onSelect,
-      prompt: onPrompt,
-    };
-
-    const capabilities =
-      options?.capabilities ??
-      createCapabilities(options?.capabilityContext ?? ctx);
-
-    // Convert ToolSpec[] to ToolDefinition[] for the provider
-    const tools = capabilities.tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.schema,
-    }));
-
-    const systemPrompt = capabilities.getSystemPrompt(
-      aiSystemPrompt,
-      settings.aiConfig.systemPrompt,
-    );
     let history = createAgentTurnHistory(previousHistory, input);
     historiesRef.current.set(sessionId, history);
 
     try {
+      // Build capability context from React callbacks
+      const ctx = createAgentCapabilityContext({
+        getTasks: () => tasksRef.current,
+        getSettings: () => settingsRef.current,
+        onTaskAdded,
+        onTaskUpdated,
+        onTaskDeleted,
+        updateSettings: options?.updateSettings,
+        onNotify,
+        onShowToast,
+        onConfirm,
+        onSelect,
+        onPrompt,
+      });
+
+      const capabilities =
+        options?.capabilities ??
+        createCapabilities(options?.capabilityContext ?? ctx, {
+          extraTools: options?.extraTools,
+        });
+
+      // Convert ToolSpec[] to ToolDefinition[] for the provider
+      const tools = capabilities.tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        parameters: t.schema,
+      }));
+
+      const systemPrompt = capabilities.getSystemPrompt(
+        aiSystemPrompt,
+        settings.aiConfig.systemPrompt,
+      );
+
       const providerFactory = options?.providerFactory ?? createDefaultProvider;
       emitAgentEvent({
         kind: "status",
@@ -231,8 +239,20 @@ export const useAIAgent = (
         logger.debug("AI", "Token Usage", { tokenUsage });
       }
 
-      // Process tool calls in a loop
+      // Process tool calls in a loop, bounded by maxToolRounds
+      let toolRounds = 0;
       while (response.toolCalls && response.toolCalls.length > 0) {
+        if (toolRounds >= maxToolRounds) {
+          // The pending tool calls are not executed and not recorded, so the
+          // history stays well-formed (every recorded tool call has a result).
+          // A closing assistant note keeps user/assistant turns alternating.
+          const message = `Stopped after ${maxToolRounds} tool rounds without a final answer`;
+          history = appendAssistantMessageToHistory(history, `[${message}]`);
+          historiesRef.current.set(sessionId, history);
+          throw new Error(message);
+        }
+        toolRounds += 1;
+
         // Record assistant response with tool calls in history
         history.push({
           role: "assistant",

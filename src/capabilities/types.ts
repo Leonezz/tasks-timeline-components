@@ -1,6 +1,13 @@
 import type { Task, AppSettings, DetailBlock } from "../types";
 import type { ToolResult, JSONSchemaProperty } from "../providers/types";
 
+/**
+ * How destructive tools behave when the host provides no `confirm` callback.
+ * - "require" (default): refuse the action and return an error result.
+ * - "skip": perform the action without asking (for headless hosts such as MCP servers).
+ */
+export type ConfirmPolicy = "require" | "skip";
+
 export interface CapabilityContext {
   getTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task | null>;
@@ -22,6 +29,11 @@ export interface CapabilityContext {
     timeout?: number | null;
   }): void;
   confirm?(title: string, description?: string): Promise<boolean | null>;
+  /**
+   * What destructive tools do when `confirm` is not provided. Defaults to "require".
+   * Has no effect when `confirm` is provided.
+   */
+  confirmPolicy?: ConfirmPolicy;
   select?(
     title: string,
     options: { label: string; value: string }[],
@@ -75,6 +87,15 @@ export interface PromptSpec {
   render(
     args?: Record<string, string>,
   ): PromptMessage[] | Promise<PromptMessage[]>;
+}
+
+export interface CreateCapabilitiesOptions {
+  /** Host-provided tools appended after the built-in tools. Names must be unique. */
+  extraTools?: ToolSpec[];
+  /** Host-provided resources appended after the built-in resources. Names must be unique. */
+  extraResources?: ResourceSpec[];
+  /** Host-provided prompts appended after the built-in prompts. Names must be unique. */
+  extraPrompts?: PromptSpec[];
 }
 
 export interface Capabilities {

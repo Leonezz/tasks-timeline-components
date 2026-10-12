@@ -42,6 +42,8 @@ export function createMockContext(seedTasks: Partial<Task>[] = []): {
       if (idx !== -1) tasks.splice(idx, 1);
     },
     getSettings: () => null,
+    // Eval runs headless with no user to ask; destructive tools proceed.
+    confirmPolicy: "skip",
     notify: (_type: "success" | "error" | "info", _message: string) => {
       // Silent in eval mode
     },

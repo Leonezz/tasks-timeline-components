@@ -123,9 +123,10 @@ describe("delete_task tool", () => {
     expect(ctx.deleteTask).not.toHaveBeenCalled();
   });
 
-  it("proceeds with deletion when confirm is not provided", async () => {
+  it('proceeds without asking when confirm is not provided and confirmPolicy is "skip"', async () => {
     const ctxNoConfirm = makeContext({
       getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
+      confirmPolicy: "skip",
     });
 
     const tool = createDeleteTaskTool(ctxNoConfirm);
@@ -137,5 +138,48 @@ describe("delete_task tool", () => {
       title: "Task to delete",
     });
     expect(ctxNoConfirm.deleteTask).toHaveBeenCalledWith("task-1");
+  });
+
+  it.each([
+    ["defaults to require", {}],
+    ['confirmPolicy "require"', { confirmPolicy: "require" as const }],
+  ])(
+    "refuses to delete when confirm is not provided (%s)",
+    async (_label, policy) => {
+      const ctxNoConfirm = makeContext({
+        getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
+        ...policy,
+      });
+
+      const tool = createDeleteTaskTool(ctxNoConfirm);
+      const result = await tool.execute({ id: "task-1" });
+
+      expect(result.name).toBe("delete_task");
+      expect(result.result).toMatchObject({ success: false });
+      const error = (result.result as { error: string }).error;
+      expect(error).toContain("Confirmation is required");
+      expect(error).toContain("confirm");
+      expect(error).toContain('confirmPolicy: "skip"');
+      expect(ctxNoConfirm.deleteTask).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still asks when confirm is provided even with confirmPolicy "skip"', async () => {
+    const confirm = vi.fn().mockResolvedValue(false);
+    const ctxSkip = makeContext({
+      getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK }),
+      confirm,
+      confirmPolicy: "skip",
+    });
+
+    const tool = createDeleteTaskTool(ctxSkip);
+    const result = await tool.execute({ id: "task-1" });
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(result.result).toMatchObject({
+      success: false,
+      message: "Cancelled by user",
+    });
+    expect(ctxSkip.deleteTask).not.toHaveBeenCalled();
   });
 });

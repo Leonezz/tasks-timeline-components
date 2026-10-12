@@ -1,6 +1,7 @@
 import type { Task, Priority } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { deriveWorkflowStatus, taskMatchesStatus } from "../../utils/task";
+import { confirmDestructiveAction } from "./confirm";
 
 function matchesTag(task: Task, tag: string): boolean {
   const lowerTag = tag.toLowerCase();
@@ -116,11 +117,18 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
       });
 
       if (filtered.length > 0) {
-        const confirmed = await ctx.confirm?.(
+        const confirmation = await confirmDestructiveAction(
+          ctx,
           `Update ${filtered.length} task${filtered.length === 1 ? "" : "s"}?`,
           "This will apply changes to all matching tasks.",
         );
-        if (confirmed === false || confirmed === null) {
+        if (confirmation.status === "unavailable") {
+          return {
+            name: "batch_update_tasks",
+            result: { success: false, error: confirmation.error, updated: 0 },
+          };
+        }
+        if (confirmation.status === "cancelled") {
           return {
             name: "batch_update_tasks",
             result: {

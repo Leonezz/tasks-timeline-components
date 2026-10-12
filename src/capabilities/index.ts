@@ -2,6 +2,8 @@ export { createCapabilities } from "./registry";
 export type {
   CapabilityContext,
   Capabilities,
+  CreateCapabilitiesOptions,
+  ConfirmPolicy,
   ToolSpec,
   ResourceSpec,
   PromptSpec,

@@ -39,7 +39,7 @@ import { BrowserSettingsRepository } from "./storage";
 import { Icon } from "./components/Icon";
 import { AppProvider } from "./components/AppContext";
 import { SettingsProvider, TasksProvider } from "./contexts";
-import type { Capabilities, CapabilityContext } from "./capabilities";
+import type { Capabilities, CapabilityContext, ToolSpec } from "./capabilities";
 import type { AIProviderFactory } from "./hooks/useAIAgent";
 import {
   AIErrorFallback,
@@ -52,87 +52,7 @@ import { useTaskFiltering } from "./hooks/useTaskFiltering";
 import { useTaskStats } from "./hooks/useTaskStats";
 import { useAIAgent } from "./hooks/useAIAgent";
 import { useAgentSessions } from "./hooks/useAgentSessions";
-
-// Default Settings Definition
-const DEFAULT_SETTINGS: AppSettings = {
-  theme: "light",
-  dateFormat: "MMM d",
-  showCompleted: true,
-  showProgressBar: true,
-  soundEnabled: false,
-  fontSize: "base",
-  useRelativeDates: true,
-  groupingStrategy: ["dueAt"],
-
-  aiConfig: {
-    enabled: true,
-    defaultMode: false,
-    activeProvider: "gemini",
-    providers: {
-      gemini: {
-        apiKey: "",
-        model: "gemini-2.0-flash",
-        baseUrl: "",
-      },
-      openai: {
-        apiKey: "",
-        model: "gpt-4o",
-        baseUrl: "",
-        useResponsesApi: true,
-      },
-      anthropic: {
-        apiKey: "",
-        model: "claude-sonnet-4-20250514",
-        baseUrl: "",
-      },
-      "openai-compatible": {
-        apiKey: "",
-        model: "",
-        baseUrl: "",
-        useResponsesApi: false,
-      },
-    },
-    systemPrompt: "",
-  },
-
-  voiceConfig: {
-    enabled: true,
-    activeProvider: "browser",
-    language: "", // Empty means use system language (navigator.language)
-    providers: {
-      browser: {},
-      openai: {
-        apiKey: "",
-        baseUrl: "https://api.openai.com/v1/audio/transcriptions",
-        model: "whisper-1",
-      },
-      gemini: {
-        apiKey: "",
-        model: "gemini-1.5-flash",
-      },
-    },
-  },
-
-  // New Features
-  defaultFocusMode: false,
-  totalTokenUsage: 0,
-  tokenUsageByModel: {},
-  defaultCategory: "General",
-
-  filters: {
-    tags: { include: [], exclude: [] },
-    categories: { include: [], exclude: [] },
-    priorities: { include: [], exclude: [] },
-    statuses: { include: [], exclude: [] },
-    enableScript: false,
-    script: "",
-  },
-  sort: {
-    field: "createdAt",
-    direction: "asc",
-    script: "",
-  },
-};
+import { DEFAULT_SETTINGS } from "./defaultSettings";
 
 interface AgentPanelState {
   isOpen: boolean;
@@ -219,6 +139,13 @@ export interface TasksTimelineAppProps {
   aiCapabilityContext?: CapabilityContext;
   /** Fully constructed host capabilities for the built-in AI agent. */
   aiCapabilities?: Capabilities;
+  /**
+   * Extra host tools appended to the built-in agent tools. Names must not collide
+   * with built-in tools. Cannot be combined with `aiCapabilities` (throws).
+   */
+  aiExtraTools?: ToolSpec[];
+  /** Maximum tool-call rounds per agent turn before the agent stops. Defaults to 16. */
+  aiMaxToolRounds?: number;
   /** Host runtime for voice input in embedded environments such as Obsidian. */
   voiceRuntime?: VoiceRuntime;
   /** Optional host observer for structured agent lifecycle events. */
@@ -242,6 +169,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   aiProviderFactory,
   aiCapabilityContext,
   aiCapabilities,
+  aiExtraTools,
+  aiMaxToolRounds,
   voiceRuntime,
   onAgentEvent,
 }) => {
@@ -749,6 +678,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         providerFactory: aiProviderFactory,
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
+        extraTools: aiExtraTools,
+        maxToolRounds: aiMaxToolRounds,
         updateSettings: applyAgentSettings,
         onAgentEvent: handleAgentEvent,
         shouldNotifyAgentResponse: () => !agentPanelState.isOpen,

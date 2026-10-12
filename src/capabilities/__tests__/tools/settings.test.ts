@@ -265,6 +265,42 @@ describe("settings tools", () => {
     expect(ctx.updateSettings).not.toHaveBeenCalled();
   });
 
+  it("refuses to reset settings without confirm under the default require policy", async () => {
+    ctx = makeContext(settings, { confirm: undefined });
+    const tool = createResetViewSettingsTool(ctx);
+
+    const result = await tool.execute({ scope: "all_view" });
+
+    expect(result.result).toMatchObject({ success: false });
+    expect((result.result as { error: string }).error).toContain(
+      'confirmPolicy: "skip"',
+    );
+    expect(ctx.updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('resets settings without confirm when confirmPolicy is "skip"', async () => {
+    ctx = makeContext(settings, {
+      confirm: undefined,
+      confirmPolicy: "skip",
+    });
+    const tool = createResetViewSettingsTool(ctx);
+
+    const result = await tool.execute({ scope: "sort" });
+
+    expect(result.result).toMatchObject({ success: true });
+    expect(ctx.updateSettings).toHaveBeenCalledOnce();
+  });
+
+  it("refuses to update settings without confirm under the default require policy", async () => {
+    ctx = makeContext(settings, { confirm: undefined });
+    const tool = createSetTaskSortTool(ctx);
+
+    const result = await tool.execute({ field: "title" });
+
+    expect(result.result).toMatchObject({ success: false });
+    expect(ctx.updateSettings).not.toHaveBeenCalled();
+  });
+
   it("reports a host capability error when settings cannot be updated", async () => {
     ctx = makeContext(settings, { updateSettings: undefined });
     const tool = createSetTaskSortTool(ctx);

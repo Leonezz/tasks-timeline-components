@@ -287,6 +287,7 @@ describe("batch_update_tasks tool", () => {
 
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue([futureTask]),
+      confirmPolicy: "skip",
     });
 
     const tool = createBatchUpdateTasksTool(ctx);
@@ -297,6 +298,7 @@ describe("batch_update_tasks tool", () => {
 
     ctx = makeContext({
       getTasks: vi.fn().mockResolvedValue([futureTask]),
+      confirmPolicy: "skip",
     });
 
     const tool2 = createBatchUpdateTasksTool(ctx);
@@ -369,6 +371,38 @@ describe("batch_update_tasks tool", () => {
         ]),
       }),
     );
+  });
+
+  it("refuses batch update without confirm under the default require policy", async () => {
+    const ctxNoConfirm = makeContext({
+      getTasks: vi.fn().mockResolvedValue([...SAMPLE_TASKS]),
+    });
+    const tool = createBatchUpdateTasksTool(ctxNoConfirm);
+    const result = await tool.execute({
+      filter: { status: "todo" },
+      update: { status: "done" },
+    });
+
+    expect(result.result).toMatchObject({ success: false, updated: 0 });
+    expect((result.result as { error: string }).error).toContain(
+      "Confirmation is required",
+    );
+    expect(ctxNoConfirm.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('applies batch update without confirm when confirmPolicy is "skip"', async () => {
+    const ctxSkip = makeContext({
+      getTasks: vi.fn().mockResolvedValue([...SAMPLE_TASKS]),
+      confirmPolicy: "skip",
+    });
+    const tool = createBatchUpdateTasksTool(ctxSkip);
+    const result = await tool.execute({
+      filter: { status: "todo" },
+      update: { status: "done" },
+    });
+
+    expect(result.result).toMatchObject({ success: true, updatedCount: 3 });
+    expect(ctxSkip.updateTask).toHaveBeenCalledTimes(3);
   });
 
   it("cancels batch update when user declines", async () => {
