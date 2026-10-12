@@ -17,6 +17,11 @@ export interface SettingsPersistence {
   load(): Promise<SettingsLoadResult>;
   /** Saves settings only after a successful load; never rejects. */
   persist(settings: AppSettings): Promise<void>;
+  /**
+   * Marks loading as failed after `load()` itself succeeded, e.g. when the
+   * loaded settings can't be merged or migrated. Same effect as a failed load.
+   */
+  failLoad(error: unknown): void;
   /** Whether saves are currently allowed. */
   canPersist(): boolean;
 }
@@ -44,8 +49,23 @@ export function createSettingsPersistence(
 
   const canPersist = () => loadSucceeded && !loadFailed;
 
+  const failLoad = (error: unknown) => {
+    logger.error("App", "Failed to load settings", error);
+    const firstFailure = !loadFailed;
+    loadFailed = true;
+    if (firstFailure) {
+      onError({
+        kind: "load",
+        title: "Settings could not be loaded",
+        description: `Using default settings for this session; changes will not be saved. ${describeError(error)}`,
+        error,
+      });
+    }
+  };
+
   return {
     canPersist,
+    failLoad,
 
     async load() {
       try {
@@ -53,17 +73,7 @@ export function createSettingsPersistence(
         loadSucceeded = true;
         return { ok: true, settings };
       } catch (error) {
-        logger.error("App", "Failed to load settings", error);
-        const firstFailure = !loadFailed;
-        loadFailed = true;
-        if (firstFailure) {
-          onError({
-            kind: "load",
-            title: "Settings could not be loaded",
-            description: `Using default settings for this session; changes will not be saved. ${describeError(error)}`,
-            error,
-          });
-        }
+        failLoad(error);
         return { ok: false };
       }
     },

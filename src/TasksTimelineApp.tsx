@@ -387,7 +387,12 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       }
       setIsSettingsLoaded(true);
     };
-    loadSettings();
+    // Merging or migrating loaded settings can throw too; treat that like a
+    // failed load so the app still starts and nothing is overwritten.
+    loadSettings().catch((error: unknown) => {
+      settingsPersistence.failLoad(error);
+      setIsSettingsLoaded(true);
+    });
   }, [settingsPersistence, apiKey]);
 
   // Persist Settings on change

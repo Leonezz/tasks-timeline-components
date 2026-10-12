@@ -101,6 +101,24 @@ describe("createSettingsPersistence", () => {
     expect(repo.saveSettings).toHaveBeenCalledOnce();
   });
 
+  it("disables saving when loaded settings later fail to apply", async () => {
+    const repo = makeRepo({
+      loadSettings: vi.fn(async () => ({ ...DEFAULT_SETTINGS })),
+    });
+    const onError = vi.fn();
+    const persistence = createSettingsPersistence(repo, onError);
+
+    expect((await persistence.load()).ok).toBe(true);
+    persistence.failLoad(new Error("cannot migrate"));
+    persistence.failLoad(new Error("cannot migrate again"));
+    await persistence.persist(changed("dark"));
+
+    expect(repo.saveSettings).not.toHaveBeenCalled();
+    expect(persistence.canPersist()).toBe(false);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toMatchObject({ kind: "load" });
+  });
+
   it("catches a rejected save and reports each distinct error once", async () => {
     const saveErrors = ["disk full", "disk full", "permission denied"];
     const repo = makeRepo({
