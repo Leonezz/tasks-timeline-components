@@ -72,6 +72,9 @@ export { TasksTimelineApp } from "./TasksTimelineApp";
 export type { TasksTimelineAppProps } from "./TasksTimelineApp";
 export * from "./index.css";
 
+// Obsidian Tasks plugin format (pure parse/serialize)
+export * from "./tasks-format";
+
 // Capabilities layer
 export { createCapabilities } from "./capabilities";
 export type {

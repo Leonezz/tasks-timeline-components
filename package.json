@@ -51,6 +51,10 @@
     "./capabilities": {
       "types": "./dist/capabilities/index.d.ts",
       "import": "./dist/capabilities/index.js"
+    },
+    "./tasks-format": {
+      "types": "./dist/tasks-format/index.d.ts",
+      "import": "./dist/tasks-format/index.js"
     }
   },
   "files": [
@@ -58,9 +62,9 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "vite build && tsc -p tsconfig.build.json",
-    "build": "vite build && tsc -p tsconfig.build.json",
-    "build:lib": "vite build && tsc -p tsconfig.build.json",
+    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
+    "build": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
+    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
     "dev:lib": "tsc -p tsconfig.build.json --watch",
     "preview": "vite preview",
     "lint": "eslint src",
