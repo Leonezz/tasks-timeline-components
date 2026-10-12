@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `executeTool()` turns an exception thrown by a tool's `execute` into a tool result `{ name, result: { error: message } }` instead of propagating, so one failing tool no longer aborts the agent loop. Unknown-tool behavior is unchanged.
 - In the built-in agent's capability context, `updateTask`/`deleteTask` throw `Task not found: <id>` for unknown ids instead of silently doing nothing (surfaced to the model as a tool error result).
 
+### Fixed
+
+- **Settings are no longer overwritten with defaults after a failed load.** If `settingsRepository.loadSettings()` rejects, the app keeps working with in-memory defaults, shows an error toast once, and does not persist settings for the rest of the session. A `null` load (first run) still counts as a successful load.
+- Rejected `settingsRepository.saveSettings()` calls are caught and shown as an error toast (once per distinct error) instead of becoming unhandled promise rejections.
+
 ## [0.0.12] - 2026-01-31
 
 ### Fixed

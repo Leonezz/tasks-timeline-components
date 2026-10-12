@@ -53,6 +53,7 @@ import { useTaskStats } from "./hooks/useTaskStats";
 import { useAIAgent } from "./hooks/useAIAgent";
 import { useAgentSessions } from "./hooks/useAgentSessions";
 import { DEFAULT_SETTINGS } from "./defaultSettings";
+import { useSettingsPersistence } from "./hooks/useSettingsPersistence";
 
 interface AgentPanelState {
   isOpen: boolean;
@@ -222,6 +223,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Defer filter updates to keep UI responsive during rapid filter changes
     deferredFilters = useDeferredValue(filters);
 
+  // Guards persistence: no saves after a failed load; failures exposed for toasts
+  const { persistence: settingsPersistence, error: settingsPersistenceError } =
+    useSettingsPersistence(settingsRepo);
+
   const { agentSessions, emitAgentEvent, removeAgentSession } =
       useAgentSessions(onAgentEvent),
     openAgentPanel = useCallback(() => {
@@ -269,126 +274,129 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     const loadSettings = async () => {
       logger.info("App", "Loading settings...");
 
-      try {
-        const loadedSettings = await settingsRepo.loadSettings();
+      const loadResult = await settingsPersistence.load();
+      if (!loadResult.ok) {
+        // App keeps working with in-memory defaults; persistence stays disabled
+        // so stored settings are not overwritten with defaults.
+        setIsSettingsLoaded(true);
+        return;
+      }
 
-        // Process Settings
-        if (loadedSettings) {
-          // Deep merge to ensure new config fields aren't lost
-          const mergedSettings: AppSettings = {
-            ...DEFAULT_SETTINGS,
-            ...loadedSettings,
-            aiConfig: {
-              ...DEFAULT_SETTINGS.aiConfig,
-              ...(loadedSettings.aiConfig || {}),
-              providers: {
-                ...DEFAULT_SETTINGS.aiConfig.providers,
-                ...(loadedSettings.aiConfig?.providers || {}),
-                // Ensure each provider has all required fields
-                ...Object.fromEntries(
-                  (
-                    Object.keys(
-                      DEFAULT_SETTINGS.aiConfig.providers,
-                    ) as AIProvider[]
-                  ).map((key) => [
-                    key,
-                    {
-                      ...DEFAULT_SETTINGS.aiConfig.providers[key],
-                      ...(loadedSettings.aiConfig?.providers?.[key] || {}),
-                    },
-                  ]),
-                ),
-              },
-            },
-            voiceConfig: {
-              ...DEFAULT_SETTINGS.voiceConfig,
-              ...(loadedSettings.voiceConfig || {}),
-              providers: {
-                ...DEFAULT_SETTINGS.voiceConfig.providers,
-                ...(loadedSettings.voiceConfig?.providers || {}),
-              },
-            },
-          };
+      const loadedSettings = loadResult.settings;
 
-          // Migrate old flat-array filter format to FilterRule
-          if (mergedSettings.filters) {
-            const f = mergedSettings.filters;
-            if (
-              Array.isArray(f.tags) &&
-              (f.tags.length === 0 || typeof f.tags[0] === "string")
-            ) {
-              mergedSettings.filters = {
-                tags: {
-                  include: f.tags as unknown as string[],
-                  exclude: [],
-                },
-                categories: {
-                  include: f.categories as unknown as string[],
-                  exclude: [],
-                },
-                priorities: {
-                  include: f.priorities as unknown as Priority[],
-                  exclude: [],
-                },
-                statuses: {
-                  include: f.statuses as unknown as TaskStatus[],
-                  exclude: [],
-                },
-                enableScript: f.enableScript ?? false,
-                script: f.script ?? "",
-              };
-            }
+      // Process Settings
+      if (loadedSettings) {
+        // Deep merge to ensure new config fields aren't lost
+        const mergedSettings: AppSettings = {
+          ...DEFAULT_SETTINGS,
+          ...loadedSettings,
+          aiConfig: {
+            ...DEFAULT_SETTINGS.aiConfig,
+            ...(loadedSettings.aiConfig || {}),
+            providers: {
+              ...DEFAULT_SETTINGS.aiConfig.providers,
+              ...(loadedSettings.aiConfig?.providers || {}),
+              // Ensure each provider has all required fields
+              ...Object.fromEntries(
+                (
+                  Object.keys(
+                    DEFAULT_SETTINGS.aiConfig.providers,
+                  ) as AIProvider[]
+                ).map((key) => [
+                  key,
+                  {
+                    ...DEFAULT_SETTINGS.aiConfig.providers[key],
+                    ...(loadedSettings.aiConfig?.providers?.[key] || {}),
+                  },
+                ]),
+              ),
+            },
+          },
+          voiceConfig: {
+            ...DEFAULT_SETTINGS.voiceConfig,
+            ...(loadedSettings.voiceConfig || {}),
+            providers: {
+              ...DEFAULT_SETTINGS.voiceConfig.providers,
+              ...(loadedSettings.voiceConfig?.providers || {}),
+            },
+          },
+        };
+
+        // Migrate old flat-array filter format to FilterRule
+        if (mergedSettings.filters) {
+          const f = mergedSettings.filters;
+          if (
+            Array.isArray(f.tags) &&
+            (f.tags.length === 0 || typeof f.tags[0] === "string")
+          ) {
+            mergedSettings.filters = {
+              tags: {
+                include: f.tags as unknown as string[],
+                exclude: [],
+              },
+              categories: {
+                include: f.categories as unknown as string[],
+                exclude: [],
+              },
+              priorities: {
+                include: f.priorities as unknown as Priority[],
+                exclude: [],
+              },
+              statuses: {
+                include: f.statuses as unknown as TaskStatus[],
+                exclude: [],
+              },
+              enableScript: f.enableScript ?? false,
+              script: f.script ?? "",
+            };
           }
+        }
 
-          // Override API key from prop if present, even if settings exist
-          const finalSettings = apiKey
-            ? {
-                ...mergedSettings,
-                aiConfig: {
-                  ...mergedSettings.aiConfig,
-                  providers: {
-                    ...mergedSettings.aiConfig.providers,
-                    gemini: {
-                      ...mergedSettings.aiConfig.providers.gemini,
-                      apiKey,
-                    },
+        // Override API key from prop if present, even if settings exist
+        const finalSettings = apiKey
+          ? {
+              ...mergedSettings,
+              aiConfig: {
+                ...mergedSettings.aiConfig,
+                providers: {
+                  ...mergedSettings.aiConfig.providers,
+                  gemini: {
+                    ...mergedSettings.aiConfig.providers.gemini,
+                    apiKey,
                   },
                 },
-              }
-            : mergedSettings;
+              },
+            }
+          : mergedSettings;
 
-          setSettings(finalSettings);
+        setSettings(finalSettings);
 
-          // Set derived states from settings
-          setIsFocusMode(finalSettings.defaultFocusMode);
-          setIsAiMode(
-            finalSettings.aiConfig.enabled &&
-              finalSettings.aiConfig.defaultMode,
-          );
-          setFilters(finalSettings.filters);
-          setSort(finalSettings.sort);
-        } else {
-          // Use defaults
-          setIsAiMode(
-            DEFAULT_SETTINGS.aiConfig.enabled &&
-              DEFAULT_SETTINGS.aiConfig.defaultMode,
-          );
-        }
-        setIsSettingsLoaded(true);
-      } catch (e) {
-        logger.error("App", "Failed to load settings", e);
-        setIsSettingsLoaded(true); // Still mark as loaded to allow app to function
+        // Set derived states from settings
+        setIsFocusMode(finalSettings.defaultFocusMode);
+        setIsAiMode(
+          finalSettings.aiConfig.enabled && finalSettings.aiConfig.defaultMode,
+        );
+        setFilters(finalSettings.filters);
+        setSort(finalSettings.sort);
+      } else {
+        // Use defaults
+        setIsAiMode(
+          DEFAULT_SETTINGS.aiConfig.enabled &&
+            DEFAULT_SETTINGS.aiConfig.defaultMode,
+        );
       }
+      setIsSettingsLoaded(true);
     };
     loadSettings();
-  }, [settingsRepo, apiKey]);
+  }, [settingsPersistence, apiKey]);
 
   // Persist Settings on change
   useEffect(() => {
     if (isSettingsLoaded) {
-      settingsRepo.saveSettings(settings);
+      // persist() never rejects and is a no-op after a failed load
+      settingsPersistence.persist(settings);
     }
-  }, [settings, settingsRepo, isSettingsLoaded]);
+  }, [settings, settingsPersistence, isSettingsLoaded]);
 
   const toastResolversRef = useRef<
       Map<string, { resolve: (v: unknown) => void }>
@@ -540,6 +548,20 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         };
       });
     };
+
+  // Surface settings load/save failures to the user (each failure once)
+  useEffect(() => {
+    if (!settingsPersistenceError) {
+      return;
+    }
+    addToast({
+      variant: "error",
+      title: settingsPersistenceError.title,
+      description: settingsPersistenceError.description,
+      interaction: { kind: "dismiss" },
+      timeout: null,
+    });
+  }, [settingsPersistenceError, addToast]);
 
   // Compute effective theme
   const effectiveTheme =

@@ -344,6 +344,10 @@ interface TasksTimelineAppProps {
   `Stopped after N tool rounds without a final answer` as an agent error.
 - `DEFAULT_SETTINGS` (the built-in default `AppSettings`) is exported from the main
   entry.
+- If `settingsRepository.loadSettings()` rejects, the app runs with in-memory
+  defaults, shows an error toast, and does not save settings for the rest of the
+  session (so stored settings are never overwritten with defaults). Rejected saves
+  are caught and shown as an error toast.
 
 **Synchronization Strategy:**
 - If callbacks (`onTaskAdded`, etc.) are provided, they take priority
