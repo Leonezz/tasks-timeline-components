@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { CapabilityContext } from "../../types";
+import type { Task } from "../../../types";
 import { createCreateTaskTool } from "../../tools/create-task";
 
 function makeContext(
@@ -118,6 +119,22 @@ describe("create_task tool", () => {
 
     const addedTask = vi.mocked(ctx.addTask).mock.calls[0][0];
     expect(addedTask.status).toBe("todo");
+  });
+
+  it("reports the id the host stored the task under", async () => {
+    const ctx = makeContext({
+      addTask: vi.fn(async (task: Task) => ({ ...task, id: "1/HOSTKEY1" })),
+    });
+    const tool = createCreateTaskTool(ctx);
+    const result = await tool.execute({ title: "Stored elsewhere" });
+    expect(result.result).toMatchObject({ success: true, id: "1/HOSTKEY1" });
+  });
+
+  it("keeps its own id when the host returns nothing", async () => {
+    const tool = createCreateTaskTool(ctx);
+    const result = await tool.execute({ title: "Local" });
+    const addedTask = vi.mocked(ctx.addTask).mock.calls[0][0];
+    expect(result.result).toMatchObject({ id: addedTask.id });
   });
 
   it("notifies on success", async () => {

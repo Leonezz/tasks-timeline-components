@@ -94,12 +94,13 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
 
       const finalTask: Task = { ...task, status: deriveWorkflowStatus(task) };
 
-      await ctx.addTask(finalTask);
+      const stored = await ctx.addTask(finalTask);
       ctx.notify?.("success", `Created task: ${title}`);
 
       return {
         name: "create_task",
-        result: { success: true, id, title },
+        // The host may store the task under its own id; report that one.
+        result: { success: true, id: stored?.id ?? id, title },
       };
     },
   };

@@ -4,7 +4,7 @@ import type { CapabilityContext } from "../capabilities";
 export interface AgentCapabilityContextDeps {
   getTasks: () => Task[];
   getSettings: () => AppSettings;
-  onTaskAdded: (task: Task) => void | Promise<void>;
+  onTaskAdded: (task: Task) => void | Task | Promise<void | Task>;
   onTaskUpdated: (task: Task, previous: Task) => void | Promise<void>;
   onTaskDeleted: (taskId: string, previous: Task) => void | Promise<void>;
   updateSettings?: (settings: AppSettings) => void | Promise<void>;
@@ -42,7 +42,7 @@ export function createAgentCapabilityContext(
     getTasks: async () => deps.getTasks(),
     getTask: async (id) => deps.getTasks().find((t) => t.id === id) ?? null,
     addTask: async (task) => {
-      await deps.onTaskAdded(task);
+      return (await deps.onTaskAdded(task)) ?? undefined;
     },
     updateTask: async (task) => {
       const previous = findTaskOrThrow(deps.getTasks(), task.id);

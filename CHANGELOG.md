@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-14
+
+### Changed
+
+- `CapabilityContext.addTask` and the `onTaskAdded` prop may return the
+  stored task. Hosts that store tasks under their own ids (a database key, a
+  file position) should return it: the `create_task` tool now reports the
+  stored task's id, so the agent can update or complete the task it just
+  created. Hosts that return nothing keep the previous behavior.
+
 ## [0.7.0] - 2026-10-13
 
 ### Added

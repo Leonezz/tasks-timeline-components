@@ -11,7 +11,11 @@ export type ConfirmPolicy = "require" | "skip";
 export interface CapabilityContext {
   getTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task | null>;
-  addTask(task: Task): Promise<void>;
+  /**
+   * Stores a new task. Hosts that store tasks under their own ids should
+   * return the stored task so tools report the id that later calls must use.
+   */
+  addTask(task: Task): Promise<void | Task>;
   updateTask(task: Task): Promise<void>;
   deleteTask(id: string): Promise<void>;
   getSettings?(): AppSettings | null;

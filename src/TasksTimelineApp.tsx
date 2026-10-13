@@ -117,7 +117,11 @@ export interface TasksTimelineAppProps {
 
   // Controlled tasks data (required)
   tasks: Task[];
-  onTaskAdded: (task: Task) => void | Promise<void>;
+  /**
+   * Stores a new task. Return the stored task if the host assigns its own id,
+   * so the built-in agent reports the id later tool calls must use.
+   */
+  onTaskAdded: (task: Task) => void | Task | Promise<void | Task>;
   onTaskUpdated: (task: Task, previous: Task) => void | Promise<void>;
   onTaskDeleted: (taskId: string, previous: Task) => void | Promise<void>;
 

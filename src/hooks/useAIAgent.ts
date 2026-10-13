@@ -84,7 +84,7 @@ function validateAgentOptions(options: UseAIAgentOptions | undefined): number {
 
 export const useAIAgent = (
   tasks: Task[],
-  onTaskAdded: (task: Task) => void | Promise<void>,
+  onTaskAdded: (task: Task) => void | Task | Promise<void | Task>,
   onTaskUpdated: (task: Task, previous: Task) => void | Promise<void>,
   onTaskDeleted: (taskId: string, previous: Task) => void | Promise<void>,
   settings: AppSettings,
