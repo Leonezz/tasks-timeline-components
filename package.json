@@ -62,9 +62,9 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
-    "build": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
-    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && tsc -p tsconfig.build.json",
+    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json",
+    "build": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json",
+    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json",
     "dev:lib": "tsc -p tsconfig.build.json --watch",
     "preview": "vite preview",
     "lint": "eslint src",
