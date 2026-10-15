@@ -126,6 +126,19 @@ describe("component accessibility affordances", () => {
     expect(html).toContain("structured");
   });
 
+  it("does not force task titles to wrap inside the truncating title button", () => {
+    const task = createTask();
+    const html = renderWithProviders(<TaskItem task={task} />, {
+      tasks: [task],
+    });
+    const titleButton = html.match(
+      /<button[^>]*aria-label="Edit task title:[^"]*"[^>]*>([\s\S]*?)<\/button>/,
+    );
+
+    expect(titleButton?.[0]).toContain("truncate");
+    expect(titleButton?.[1]).not.toContain("whitespace-pre-wrap");
+  });
+
   it("surfaces focus-mode empty CTA and hidden backlog notice", () => {
     const backlogTask = createTask({
       createdAt: undefined,

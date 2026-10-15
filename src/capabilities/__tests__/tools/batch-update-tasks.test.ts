@@ -333,17 +333,30 @@ describe("batch_update_tasks tool", () => {
     expect(updatedTask2.category).toBe("work");
   });
 
-  it("notifies on successful batch update", async () => {
+  it("shows one notification per batch when the host has rich toasts", async () => {
     const tool = createBatchUpdateTasksTool(ctx);
     await tool.execute({
       filter: { category: "work" },
       update: { status: "done" },
     });
 
-    expect(ctx.notify).toHaveBeenCalledWith(
-      "success",
-      expect.stringContaining("2"),
-    );
+    expect(mockShowToast).toHaveBeenCalledOnce();
+    expect(ctx.notify).not.toHaveBeenCalled();
+  });
+
+  it("falls back to notify when the host has no rich toasts", async () => {
+    const plainCtx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([...SAMPLE_TASKS]),
+      confirm: mockConfirm as CapabilityContext["confirm"],
+    });
+    const tool = createBatchUpdateTasksTool(plainCtx);
+    await tool.execute({
+      filter: { category: "work" },
+      update: { status: "done" },
+    });
+
+    expect(plainCtx.notify).toHaveBeenCalledOnce();
+    expect(plainCtx.notify).toHaveBeenCalledWith("success", "Updated 2 tasks");
   });
 
   it("updates tasks when user confirms batch update", async () => {

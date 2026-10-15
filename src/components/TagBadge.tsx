@@ -1,7 +1,7 @@
 import type { Task } from "@/types";
 import { Icon } from "./Icon";
 import { MotionDiv } from "./Motion";
-import { cn } from "@/utils";
+import { cn, removeTagAt } from "@/utils";
 import {
   Popover,
   PopoverClose,
@@ -11,6 +11,8 @@ import {
 
 export interface TagBadgeProps {
   tag: { id: string; name: string };
+  /** Position of `tag` in `task.tags`; tags can share an id, so removal uses it. */
+  index: number;
   badgeClass: string;
   task: Task;
   onUpdate: (task: Task) => void;
@@ -18,6 +20,7 @@ export interface TagBadgeProps {
 
 export const TagBadge = ({
   tag,
+  index,
   badgeClass,
   task,
   onUpdate,
@@ -59,10 +62,12 @@ export const TagBadge = ({
           </div>
           <PopoverClose asChild>
             <button
+              type="button"
+              aria-label={`Remove tag ${tag.name} from ${task.title}`}
               onClick={() =>
                 onUpdate({
                   ...task,
-                  tags: task.tags.filter((t) => t.id !== tag.id),
+                  tags: removeTagAt(task.tags, index),
                 })
               }
               className="mt-1 grid min-h-8 w-full grid-cols-[1rem_1fr_1rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-slate-600 transition-colors hover:bg-rose-50/80 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-blue-500/30"

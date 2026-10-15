@@ -13,6 +13,7 @@ import {
   formatRecurrence,
   formatSmartDate,
   formatTime,
+  removeTagAt,
   type DateValidationState,
 } from "../utils";
 import { Icon } from "./Icon";
@@ -425,7 +426,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       inline
                       compact
                       className="min-w-0"
-                      paragraphClassName="inline whitespace-pre-wrap"
+                      paragraphClassName="inline"
                       codeClassName="rounded bg-slate-100/80 px-1 py-0 font-mono text-[0.9em] text-slate-700"
                     />
                   )}
@@ -592,6 +593,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <TagBadge
                 key={`${task.id}-tag-${index}`}
                 tag={tag}
+                index={index}
                 task={task}
                 onUpdate={onUpdateTask}
                 badgeClass={badgeClass}
@@ -628,14 +630,20 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       Tags
                     </div>
                     <div className="flex flex-col gap-0.5 pt-1">
-                      {overflowTags.map((tag) => (
-                        <PopoverClose key={tag.id} asChild>
+                      {overflowTags.map((tag, overflowIndex) => (
+                        <PopoverClose
+                          key={`${task.id}-tag-${MAX_INLINE_TAGS + overflowIndex}`}
+                          asChild
+                        >
                           <button
                             type="button"
                             onClick={() =>
                               onUpdateTask({
                                 ...task,
-                                tags: task.tags.filter((t) => t.id !== tag.id),
+                                tags: removeTagAt(
+                                  task.tags,
+                                  MAX_INLINE_TAGS + overflowIndex,
+                                ),
                               })
                             }
                             className="grid min-h-8 w-full grid-cols-[1rem_1fr_1rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-slate-600 transition-colors hover:bg-rose-50/80 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-blue-500/30"

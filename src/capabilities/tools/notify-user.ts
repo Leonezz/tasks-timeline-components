@@ -23,7 +23,8 @@ export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
         },
         body: {
           type: "string",
-          description: "Longer text content for detailed information",
+          description:
+            "Longer text content for detailed information (Markdown supported)",
         },
         timeout: {
           type: "number",
@@ -45,17 +46,32 @@ export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
           ? null
           : rawTimeout;
 
-      ctx.showToast?.({
-        variant,
-        title,
-        description,
-        body,
-        timeout,
-      });
+      if (ctx.showToast) {
+        ctx.showToast({ variant, title, description, body, timeout });
+        return { name: "notify_user", result: { success: true } };
+      }
+
+      // Explicit degraded mode: the host can only show one plain line
+      if (ctx.notify) {
+        ctx.notify(variant, description ? `${title}: ${description}` : title);
+        return {
+          name: "notify_user",
+          result: {
+            success: true,
+            degraded: true,
+            warning:
+              "This host cannot show rich notifications, so only the title and description were shown; body and timeout were dropped.",
+          },
+        };
+      }
 
       return {
         name: "notify_user",
-        result: { success: true },
+        result: {
+          success: false,
+          error:
+            "This host cannot show notifications. Reply with a text response instead.",
+        },
       };
     },
   };

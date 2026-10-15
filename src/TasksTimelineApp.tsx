@@ -3,7 +3,6 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
-  useRef,
   useState,
   useTransition,
   useDeferredValue,
@@ -54,6 +53,10 @@ import { useAIAgent } from "./hooks/useAIAgent";
 import { useAgentSessions } from "./hooks/useAgentSessions";
 import { DEFAULT_SETTINGS } from "./defaultSettings";
 import { useSettingsPersistence } from "./hooks/useSettingsPersistence";
+import {
+  createToastId,
+  createToastInteractionController,
+} from "./hooks/toastInteractions";
 
 interface AgentPanelState {
   isOpen: boolean;
@@ -407,23 +410,23 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     }
   }, [settings, settingsPersistence, isSettingsLoaded]);
 
-  const toastResolversRef = useRef<
-      Map<string, { resolve: (v: unknown) => void }>
-    >(new Map()),
+  // Created once so its methods stay referentially stable: Toast restarts
+  // its timer when onDismiss changes
+  const [toastInteractions] = useState(() =>
+      createToastInteractionController({
+        show: (toast) => setToasts((prev) => [...prev, toast]),
+        hide: (id) => {
+          setToasts((prev) => prev.filter((t) => t.id !== id));
+          setExpandedToastId((prev) => (prev === id ? null : prev));
+        },
+      }),
+    ),
     addToast = useCallback((toast: Omit<ToastMessage, "id">): string => {
-      const id = Math.random().toString(36).slice(2, 11);
+      const id = createToastId();
       setToasts((prev) => [...prev, { ...toast, id }]);
       return id;
     }, []),
-    removeToast = useCallback((id: string) => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-      const resolver = toastResolversRef.current.get(id);
-      if (resolver) {
-        resolver.resolve(false);
-        toastResolversRef.current.delete(id);
-      }
-      setExpandedToastId((prev) => (prev === id ? null : prev));
-    }, []),
+    removeToast = toastInteractions.dismiss,
     addNotification = useCallback(
       (type: ToastVariant, title: string, description?: string) => {
         addToast({
@@ -443,89 +446,9 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       },
       [addToast],
     ),
-    confirmToast = useCallback(
-      (title: string, description?: string): Promise<boolean | null> => {
-        return new Promise((resolve) => {
-          const id = addToast({
-            variant: "info",
-            title,
-            description,
-            interaction: {
-              kind: "confirm",
-              onConfirm: () => {
-                resolve(true);
-                removeToast(id);
-              },
-              onCancel: () => {
-                resolve(null);
-                removeToast(id);
-              },
-            },
-            timeout: null,
-          });
-          toastResolversRef.current.set(id, {
-            resolve: resolve as (v: unknown) => void,
-          });
-        });
-      },
-      [addToast, removeToast],
-    ),
-    selectToast = useCallback(
-      (
-        title: string,
-        options: { label: string; value: string }[],
-      ): Promise<string | null> => {
-        return new Promise((resolve) => {
-          const id = addToast({
-            variant: "info",
-            title,
-            interaction: {
-              kind: "select",
-              options,
-              onSelect: (value) => {
-                resolve(value);
-                removeToast(id);
-              },
-              onCancel: () => {
-                resolve(null);
-                removeToast(id);
-              },
-            },
-            timeout: null,
-          });
-          toastResolversRef.current.set(id, {
-            resolve: resolve as (v: unknown) => void,
-          });
-        });
-      },
-      [addToast, removeToast],
-    ),
-    promptToast = useCallback(
-      (question: string): Promise<string | null> => {
-        return new Promise((resolve) => {
-          const id = addToast({
-            variant: "info",
-            title: question,
-            interaction: {
-              kind: "prompt",
-              onSubmit: (text) => {
-                resolve(text);
-                removeToast(id);
-              },
-              onCancel: () => {
-                resolve(null);
-                removeToast(id);
-              },
-            },
-            timeout: null,
-          });
-          toastResolversRef.current.set(id, {
-            resolve: resolve as (v: unknown) => void,
-          });
-        });
-      },
-      [addToast, removeToast],
-    ),
+    confirmToast = toastInteractions.confirm,
+    selectToast = toastInteractions.select,
+    promptToast = toastInteractions.prompt,
     toggleExpandToast = useCallback((id: string) => {
       setExpandedToastId((prev) => (prev === id ? null : id));
     }, []),
@@ -557,6 +480,12 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         };
       });
     };
+
+  // Questions still waiting at unmount reject, so the agent turn ends instead of hanging
+  useEffect(() => {
+    toastInteractions.activate();
+    return () => toastInteractions.dispose();
+  }, [toastInteractions]);
 
   // Surface settings load/save failures to the user (each failure once)
   useEffect(() => {

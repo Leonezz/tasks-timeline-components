@@ -47,6 +47,10 @@ export function createMockContext(seedTasks: Partial<Task>[] = []): {
     notify: (_type: "success" | "error" | "info", _message: string) => {
       // Silent in eval mode
     },
+    // Accept rich toasts like the built-in app, so notify_user is not degraded
+    showToast: () => {
+      // Silent in eval mode
+    },
   };
 
   return {

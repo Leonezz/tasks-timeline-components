@@ -32,6 +32,10 @@ const DEFAULT_MODELS: Record<AISDKProviderType, string> = {
   "openai-compatible": "gpt-4o",
 };
 
+const ANTHROPIC_BROWSER_ACCESS_HEADERS = {
+  "anthropic-dangerous-direct-browser-access": "true",
+};
+
 type OpenAILanguageModelMode = "responses" | "chat";
 
 function getOpenAILanguageModelMode(
@@ -91,6 +95,9 @@ function createLanguageModel(
       const provider = createAnthropic({
         apiKey: config.apiKey,
         baseURL,
+        // This library runs in browsers (and Electron hosts such as Obsidian);
+        // without this header Anthropic rejects the CORS preflight.
+        headers: ANTHROPIC_BROWSER_ACCESS_HEADERS,
       });
       return provider(model);
     }
@@ -191,9 +198,7 @@ function toModelMessages(
         });
       }
 
-      for (const [index, toolCall] of (
-        message.toolCalls ?? []
-      ).entries()) {
+      for (const [index, toolCall] of (message.toolCalls ?? []).entries()) {
         assistantContent.push({
           type: "tool-call",
           toolCallId: toolCall.id || toToolCallId(toolCall.name, index),

@@ -37,6 +37,41 @@ describe("ask_user tool", () => {
     expect(tool.schema.properties).toHaveProperty("question");
     expect(tool.schema.properties).toHaveProperty("options");
     expect(tool.schema.properties).toHaveProperty("confirm");
+    expect(tool.schema.properties).toHaveProperty("description");
+  });
+
+  it("passes description to confirm", async () => {
+    mockConfirm.mockResolvedValue(true);
+    const ctx = makeContext({
+      confirm: mockConfirm as CapabilityContext["confirm"],
+    });
+
+    const tool = createAskUserTool(ctx);
+    await tool.execute({
+      question: "Delete this task?",
+      description: "It cannot be restored.",
+      confirm: true,
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith(
+      "Delete this task?",
+      "It cannot be restored.",
+    );
+  });
+
+  it("calls host callbacks with the context as this", async () => {
+    const ctx = {
+      ...makeContext(),
+      answer: "from-host",
+      async prompt(this: { answer: string }) {
+        return this.answer;
+      },
+    };
+
+    const tool = createAskUserTool(ctx);
+    const result = await tool.execute({ question: "Name?" });
+
+    expect(result.result).toEqual({ question: "Name?", answer: "from-host" });
   });
 
   // --- Confirm mode ---
@@ -228,4 +263,29 @@ describe("ask_user tool", () => {
       error: "User interaction not available",
     });
   });
+
+  // --- Host can no longer ask (e.g. the app unmounted) ---
+
+  it.each([
+    ["confirm", { confirm: true }],
+    ["select", { options: [{ label: "A", value: "a" }] }],
+    ["prompt", {}],
+  ] as const)(
+    "returns an explicit error when %s rejects",
+    async (mode, extraArgs) => {
+      const rejection = vi
+        .fn()
+        .mockRejectedValue(new Error("User interaction not available: closed"));
+      const ctx = makeContext({ [mode]: rejection });
+
+      const tool = createAskUserTool(ctx);
+      const result = await tool.execute({ question: "Proceed?", ...extraArgs });
+
+      expect(result.result).toEqual({
+        question: "Proceed?",
+        answer: null,
+        error: "User interaction not available: closed",
+      });
+    },
+  );
 });

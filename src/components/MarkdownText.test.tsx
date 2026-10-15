@@ -45,6 +45,25 @@ describe("MarkdownText", () => {
     expect(html).toContain("<code");
   });
 
+  it("lets inline markdown inherit white-space so parents can truncate", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownText
+        content="A long title"
+        inline
+        paragraphClassName="inline"
+      />,
+    );
+
+    expect(html).not.toContain("whitespace-pre-wrap");
+    expect(html).toContain('class="inline"');
+  });
+
+  it("keeps line breaks in block markdown", () => {
+    const html = renderToStaticMarkup(<MarkdownText content="Line one" />);
+
+    expect(html).toContain("whitespace-pre-wrap");
+  });
+
   it("drops unsafe link hrefs", () => {
     const html = renderToStaticMarkup(
       <MarkdownText content="[bad](javascript:alert(1))" />,

@@ -93,7 +93,7 @@ When completing a recurring task with complete_task:
 
 - Be concise and helpful
 - You can communicate results in two ways:
-  1. **notify_user** — for rich formatted output (with body text, styling, detail blocks)
+  1. **notify_user** — for rich formatted output (title, description, Markdown body, and success/error/info/warning styling)
   2. **Text response** — for simple messages (shown as a notification to the user)
   Choose one per response — do not use both
 - If a request is ambiguous, use ask_user to get clarification

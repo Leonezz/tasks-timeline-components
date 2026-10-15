@@ -1,4 +1,7 @@
+import type { ToolResult } from "../../providers/types";
 import type { CapabilityContext, ToolSpec } from "../types";
+
+const INTERACTION_UNAVAILABLE = "User interaction not available";
 
 export function createAskUserTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -35,84 +38,84 @@ export function createAskUserTool(ctx: CapabilityContext): ToolSpec {
           description:
             "When true, presents a yes/no confirmation dialog instead of free-text input",
         },
+        description: {
+          type: "string",
+          description:
+            "Extra context shown under the question. Only used with confirm: true.",
+        },
       },
       required: ["question"],
     },
 
     async execute(args: Record<string, unknown>) {
       const question = args.question as string;
+      const description = args.description as string | undefined;
       const options = args.options as
         | { label: string; value: string }[]
         | undefined;
       const confirm = args.confirm as boolean | undefined;
 
-      const unavailable = {
-        question,
-        answer: null,
-        error: "User interaction not available",
-      };
-
       // Confirm mode
       if (confirm) {
-        if (!ctx.confirm) {
-          return { name: "ask_user", result: unavailable };
-        }
-        const description = args.description as string | undefined;
-        const confirmed = await ctx.confirm(question, description);
-        if (confirmed === null) {
-          return {
-            name: "ask_user",
-            result: { question, answer: null, dismissed: true },
-          };
-        }
-        return {
-          name: "ask_user",
-          result: {
-            question,
-            answer: confirmed ? "yes" : "no",
-          },
-        };
+        const ask = ctx.confirm?.bind(ctx);
+        return askUser(
+          question,
+          ask &&
+            (async () => {
+              const confirmed = await ask(question, description);
+              return confirmed === null ? null : confirmed ? "yes" : "no";
+            }),
+        );
       }
 
       // Select mode
       if (options && options.length > 0) {
-        if (!ctx.select) {
-          return { name: "ask_user", result: unavailable };
-        }
-        const selected = await ctx.select(question, options);
-        if (selected === null) {
-          return {
-            name: "ask_user",
-            result: { question, answer: null, dismissed: true },
-          };
-        }
-        return {
-          name: "ask_user",
-          result: {
-            question,
-            answer: selected,
-          },
-        };
+        const ask = ctx.select?.bind(ctx);
+        return askUser(question, ask && (() => ask(question, options)));
       }
 
       // Free text mode
-      if (!ctx.prompt) {
-        return { name: "ask_user", result: unavailable };
-      }
-      const answer = await ctx.prompt(question);
-      if (answer === null) {
-        return {
-          name: "ask_user",
-          result: { question, answer: null, dismissed: true },
-        };
-      }
-      return {
-        name: "ask_user",
-        result: {
-          question,
-          answer,
-        },
-      };
+      const ask = ctx.prompt?.bind(ctx);
+      return askUser(question, ask && (() => ask(question)));
     },
   };
+}
+
+/**
+ * Runs one question and maps the outcome to the tool result:
+ * an answer, `dismissed: true` when the user closed it, or an explicit error
+ * when the host cannot ask (no callback, or the callback rejected).
+ */
+async function askUser(
+  question: string,
+  ask: (() => Promise<string | null>) | undefined,
+): Promise<ToolResult> {
+  if (!ask) {
+    return {
+      name: "ask_user",
+      result: { question, answer: null, error: INTERACTION_UNAVAILABLE },
+    };
+  }
+  try {
+    const answer = await ask();
+    return {
+      name: "ask_user",
+      result:
+        answer === null
+          ? { question, answer: null, dismissed: true }
+          : { question, answer },
+    };
+  } catch (error) {
+    return {
+      name: "ask_user",
+      result: {
+        question,
+        answer: null,
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : INTERACTION_UNAVAILABLE,
+      },
+    };
+  }
 }
