@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent } from "storybook/test";
+import { expect, fn, userEvent } from "storybook/test";
 import { DateBadge } from "../../components/DateBadge";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
@@ -39,7 +39,10 @@ const today = DateTime.now(),
     title: "Sample Task",
     dueAt: today.toISODate()!,
   }),
-  handleUpdate = (task: Task) => console.log("Updated task:", task);
+  handleUpdate = (task: Task) => console.log("Updated task:", task),
+  // The calendar header is formatted by date-fns in English, e.g. "March 2026"
+  calendarMonth = (date: DateTime) =>
+    date.setLocale("en-US").toFormat("MMMM yyyy");
 
 // ========================================
 // Due Date Stories
@@ -208,10 +211,9 @@ export const DateOnlyInput: Story = {
       await delay(200);
     });
 
-    await step("Verify date input is visible", async () => {
-      const dateInput = canvas.getByDisplayValue(today.toISODate()!);
-      expect(dateInput).toBeInTheDocument();
-      expect(dateInput).toHaveAttribute("type", "date");
+    await step("Verify calendar is visible without a time field", async () => {
+      expect(canvas.getByText(calendarMonth(today))).toBeInTheDocument();
+      expect(canvas.queryByText("Time")).not.toBeInTheDocument();
     });
   },
 };
@@ -229,12 +231,10 @@ export const DateTimeInput: Story = {
       await delay(200);
     });
 
-    await step("Verify datetime input is visible", async () => {
-      const input = canvas.getByDisplayValue(
-        today.toFormat("yyyy-MM-dd'T'HH:mm"),
-      );
-      expect(input).toBeInTheDocument();
-      expect(input).toHaveAttribute("type", "datetime-local");
+    await step("Verify calendar and time field are visible", async () => {
+      expect(canvas.getByText(calendarMonth(today))).toBeInTheDocument();
+      const timeInput = canvas.getByDisplayValue(today.toFormat("HH:mm"));
+      expect(timeInput).toHaveAttribute("type", "time");
     });
   },
 };
@@ -243,23 +243,25 @@ export const DateTimeInput: Story = {
 // Interaction Testing
 // ========================================
 
+// Fixed dates keep calendar day buttons unique: March 2026 starts on a Sunday
 export const ChangeDueDate: Story = {
   args: {
     ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
   },
-  play: async ({ canvasElement, step }) => {
+  play: async ({ args, canvasElement, step }) => {
     const canvas = withinShadow(canvasElement);
 
     await step("Open date picker", async () => {
-      const button = canvas.getByRole("button", { name: /Change Due Date/i });
+      const button = canvas.getByTitle("Change due date");
       await userEvent.click(button);
       await delay(200);
     });
 
-    await step("Change date value", async () => {
-      const input = canvas.getByDisplayValue(today.toISODate()!);
-      await userEvent.clear(input);
-      await userEvent.type(input, tomorrow.toISODate()!);
+    await step("Pick a new date", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "20" }));
       await delay(100);
     });
 
@@ -267,7 +269,9 @@ export const ChangeDueDate: Story = {
       const saveButton = canvas.getByRole("button", { name: /Save/i });
       await userEvent.click(saveButton);
       await delay(100);
-      // OnUpdate should be called with new dueDate
+      expect(args.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ dueAt: "2026-03-20" }),
+      );
     });
   },
 };
@@ -275,25 +279,24 @@ export const ChangeDueDate: Story = {
 export const ChangeStartDate: Story = {
   args: {
     ...StartDate.args,
+    date: DateTime.local(2026, 3, 10, 9, 30).toISO()!,
+    label: "Mar 10 9:30 AM",
+    onUpdate: fn(),
   },
-  play: async ({ canvasElement, step }) => {
+  play: async ({ args, canvasElement, step }) => {
     const canvas = withinShadow(canvasElement);
 
     await step("Open datetime picker", async () => {
-      const button = canvas.getByRole("button", {
-        name: /Change Start Date/i,
-      });
+      const button = canvas.getByTitle("Change start date");
       await userEvent.click(button);
       await delay(200);
     });
 
-    await step("Change datetime value", async () => {
-      const input = canvas.getByDisplayValue(
-          today.toFormat("yyyy-MM-dd'T'HH:mm"),
-        ),
-        newDateTime = tomorrow.set({ hour: 10, minute: 0 });
-      await userEvent.clear(input);
-      await userEvent.type(input, newDateTime.toFormat("yyyy-MM-dd'T'HH:mm"));
+    await step("Pick a new date and time", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "20" }));
+      const timeInput = canvas.getByDisplayValue("09:30");
+      await userEvent.clear(timeInput);
+      await userEvent.type(timeInput, "10:00");
       await delay(100);
     });
 
@@ -301,6 +304,11 @@ export const ChangeStartDate: Story = {
       const saveButton = canvas.getByRole("button", { name: /Save/i });
       await userEvent.click(saveButton);
       await delay(100);
+      expect(args.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startAt: DateTime.local(2026, 3, 20, 10, 0).toISO(),
+        }),
+      );
     });
   },
 };
@@ -308,19 +316,23 @@ export const ChangeStartDate: Story = {
 export const ClearDate: Story = {
   args: {
     ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
   },
-  play: async ({ canvasElement, step }) => {
+  play: async ({ args, canvasElement, step }) => {
     const canvas = withinShadow(canvasElement);
 
     await step("Open date picker", async () => {
-      const button = canvas.getByRole("button");
+      const button = canvas.getByTitle("Change due date");
       await userEvent.click(button);
       await delay(200);
     });
 
-    await step("Clear date value", async () => {
-      const input = canvas.getByDisplayValue(today.toISODate()!);
-      await userEvent.clear(input);
+    await step("Deselect the current date", async () => {
+      // Calendar's onSelect takes Date | undefined, like react-day-picker's
+      // single mode: clicking the selected day again clears the selection
+      await userEvent.click(canvas.getByRole("button", { name: "10" }));
       await delay(100);
     });
 
@@ -328,7 +340,9 @@ export const ClearDate: Story = {
       const saveButton = canvas.getByRole("button", { name: /Save/i });
       await userEvent.click(saveButton);
       await delay(100);
-      // OnUpdate should be called with empty dueDate
+      expect(args.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ dueAt: "" }),
+      );
     });
   },
 };
@@ -395,8 +409,8 @@ export const KeyboardNavigation: Story = {
     await step("Press Enter to open popover", async () => {
       await userEvent.keyboard("{Enter}");
       await delay(200);
-      const input = canvas.getByDisplayValue(today.toISODate()!);
-      expect(input).toBeInTheDocument();
+      const saveButton = canvas.getByRole("button", { name: "Save due date" });
+      expect(saveButton).toBeInTheDocument();
     });
   },
 };
@@ -409,8 +423,8 @@ export const AriaLabels: Story = {
     const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
-      const button = canvas.getByRole("button", { name: /Change Due Date/i });
-      expect(button).toHaveAttribute("title", "Change Due Date");
+      const button = canvas.getByRole("button", { name: "Today" });
+      expect(button).toHaveAttribute("title", "Change due date");
     });
   },
 };

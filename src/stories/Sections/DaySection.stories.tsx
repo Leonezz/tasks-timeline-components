@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { DaySection } from "../../components/DaySection";
 import type {
   DayGroup,
@@ -22,6 +22,7 @@ interface DaySectionStoryArgs {
   settings?: ReturnType<typeof settingsBuilder.default>;
   isAiMode?: boolean;
   availableCategories?: string[];
+  onUpdateTask?: (task: Task) => void;
 }
 
 const meta: Meta<DaySectionStoryArgs> = {
@@ -62,6 +63,7 @@ const meta: Meta<DaySectionStoryArgs> = {
           availableTags: ["work", "personal", "urgent"],
           onUpdateTask: (task: Task) => {
             setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+            context.args.onUpdateTask?.(task);
             console.log("Update task:", task);
           },
           onDeleteTask: (id: string) => {
@@ -305,16 +307,29 @@ export const AddTaskInline: Story = {
 export const UpdateTaskStatus: Story = {
   args: {
     group: mockDayGroup,
+    onUpdateTask: fn(),
   },
-  play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body);
 
-    await step("Click task checkbox to complete", async () => {
-      const checkboxes = canvas.getAllByRole("checkbox");
-      if (checkboxes.length > 0) {
-        await userEvent.click(checkboxes[0]);
-        await delay(100);
-      }
+    await step("Mark task done from its status menu", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", {
+          name: /^Change status for Review pull requests/,
+        }),
+      );
+      await delay(300);
+      await userEvent.click(
+        page.getByRole("button", {
+          name: "Set Review pull requests status to done",
+        }),
+      );
+      await delay(100);
+      expect(args.onUpdateTask).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "1", status: "done" }),
+      );
     });
   },
 };

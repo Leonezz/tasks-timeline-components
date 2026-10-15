@@ -115,9 +115,13 @@ export const PopoverOpen: Story = {
     });
 
     await step("Verify all priority options visible", async () => {
-      const highOption = canvas.getByText(/high/i),
-        mediumOption = canvas.getByText(/medium/i),
-        lowOption = canvas.getByText(/low/i);
+      const highOption = canvas.getByRole("button", {
+          name: /priority to high$/,
+        }),
+        mediumOption = canvas.getByRole("button", {
+          name: /priority to medium$/,
+        }),
+        lowOption = canvas.getByRole("button", { name: /priority to low$/ });
 
       expect(highOption).toBeInTheDocument();
       expect(mediumOption).toBeInTheDocument();
@@ -350,7 +354,10 @@ export const AriaLabels: Story = {
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Change Priority/i });
-      expect(button).toHaveAttribute("title", "Change Priority");
+      expect(button).toHaveAttribute(
+        "title",
+        "Change priority (current: high)",
+      );
     });
   },
 };

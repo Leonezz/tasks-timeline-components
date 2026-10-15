@@ -409,19 +409,21 @@ export const ToggleRecurrence: Story = {
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
-    await step("Find recurrence checkbox", async () => {
-      const recurrenceCheckbox = canvas.getByRole("checkbox", {
-        name: /recurring/i,
+    await step("Find recurrence switch", async () => {
+      const recurrenceSwitch = canvas.getByRole("switch", {
+        name: /recurrence/i,
       });
-      expect(recurrenceCheckbox).toBeInTheDocument();
+      expect(recurrenceSwitch).toHaveAttribute("aria-checked", "false");
     });
 
     await step("Toggle recurrence on", async () => {
-      const recurrenceCheckbox = canvas.getByRole("checkbox", {
-        name: /recurring/i,
+      const recurrenceSwitch = canvas.getByRole("switch", {
+        name: /recurrence/i,
       });
-      await userEvent.click(recurrenceCheckbox);
+      await userEvent.click(recurrenceSwitch);
       await delay(200);
+      expect(recurrenceSwitch).toHaveAttribute("aria-checked", "true");
+      expect(canvas.getByLabelText("Recurrence interval")).toBeInTheDocument();
     });
   },
 };
@@ -433,10 +435,17 @@ export const SelectCategory: Story = {
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
-    await step("Find category selector", async () => {
-      // Category is typically a select or button that opens popover
-      const categoryButton = canvas.getByText(/Work/i);
-      expect(categoryButton).toBeInTheDocument();
+    await step("Find category input", async () => {
+      const categoryInput = canvas.getByLabelText("Category");
+      expect(categoryInput).toHaveValue("Work");
+    });
+
+    await step("Pick a suggested category", async () => {
+      const categoryInput = canvas.getByLabelText("Category");
+      await userEvent.clear(categoryInput);
+      await userEvent.type(categoryInput, "Pers");
+      await userEvent.click(canvas.getByRole("button", { name: "Personal" }));
+      expect(categoryInput).toHaveValue("Personal");
     });
   },
 };
