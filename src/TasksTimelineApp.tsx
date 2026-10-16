@@ -936,6 +936,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 availableCategories={uniqueCategories}
                 customTabs={customSettingsTabs}
                 renderSecretField={renderSecretField}
+                voiceRuntime={voiceRuntime}
               />
 
               <ErrorBoundary

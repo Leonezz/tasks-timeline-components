@@ -6,6 +6,7 @@ import type {
   SecretFieldRenderer,
 } from "../../types";
 import { cn } from "../../utils";
+import type { VoiceRuntime } from "../../utils/voice-providers";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
@@ -30,6 +31,8 @@ interface SettingsPageProps {
   customTabs?: CustomSettingsTab[];
   /** Host-provided renderer for secret selector controls. */
   renderSecretField?: SecretFieldRenderer;
+  /** Host voice runtime; `browserSpeechSupported: false` disables the Browser voice provider. */
+  voiceRuntime?: VoiceRuntime;
 }
 
 type BuiltInTab = "general" | "filters" | "ai" | "docs" | "about";
@@ -44,6 +47,7 @@ export const SettingsPage = ({
   inDarkMode,
   customTabs = [],
   renderSecretField,
+  voiceRuntime,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<BuiltInTab | string>("general"),
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
@@ -206,6 +210,7 @@ export const SettingsPage = ({
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             renderSecretField={renderSecretField}
+            voiceRuntime={voiceRuntime}
           />
         )}
         {activeTab === "docs" && <Documentation />}

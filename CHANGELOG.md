@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`VoiceRuntime.browserSpeechSupported` (#51).** A host that knows browser
+  speech recognition can't work (for example an Electron app whose Web Speech
+  API has no speech service) can set it to `false`. Then
+  `BrowserVoiceProvider.isAvailable()` returns `false`, Settings → AI disables
+  the **Browser** voice provider with an explanation, and the voice button
+  tells the user to choose OpenAI or Gemini instead of starting and failing.
+  Hosts that leave it unset behave as before.
+- `SettingsPage`, `SettingsModal` and `SettingsPageAI` accept `voiceRuntime`.
+  `TasksTimelineApp` passes its own `voiceRuntime` to the settings modal.
+- `useVoiceInput` returns `unavailableMessage`, set when the host has ruled
+  out the active provider. The built-in voice buttons show it as their
+  tooltip.
+
 ### Fixed
 
 - **`ask_user` confirm answers were swapped (#33).** In the built-in app,
@@ -41,6 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- **Misleading browser voice input error (#51).** When Web Speech recognition
+  failed with the `network` error, the message said "Browser voice input
+  requires internet connection." Embedded hosts report that error when they
+  have no speech service at all, so it pointed users to the wrong cause. It
+  now reads "Browser speech recognition isn't available here. Choose OpenAI
+  or Gemini as the voice provider in Settings → AI."
 
 ### Changed
 

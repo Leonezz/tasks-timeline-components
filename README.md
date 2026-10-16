@@ -236,12 +236,20 @@ const { processTask, generateSuggestions, isLoading } = useAIAgent(
 
 ### useVoiceInput
 
-Handle browser voice input or Whisper API integration.
+Handle voice input with the configured provider (browser Web Speech API,
+OpenAI Whisper or Gemini).
 
 ```typescript
-const { transcript, isListening, startListening, stopListening } =
-  useVoiceInput();
+const { isListening, start, stop, unavailableMessage } = useVoiceInput(
+  settings.voiceConfig,
+  (transcript) => appendText(transcript),
+  (message) => showError(message),
+  voiceRuntime, // optional, see "Voice Input" below
+);
 ```
+
+`unavailableMessage` is set when the host has ruled out the active provider.
+`start()` then reports it through the error callback instead of starting.
 
 ## Types
 
@@ -332,6 +340,9 @@ interface TasksTimelineAppProps {
   aiExtraTools?: ToolSpec[]; // v0.6.0+: host tools appended to the built-ins
   aiMaxToolRounds?: number; // v0.6.0+: default 16
   onAgentEvent?: (event: AgentEvent) => void;
+
+  // Voice input (see "Voice Input" below)
+  voiceRuntime?: VoiceRuntime;
 }
 ```
 
@@ -388,6 +399,32 @@ Requests go straight from the browser to the provider. The Anthropic provider
 sends the `anthropic-dangerous-direct-browser-access: true` header that
 Anthropic requires for browser (and Electron, e.g. Obsidian) requests, so your
 API key is visible to anyone who can inspect the page.
+
+### Voice Input
+
+The default voice provider is the browser's Web Speech API. Some embedded
+browsers, such as Electron apps, expose `SpeechRecognition` with no speech
+service behind it, so recognition always fails. A host that knows this can
+declare it through `voiceRuntime`:
+
+```tsx
+<TasksTimelineApp
+  voiceRuntime={{ browserSpeechSupported: false }}
+  // ...
+/>
+```
+
+With `browserSpeechSupported: false`:
+
+- `BrowserVoiceProvider.isAvailable()` returns `false`.
+- Settings → AI disables the **Browser** voice provider and explains why.
+- The voice button shows, and reports on click, "Browser speech recognition
+  isn't available here. Choose OpenAI or Gemini as the voice provider in
+  Settings → AI." It doesn't start recognition.
+
+Leave the flag unset to keep detecting support from the window. If you render
+`SettingsPage` or `SettingsModal` yourself, pass them the same `voiceRuntime`.
+See [docs/VOICE_INPUT.md](docs/VOICE_INPUT.md) for details.
 
 ### AI Capabilities
 

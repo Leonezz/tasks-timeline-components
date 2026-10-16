@@ -10,7 +10,9 @@ The voice input feature supports multiple AI providers for speech-to-text transc
 - **Cons**:
   - Requires internet connection (Chrome/Edge send audio to Google servers)
   - Limited browser support (Chrome, Edge, Safari - not Firefox)
-  - Network errors common (issue #18)
+  - Doesn't work in some embedded browsers, such as Electron apps, which fail
+    with the `network` error (issues #18, #51). Hosts can disable it, see
+    "Host Runtime" below
   - Privacy concerns (audio sent to third parties)
 
 ### 2. OpenAI Whisper
@@ -89,10 +91,12 @@ voiceConfig: {
 
 ### In Settings UI
 
-Users can configure voice input in the Advanced Settings page:
+Users can configure voice input in Settings → AI:
 
 1. **Enable/Disable**: Toggle voice input on/off
-2. **Select Provider**: Choose between Browser, OpenAI, or Gemini
+2. **Select Provider**: Choose between Browser, OpenAI, or Gemini. When the
+   host sets `browserSpeechSupported: false`, Browser is disabled and a note
+   asks the user to choose OpenAI or Gemini
 3. **Configure Provider**:
    - OpenAI: Enter API key, customize model and base URL
    - Gemini: Enter API key, customize model
@@ -104,14 +108,15 @@ Users can configure voice input in the Advanced Settings page:
 ```typescript
 import { useVoiceInput } from '@tasks-timeline/components/hooks';
 
-const { isListening, start, stop } = useVoiceInput(
+const { isListening, start, stop, unavailableMessage } = useVoiceInput(
   voiceConfig,
   (transcript) => {
     console.log('Transcribed:', transcript);
   },
   (errorMessage) => {
     console.error('Voice error:', errorMessage);
-  }
+  },
+  voiceRuntime, // optional, see "Host Runtime" below
 );
 
 // Start listening
@@ -120,6 +125,39 @@ start();
 // Stop listening (for cloud providers that support manual stop)
 stop();
 ```
+
+`unavailableMessage` is `null` unless the host has ruled out the active
+provider. The built-in voice buttons show it as their tooltip, and `start()`
+reports it through the error callback instead of starting.
+
+### Host Runtime (`VoiceRuntime`)
+
+Embedded hosts pass a `VoiceRuntime` through the `voiceRuntime` prop of
+`TasksTimelineApp`, `SettingsModal` and `SettingsPage`:
+
+```typescript
+interface VoiceRuntime {
+  // Window whose browser APIs to use, for example a popout window
+  win?: Window;
+  // HTTP client for the OpenAI and Gemini transcription calls
+  request?: (request: VoiceRuntimeRequest) => Promise<VoiceRuntimeResponse>;
+  // false: browser speech recognition can't work in this host
+  browserSpeechSupported?: boolean;
+}
+```
+
+Set `browserSpeechSupported: false` when the host knows the Web Speech API
+has no speech service behind it, as in Electron apps. Then:
+
+- `BrowserVoiceProvider.isAvailable()` returns `false`, and `start()` reports
+  `not-supported` without creating a `SpeechRecognition`.
+- Settings → AI disables the Browser provider and explains why.
+- The voice button's tooltip, and the error shown on click, say: "Browser
+  speech recognition isn't available here. Choose OpenAI or Gemini as the
+  voice provider in Settings → AI."
+
+Leave it unset (or `true`) to keep detecting support from the window, which
+is the default.
 
 ## Architecture
 
@@ -150,7 +188,8 @@ interface IVoiceProvider {
 
 1. User clicks microphone button
 2. `useVoiceInput` hook creates appropriate provider based on `activeProvider`
-3. Provider checks if it's available in current environment
+3. Provider checks if it's available in current environment (the host can
+   rule out the Browser provider with `browserSpeechSupported: false`)
 4. Provider starts listening/recording:
    - **Browser**: Uses `SpeechRecognition` API directly
    - **OpenAI/Gemini**: Records audio via `MediaRecorder`, then sends to API
@@ -164,9 +203,13 @@ interface IVoiceProvider {
 
 Common errors and their meanings:
 
-- `not-supported`: Browser doesn't support the provider
+- `not-supported`: Browser doesn't support the provider, or the host set
+  `browserSpeechSupported: false` (Browser provider)
 - `permission-denied`: User denied microphone access
-- `network`: Network error (Browser provider only)
+- `network`: Web Speech `network` error (Browser provider only). Embedded
+  browsers report it when they have no speech service, so the message asks
+  the user to choose OpenAI or Gemini in Settings → AI rather than blaming
+  the connection
 - `missing-api-key`: API key not configured (OpenAI/Gemini)
 - `api-error`: API request failed (OpenAI/Gemini)
 - `initialization-failed`: Failed to initialize voice input
@@ -231,7 +274,7 @@ To add a new voice provider:
      break;
    ```
 
-4. **Update Settings UI** (`src/components/settings/SettingsPageAdvanced.tsx`):
+4. **Update Settings UI** (`src/components/settings/SettingsPageAI.tsx`):
    - Add provider to button list
    - Add configuration UI section
 
@@ -240,6 +283,6 @@ To add a new voice provider:
 - `src/types.ts` - Type definitions
 - `src/utils/voice-providers.ts` - Provider implementations
 - `src/hooks/useVoiceInput.ts` - React hook
-- `src/components/settings/SettingsPageAdvanced.tsx` - Settings UI
+- `src/components/settings/SettingsPageAI.tsx` - Settings UI
 - `src/components/InputBar.tsx` - Voice input button
 - `src/components/DaySection.tsx` - Quick add voice input

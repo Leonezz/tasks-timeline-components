@@ -5,6 +5,7 @@ import type {
   CustomSettingsTab,
   SecretFieldRenderer,
 } from "../../types";
+import type { VoiceRuntime } from "../../utils/voice-providers";
 import { MotionDiv } from "../Motion";
 import { SettingsPage } from "./SettingsPage";
 
@@ -20,6 +21,8 @@ interface SettingsModalProps {
   customTabs?: CustomSettingsTab[];
   /** Host-provided renderer for secret selector controls. */
   renderSecretField?: SecretFieldRenderer;
+  /** Host voice runtime; `browserSpeechSupported: false` disables the Browser voice provider. */
+  voiceRuntime?: VoiceRuntime;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -32,6 +35,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   availableCategories,
   customTabs,
   renderSecretField,
+  voiceRuntime,
 }) => (
   <AnimatePresence>
     {isOpen && (
@@ -60,6 +64,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             inSeperatePage={false}
             customTabs={customTabs}
             renderSecretField={renderSecretField}
+            voiceRuntime={voiceRuntime}
           />
         </MotionDiv>
       </>
