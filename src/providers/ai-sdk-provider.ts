@@ -14,6 +14,7 @@ import type {
   AIProviderResponse,
   ChatMessage,
   IAIProvider,
+  ProviderRuntimeOptions,
   TestResult,
   ToolDefinition,
   ToolResult,
@@ -35,6 +36,38 @@ const DEFAULT_MODELS: Record<AISDKProviderType, string> = {
 const ANTHROPIC_BROWSER_ACCESS_HEADERS = {
   "anthropic-dangerous-direct-browser-access": "true",
 };
+
+function isResponseLike(value: unknown): value is Response {
+  if (typeof value !== "object" || value === null) return false;
+  const response = value as Partial<Response>;
+  // Duck-typed: a Response from another window (e.g. an Electron popout) fails
+  // `instanceof Response` but works with the AI SDK.
+  return (
+    typeof response.status === "number" &&
+    typeof response.ok === "boolean" &&
+    typeof response.text === "function" &&
+    typeof response.headers?.[Symbol.iterator] === "function"
+  );
+}
+
+/**
+ * Rejects a host fetch result that is not a fetch `Response`, such as an
+ * unconverted Obsidian `requestUrl` result. Without this the AI SDK fails
+ * with an unrelated error like "response.headers is not iterable".
+ */
+function requireResponse(hostFetch: typeof fetch): typeof fetch {
+  return async (input, init) => {
+    const response: unknown = await hostFetch(input, init);
+    if (!isResponseLike(response)) {
+      throw new Error(
+        "The custom fetch (aiFetch) must resolve to a fetch Response with status, ok, " +
+          "iterable headers and text(). Convert your HTTP client's result with " +
+          "`new Response(body, { status, headers })`.",
+      );
+    }
+    return response;
+  };
+}
 
 type OpenAILanguageModelMode = "responses" | "chat";
 
@@ -68,15 +101,19 @@ function createOpenAILanguageModel(
 function createLanguageModel(
   type: AISDKProviderType,
   config: ProviderConfig,
+  options: ProviderRuntimeOptions,
 ): LanguageModel {
   const model = config.model || DEFAULT_MODELS[type];
   const baseURL = normalizeBaseURL(type, config.baseUrl);
+  // An undefined fetch makes the AI SDK use the global fetch.
+  const customFetch = options.fetch && requireResponse(options.fetch);
 
   switch (type) {
     case "gemini": {
       const provider = createGoogleGenerativeAI({
         apiKey: config.apiKey,
         baseURL,
+        fetch: customFetch,
       });
       return provider(model);
     }
@@ -84,6 +121,7 @@ function createLanguageModel(
       const provider = createOpenAI({
         apiKey: config.apiKey,
         baseURL,
+        fetch: customFetch,
       });
       return createOpenAILanguageModel(
         provider,
@@ -95,6 +133,7 @@ function createLanguageModel(
       const provider = createAnthropic({
         apiKey: config.apiKey,
         baseURL,
+        fetch: customFetch,
         // This library runs in browsers (and Electron hosts such as Obsidian);
         // without this header Anthropic rejects the CORS preflight.
         headers: ANTHROPIC_BROWSER_ACCESS_HEADERS,
@@ -105,6 +144,7 @@ function createLanguageModel(
       const provider = createOpenAI({
         apiKey: config.apiKey,
         baseURL,
+        fetch: customFetch,
         name: "openai-compatible",
       });
       return createOpenAILanguageModel(
@@ -262,10 +302,16 @@ function toJSONValue(value: unknown): JSONValue {
 export class AISDKProvider implements IAIProvider {
   private readonly type: AISDKProviderType;
   private readonly config: ProviderConfig;
+  private readonly options: ProviderRuntimeOptions;
 
-  constructor(type: AISDKProviderType, config: ProviderConfig) {
+  constructor(
+    type: AISDKProviderType,
+    config: ProviderConfig,
+    options: ProviderRuntimeOptions = {},
+  ) {
     this.type = type;
     this.config = config;
+    this.options = options;
   }
 
   async chat(
@@ -276,7 +322,7 @@ export class AISDKProvider implements IAIProvider {
     history?: ChatMessage[],
   ): Promise<AIProviderResponse> {
     const response = await generateText({
-      model: createLanguageModel(this.type, this.config),
+      model: createLanguageModel(this.type, this.config, this.options),
       system: systemPrompt,
       messages: toModelMessages(prompt, history, toolResults),
       tools: toAISDKTools(tools),
@@ -309,7 +355,7 @@ export class AISDKProvider implements IAIProvider {
   async test(): Promise<TestResult> {
     try {
       const response = await generateText({
-        model: createLanguageModel(this.type, this.config),
+        model: createLanguageModel(this.type, this.config, this.options),
         prompt: "Say hello in one word.",
         maxOutputTokens: 10,
       });

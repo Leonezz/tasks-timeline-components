@@ -141,8 +141,17 @@ export interface TasksTimelineAppProps {
   renderTitle?: (title: string) => React.ReactNode;
   /** Additional system prompt injected by the host application */
   aiSystemPrompt?: string;
-  /** Host-provided AI provider factory. Defaults to the built-in provider adapters. */
+  /**
+   * Host-provided AI provider factory. Defaults to the built-in provider
+   * adapters. Also used by the Settings "Test Connection" button.
+   */
   aiProviderFactory?: AIProviderFactory;
+  /**
+   * Fetch for the built-in AI providers (agent and Settings "Test Connection").
+   * Lets hosts route provider requests around browser CORS, e.g. through
+   * Obsidian's `requestUrl`. Cannot be combined with `aiProviderFactory` (throws).
+   */
+  aiFetch?: typeof fetch;
   /** Host-provided capability context for the built-in AI agent. */
   aiCapabilityContext?: CapabilityContext;
   /** Fully constructed host capabilities for the built-in AI agent. */
@@ -175,6 +184,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   renderTitle,
   aiSystemPrompt,
   aiProviderFactory,
+  aiFetch,
   aiCapabilityContext,
   aiCapabilities,
   aiExtraTools,
@@ -636,6 +646,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       promptToast,
       {
         providerFactory: aiProviderFactory,
+        fetch: aiFetch,
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
         extraTools: aiExtraTools,
@@ -936,6 +947,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 availableCategories={uniqueCategories}
                 customTabs={customSettingsTabs}
                 renderSecretField={renderSecretField}
+                aiProviderFactory={aiProviderFactory}
+                aiFetch={aiFetch}
               />
 
               <ErrorBoundary

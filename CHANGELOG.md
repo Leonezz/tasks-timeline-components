@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`aiFetch` prop** on `TasksTimelineApp` (and `fetch` option on
+  `useAIAgent`): a `fetch` implementation for every request the built-in AI
+  providers make. Electron hosts such as Obsidian can route provider calls
+  through their own HTTP client (for example `requestUrl`) and reach
+  providers that do not allow browser CORS. The Settings **Test Connection**
+  button uses it too. It is a runtime option, never stored in
+  `ProviderConfig` or settings. Passing both `aiFetch` and
+  `aiProviderFactory` throws (Test Connection reports it as a failed test),
+  because a custom factory makes its own requests and the fetch would be
+  ignored. An `aiFetch` that is not a function, or that resolves to something
+  other than a fetch `Response` (such as an unconverted Obsidian `requestUrl`
+  result), fails with an explicit error; there is no fallback to the global
+  `fetch`. Errors the host fetch throws reach the agent and Test Connection
+  unchanged.
+- `SettingsPage`, `SettingsModal` and `SettingsPageAI` accept `aiFetch` and
+  `aiProviderFactory` for **Test Connection**. Hosts that render
+  `SettingsPage` themselves (such as a plugin settings tab) should pass the
+  same values they give `TasksTimelineApp`.
+
 ### Fixed
 
 - **`ask_user` confirm answers were swapped (#33).** In the built-in app,
@@ -41,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- **Test Connection ignored `aiProviderFactory`.** The Settings button always
+  tested the built-in provider, even when the host's factory supplied the one
+  the agent uses. It now tests the provider from `aiProviderFactory` when one
+  is given.
 
 ### Changed
 
