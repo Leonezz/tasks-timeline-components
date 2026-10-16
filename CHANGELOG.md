@@ -191,18 +191,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Task editor accessibility (#50).** The editor is now a modal dialog (Radix
   Dialog, rendered in the app's portal container): it has `role="dialog"` and
   `aria-modal`, is named by its "Edit Task" title, closes on Escape, moves
-  focus inside and keeps Tab and Shift+Tab there (also in a shadow root, as in
-  the Obsidian plugin), and hides the rest of the page from assistive
-  technology while open. Its secondary text (the "Task Dates" heading,
-  recurrence labels and summary) uses `slate-500` instead of `slate-400`
-  (about 2.5:1), which meets WCAG AA (4.5:1) in all four themes; the coffee
-  theme's `--slate-500` and `--muted-foreground` are darker (`30 10% 40%`,
-  were about 4.0:1 on its card and 4.4:1 on its background). The yearly month
-  buttons expose their state with `aria-pressed`.
+  focus inside and keeps it there, and hides the rest of the page from
+  assistive technology while open. Closing it returns focus to the control
+  that opened it, or to the task row's status button when that was "Edit
+  details" in the row's menu.
+  - In a shadow root, as in the Obsidian plugin, Tab and Shift+Tab stay in
+    the editor and in a date picker open over it, and a menu closing as the
+    editor opens no longer takes focus behind it. The editor scrolls with the
+    mouse wheel, trackpad and touch there too: its backdrop is not Radix's
+    `Dialog.Overlay`, whose scroll lock cancelled scrolling inside the editor
+    when the app is in a shadow root.
+  - Used without `AppProvider` (the exported `TaskEditModal` on its own), the
+    editor renders in place, inside the consumer's themed wrapper or shadow
+    root, instead of in `document.body` without the theme or styles.
+  - Text meets WCAG AA (4.5:1) in all four themes. Secondary text (the "Task
+    Dates" heading, recurrence labels and summary) uses `slate-500` instead of
+    `slate-400` (about 2.5:1); the coffee theme's `--slate-500` and
+    `--muted-foreground` are darker (`30 10% 40%`, were about 4.0:1 on its
+    card and 4.4:1 on its background). Selected weekday, month and day
+    buttons use `blue-600` (white on `blue-500` was about 3.7:1), the save
+    error `rose-700` (was 4.48:1) and the "Saving replaces…" warning a new
+    themed `amber-800` (Tailwind's `amber-600` was about 3.1:1).
+  - The editor no longer uses Tailwind `dark:` classes. They follow the OS
+    colour scheme, while the theme tokens already switch with the app's
+    theme, so with a dark OS they inverted the editor's colours a second time
+    (for example the "Recurrence" heading at about 1.2:1).
+  - The yearly month buttons expose their state with `aria-pressed`.
 - **Recurrence wording in the editor and the Recurring badge (#48).** The
   editor lists the rule parts its settings can't show after a colon ("These
   settings can't show: repetition count (COUNT)"), and warns "Saving replaces
-  the stored rule and drops the parts these settings can't show: …". When it
+  the stored rule and drops the parts these settings can't show: …". Ordinal
+  weekdays ("every month on the 2nd Monday") are named once, not also as
+  "weekdays". When it
   writes Obsidian Tasks text, its preview is the text saving writes ("every 2
   years on the 1st in June", which rrule words "every 2 years June on the
   1st"). The **Recurring** badge's tooltip and label give the start and end
