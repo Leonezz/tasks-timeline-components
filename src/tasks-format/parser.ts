@@ -301,6 +301,7 @@ export const parseTasksFormatItem = (item: Task): Task => {
     ...item,
     title: description,
     priority: priority,
+    isRecurring: !!recurrenceRule,
     recurringInterval: recurrenceRule,
     dueAt: dueDate?.toISODate() || undefined,
     createdAt: createDate?.toISODate() || undefined,

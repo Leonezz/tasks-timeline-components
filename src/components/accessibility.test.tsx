@@ -126,6 +126,18 @@ describe("component accessibility affordances", () => {
     expect(html).toContain("structured");
   });
 
+  it("shows the Recurring badge for a task with a rule but no isRecurring flag", () => {
+    const task = createTask({
+      isRecurring: undefined,
+      recurringInterval: "every week",
+    });
+    const html = renderWithProviders(<TaskItem task={task} />, {
+      tasks: [task],
+    });
+
+    expect(html).toContain(">Recurring<");
+  });
+
   it("does not force task titles to wrap inside the truncating title button", () => {
     const task = createTask();
     const html = renderWithProviders(<TaskItem task={task} />, {

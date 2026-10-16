@@ -70,7 +70,14 @@ export class TaskRegularExpressions {
   public static readonly scheduledDateRegex = /[⏳⌛] *(\d{4}-\d{2}-\d{2})/u;
   public static readonly dueDateRegex = /[📅📆🗓] *(\d{4}-\d{2}-\d{2})/u;
   public static readonly doneDateRegex = /✅ *(\d{4}-\d{2}-\d{2})/u;
-  public static readonly recurrenceRegex = /🔁 ?([a-zA-Z0-9, !]+)/iu;
+  /**
+   * The whole recurrence token: from 🔁 to the next metadata emoji, #tag,
+   * ^block-id or the end. Taking only the characters a rule text uses split
+   * lines written with RRULE syntax or numeric dates ("🔁 FREQ=WEEKLY;BYDAY=MO"
+   * kept "FREQ" and put the rest in the title).
+   */
+  public static readonly recurrenceRegex =
+    /🔁 ?(.+?)(?=\s+(?:[🛫➕⏳⌛📅📆🗓✅🔁🔺⏫🔼🔽⏬]|#[^\s#]|\^[a-zA-Z0-9-]+\s*$)|\s*$)/u;
 
   // regex from @702573N
   public static readonly hexColorRegex =

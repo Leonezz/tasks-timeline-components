@@ -319,4 +319,32 @@ describe("get_task_stats tool", () => {
       }),
     );
   });
+
+  it("counts tasks that have a rule but no isRecurring flag", async () => {
+    const tasks: Task[] = [
+      {
+        id: "rule-only",
+        title: "Water plants",
+        status: "todo",
+        priority: "low",
+        tags: [],
+        // Shape of a task parsed by an older parser: a rule, no flag
+        recurringInterval: "every week",
+      },
+      {
+        id: "switched-off",
+        title: "Paused routine",
+        status: "todo",
+        priority: "low",
+        tags: [],
+        isRecurring: false,
+        recurringInterval: "every day",
+      },
+    ];
+    ctx = makeContext({ getTasks: vi.fn().mockResolvedValue(tasks) });
+
+    const result = await createGetTaskStatsTool(ctx).execute({});
+
+    expect((result.result as Record<string, unknown>).recurring).toBe(1);
+  });
 });

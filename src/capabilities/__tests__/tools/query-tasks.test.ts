@@ -426,4 +426,32 @@ describe("query_tasks tool", () => {
 
     expect(mockShowToast).not.toHaveBeenCalled();
   });
+
+  it("treats a task with a rule but no isRecurring flag as recurring", async () => {
+    const ruleOnlyCtx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([
+        {
+          id: "rule-only",
+          title: "Water plants",
+          status: "todo",
+          priority: "low",
+          tags: [],
+          // Shape of a task parsed by an older parser: a rule, no flag
+          recurringInterval: "every week",
+        },
+      ]),
+    });
+    const tool = createQueryTasksTool(ruleOnlyCtx);
+
+    const recurring = (await tool.execute({ recurring: true })).result as {
+      tasks: Array<Record<string, unknown>>;
+    };
+    const notRecurring = (await tool.execute({ recurring: false })).result as {
+      tasks: Array<Record<string, unknown>>;
+    };
+
+    expect(recurring.tasks.map((t) => t.id)).toEqual(["rule-only"]);
+    expect(recurring.tasks[0].isRecurring).toBe(true);
+    expect(notRecurring.tasks).toHaveLength(0);
+  });
 });

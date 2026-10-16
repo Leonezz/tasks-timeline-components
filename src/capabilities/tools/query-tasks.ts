@@ -1,6 +1,10 @@
 import type { Task, Priority } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
-import { deriveTaskRenderState, taskMatchesStatus } from "../../utils/task";
+import {
+  deriveTaskRenderState,
+  isTaskRecurring,
+  taskMatchesStatus,
+} from "../../utils/task";
 
 const PRIORITY_ORDER: Record<Priority, number> = {
   high: 0,
@@ -33,7 +37,7 @@ function toSummary(task: Task): TaskSummary {
     startAt: task.startAt,
     category: task.category,
     tags: task.tags.map((t) => t.name),
-    isRecurring: task.isRecurring === true,
+    isRecurring: isTaskRecurring(task),
   };
 }
 
@@ -160,9 +164,8 @@ export function createQueryTasksTool(ctx: CapabilityContext): ToolSpec {
         if (category !== undefined && task.category !== category) return false;
         if (tag !== undefined && !matchesTag(task, tag)) return false;
         if (!matchesDateRange(task, dateFrom, dateTo)) return false;
-        if (recurring !== undefined) {
-          if (recurring && task.isRecurring !== true) return false;
-          if (!recurring && task.isRecurring === true) return false;
+        if (recurring !== undefined && isTaskRecurring(task) !== recurring) {
+          return false;
         }
         return true;
       });
