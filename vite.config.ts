@@ -29,7 +29,7 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: path.resolve(dirname, "src/index.ts"),
+      entry: path.resolve(dirname, "src/library-entry.ts"),
       name: "TasksTimelineComponentLibrary",
       cssFileName: "index",
       fileName: (format) => `index.${format === "es" ? "js" : "umd.cjs"}`,
@@ -71,6 +71,7 @@ export default defineConfig({
             "src/**/*.test.ts",
             "src/**/*.test.tsx",
             "eval/**/*.test.ts",
+            "scripts/**/*.test.ts",
           ],
           environment: "node",
         },

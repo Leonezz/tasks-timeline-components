@@ -213,6 +213,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tested the built-in provider, even when the host's factory supplied the one
   the agent uses. It now tests the provider from `aiProviderFactory` when one
   is given.
+- The published type declarations now type-check for consumers. Thirteen
+  `.d.ts` files imported from the repo-only `@/types` path alias,
+  `dist/index.d.ts` re-exported `./index.css`, and
+  `dist/components/settings/SettingsPage.d.ts` imported `vite-env.d.ts` from
+  outside `dist/`. Hosts no longer need an ambient `declare module "@/types"`
+  or `declare module "*.css"` shim. The stylesheet is still published as
+  `@tasks-timeline/components/index.css`.
+- `pnpm build:lib` now fails if a declaration in `dist/` uses the `@/` alias,
+  imports a stylesheet, or has a relative path that does not resolve inside
+  `dist/` (`scripts/check-declarations.ts`). ESLint rejects `@/` imports in
+  `src/`.
 
 ### Changed
 

@@ -5,9 +5,9 @@ import type {
   SortField,
   SortState,
   TaskStatus,
-} from "@/types";
+} from "../../types";
 import { Icon } from "../Icon";
-import { cn } from "@/utils";
+import { cn } from "../../utils";
 import { MotionDiv, MotionSpan } from "../Motion";
 import { AnimatePresence } from "framer-motion";
 import { FilterChipInput } from "./FilterChipInput";

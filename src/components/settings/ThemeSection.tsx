@@ -1,5 +1,5 @@
-import type { ThemeOption } from "@/types";
-import { cn } from "@/utils";
+import type { ThemeOption } from "../../types";
+import { cn } from "../../utils";
 
 const THEMES: { id: ThemeOption; name: string; colors: string }[] = [
   { id: "system", name: "System", colors: "bg-slate-400 border-slate-700" },
