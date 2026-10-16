@@ -167,6 +167,14 @@ export const taskMatchesStatus = (
   );
 };
 
+/**
+ * Whether a task recurs. Hosts that never set `isRecurring` (older parsed
+ * Obsidian Tasks lines, other integrations) fall back to whether it has a rule.
+ */
+export const isTaskRecurring = (
+  task: Pick<Task, "isRecurring" | "recurringInterval">,
+): boolean => task.isRecurring ?? Boolean(task.recurringInterval);
+
 /** Removes only the tag at `index`; tags parsed from text can share an id. */
 export const removeTagAt = (tags: Task["tags"], index: number): Task["tags"] =>
   tags.filter((_, i) => i !== index);

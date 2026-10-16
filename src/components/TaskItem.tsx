@@ -13,6 +13,7 @@ import {
   formatRecurrence,
   formatSmartDate,
   formatTime,
+  isTaskRecurring,
   removeTagAt,
   type DateValidationState,
 } from "../utils";
@@ -573,7 +574,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 )}
               />
             )}
-            {task.isRecurring && task.recurringInterval && (
+            {isTaskRecurring(task) && task.recurringInterval && (
               <div
                 className={cn(
                   badgeClass,

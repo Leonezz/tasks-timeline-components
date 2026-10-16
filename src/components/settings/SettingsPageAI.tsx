@@ -9,7 +9,7 @@ import type {
 import { Icon } from "../Icon";
 import { cn } from "../../utils";
 import { testProvider } from "../../providers";
-import type { TestResult } from "../../providers/types";
+import type { AIProviderFactory, TestResult } from "../../providers/types";
 import { MotionDiv, MotionSpan } from "../Motion";
 import { AnimatePresence } from "framer-motion";
 
@@ -131,11 +131,17 @@ interface SettingsPageAIProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
   renderSecretField?: SecretFieldRenderer;
+  /** Host provider factory for "Test Connection" (same as the agent's). */
+  aiProviderFactory?: AIProviderFactory;
+  /** Fetch for the built-in providers in "Test Connection". */
+  aiFetch?: typeof fetch;
 }
 export const SettingsPageAI = ({
   settings,
   onUpdateSettings,
   renderSecretField,
+  aiProviderFactory,
+  aiFetch,
 }: SettingsPageAIProps) => {
   const inputIdPrefix = useId(),
     tokenUsageByModel = settings.tokenUsageByModel ?? {},
@@ -259,7 +265,10 @@ export const SettingsPageAI = ({
 
       setIsTesting(true);
       setTestResult(null);
-      const result = await testProvider(activeProvider, activeProviderConfig);
+      const result = await testProvider(activeProvider, activeProviderConfig, {
+        providerFactory: aiProviderFactory,
+        fetch: aiFetch,
+      });
       setTestResult(result);
       setIsTesting(false);
     };
@@ -817,11 +826,7 @@ export const SettingsPageAI = ({
                       inputClassName:
                         "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
                       onChange: (value) =>
-                        updateVoiceProviderConfig(
-                          "openai",
-                          "apiKey",
-                          value,
-                        ),
+                        updateVoiceProviderConfig("openai", "apiKey", value),
                     })}
                   </div>
                   <div>
@@ -891,11 +896,7 @@ export const SettingsPageAI = ({
                       inputClassName:
                         "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
                       onChange: (value) =>
-                        updateVoiceProviderConfig(
-                          "gemini",
-                          "apiKey",
-                          value,
-                        ),
+                        updateVoiceProviderConfig("gemini", "apiKey", value),
                     })}
                   </div>
                   <div>

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { TaskEditModal } from "../../components/TaskEditModal";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
@@ -235,6 +235,106 @@ export const WithRecurrenceEndDate: Story = {
     onSave: handleSave,
     onClose: handleClose,
     availableCategories: ["Work"],
+  },
+};
+
+// Regression: parsed Obsidian Tasks lines (`🔁 every week`) carry a text rule
+// and no isRecurring flag; saving without changes must keep the rule
+export const SaveKeepsTextRecurrenceRule: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Water the plants",
+      isRecurring: undefined,
+      recurringInterval: "every week",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Shows the task as recurring", async () => {
+      expect(
+        canvas.getByRole("switch", { name: /Toggle task recurrence/i }),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+
+    await step("Saving without changes keeps the rule", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledOnce();
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ recurringInterval: "every week" }),
+      );
+    });
+  },
+};
+
+// Editing an Obsidian Tasks rule must save text, which Obsidian Tasks lines
+// can hold, not RRULE syntax
+export const EditTextRecurrenceRuleSavesText: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Water the plants",
+      isRecurring: undefined,
+      recurringInterval: "every week when done",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Change the frequency to daily", async () => {
+      await userEvent.selectOptions(
+        canvas.getByLabelText("Recurrence frequency"),
+        String(RRule.DAILY),
+      );
+    });
+
+    await step("Saves Obsidian Tasks text and keeps 'when done'", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recurringInterval: "every day when done",
+        }),
+      );
+    });
+  },
+};
+
+// A host save that fails (e.g. a rule the vault can't store) must not close
+// the editor and lose the user's edits
+export const SaveFailureKeepsEdits: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({ title: "Task to save" }),
+    onSave: fn(async () => {
+      throw new Error("The vault is read-only");
+    }),
+    onClose: fn(),
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Edit the title and save", async () => {
+      const title = canvas.getByDisplayValue("Task to save");
+      await userEvent.clear(title);
+      await userEvent.type(title, "Renamed task");
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+    });
+
+    await step("Shows the error and keeps the edit", async () => {
+      expect(await canvas.findByRole("alert")).toHaveTextContent(
+        "Could not save the task: The vault is read-only",
+      );
+      expect(canvas.getByDisplayValue("Renamed task")).toBeInTheDocument();
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
   },
 };
 

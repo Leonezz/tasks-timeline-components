@@ -70,6 +70,7 @@ export type {
 } from "./utils/voice-providers";
 export { TasksTimelineApp } from "./TasksTimelineApp";
 export type { TasksTimelineAppProps } from "./TasksTimelineApp";
+export type { RecurrenceFormat } from "./components/TaskEditModal";
 export { DEFAULT_SETTINGS } from "./defaultSettings";
 
 // Obsidian Tasks plugin format (pure parse/serialize)
