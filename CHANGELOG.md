@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `aiProviderFactory` for **Test Connection**. Hosts that render
   `SettingsPage` themselves (such as a plugin settings tab) should pass the
   same values they give `TasksTimelineApp`.
+- Obsidian Tasks dependency and lifecycle fields on `Task`, all optional:
+  `onCompletion` (🏁, `"keep"` or `"delete"`), `taskId` (🆔, not the host's
+  `id`) and `dependsOn` (⛔, a list of `taskId`s). `parseTasksFormatItem`
+  reads them and `cancelledAt` (❌); `taskToMarkdown` and
+  `formatTasksMetadata` write them. A value a line can't hold (an id with a
+  space, an action with punctuation) throws instead of breaking the line.
+- `tasks-format` exports `createdDateSymbol`, `cancelledDateSymbol`,
+  `onCompletionSymbol`, `idSymbol` and `dependsOnSymbol`, and
+  `TaskRegularExpressions` has `cancelledDateRegex`, `onCompletionRegex`,
+  `idRegex` and `dependsOnRegex`.
 
 ### Fixed
 
@@ -165,6 +175,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`🔁 every week on Monday`). The rule stops at the next field (🏁, ❌, 🆔,
   ⛔, ⏰, dates, priorities, `[[links]]`, `#tags`), and `🔁` followed by
   U+FE0F is read.
+- **Block ids were duplicated when a task line was rewritten (#42).**
+  `parseTasksFormatItem` read a trailing `^block-id` into the title
+  (`Water plants  ^blk1`) and `taskToMarkdown` wrote it again at the end. The
+  block id at the end of a line is no longer part of the title and is written
+  once, at the end. A `^id` elsewhere in the line is text, as in Obsidian
+  Tasks (`TaskRegularExpressions.blockLinkRegex` only matches at the end).
+- **Obsidian Tasks fields and notes after 🔁 were read into the title and
+  moved on rewrite (#43).** 🏁 on-completion, ❌ cancelled date, 🆔 id and ⛔
+  depends-on are read as fields (see Added). ⏰ reminders, notes and
+  `[[links]]` after the fields stay where they are and are part of neither the
+  title nor the rule: `🔁 every week when done see [[Garden]]` has the rule
+  `every week when done` (a rule ends at "when done", which Obsidian Tasks
+  only reads at its end). Tags after the fields are still added
+  to the title, as Obsidian Tasks does. A priority emoji inside the title
+  (`Fix 🔺 bug 📅 …`) stays title text.
+- **Rewriting a task line reformatted it (#43).** `taskToMarkdown` rebuilt the
+  line from the title, the tags and every field in a fixed order. It now
+  edits the line in place, so a task read from a line and written back
+  unchanged gives the line byte for byte: indentation, callout `>` prefixes,
+  spacing, field order, symbol variants (`📆`, `🗓️`, `⌛`) and trailing text
+  are kept. A changed field is rewritten where it is, a removed one is
+  dropped with the space before it, and new fields go after the line's last
+  field (before trailing notes). The title part is rewritten only when its
+  words or tags change; tags stay where they are while the task has them. A
+  custom checkbox marker (`[>]`) is kept while it still means the task's
+  status.
+- `complete_task` no longer copies the 🆔 id and ⛔ dependencies to the next
+  occurrence, as Obsidian Tasks does; 🏁 is kept.
 - `complete_task` reports when it marked the task done but could not add the
   next occurrence, with the occurrence's details so it can be created with
   `create_task` (all its fields, including the description).
@@ -255,6 +293,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completion.
 - Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
   Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+- `taskToMarkdown` edits lines in place (see Fixed): a rule it repairs
+  (`🔁 RRULE:…`, `until 2026-12-31`) stays where it was instead of moving to
+  the end, and fields a line gains are added after its last field, in
+  `formatTasksMetadata` order. A task with `cancelledAt` (set when a task is
+  cancelled in the timeline or with `cancel_task`) gets a ❌ date, as
+  Obsidian Tasks writes it.
 
 ## [0.8.0] - 2026-10-14
 
