@@ -449,6 +449,29 @@ describe("readRecurrenceRule: parts the editor can't show", () => {
     expect(readRecurrenceRule(rule).unsupportedParts).toContain(part);
   });
 
+  // "These settings can't show: ordinal weekdays (like the 2nd Monday),
+  // weekdays." named the same weekdays twice
+  it.each([
+    ["FREQ=MONTHLY;BYDAY=+2MO", ["ordinal weekdays (like the 2nd Monday)"]],
+    ["FREQ=MONTHLY;BYDAY=-1FR", ["ordinal weekdays (like the 2nd Monday)"]],
+    [
+      "FREQ=YEARLY;BYDAY=+1MO;BYMONTH=1",
+      ["ordinal weekdays (like the 2nd Monday)"],
+    ],
+    [
+      "every month on the 2nd Monday",
+      ["ordinal weekdays (like the 2nd Monday)"],
+    ],
+    // Plain weekdays alongside ordinal ones are a part of their own
+    [
+      "FREQ=MONTHLY;BYDAY=+2MO,TU",
+      ["ordinal weekdays (like the 2nd Monday)", "weekdays"],
+    ],
+    ["FREQ=MONTHLY;BYDAY=TU", ["weekdays"]],
+  ] as const)("lists the weekdays of %j once", (rule, parts) => {
+    expect(readRecurrenceRule(rule).unsupportedParts).toEqual(parts);
+  });
+
   // The editor lists them after a colon ("These settings can't show: …")
   it.each(partsByRule)("names the parts of %j without an article", (rule) => {
     for (const part of readRecurrenceRule(rule).unsupportedParts) {

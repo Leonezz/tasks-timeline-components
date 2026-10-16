@@ -84,6 +84,7 @@ const hasWeekStartOtherThanMonday = (wkst: Options["wkst"] | undefined) =>
 function unsupportedRuleParts(options: Partial<Options>): string[] {
   const { freq, byweekday, bymonth, bymonthday, wkst } = options;
   const weekdays = toArray(byweekday).map(toWeekday);
+  const isOrdinal = (day: Weekday) => day.n !== undefined && day.n !== 0;
   // Listed after a colon ("These settings can't show: …"), so no articles
   const parts: [boolean, string][] = [
     [
@@ -96,11 +97,12 @@ function unsupportedRuleParts(options: Partial<Options>): string[] {
     [isSet(options.byweekno), "week numbers"],
     [isSet(options.byeaster), "Easter offset"],
     [hasWeekStartOtherThanMonday(wkst), "week start other than Monday"],
+    [weekdays.some(isOrdinal), "ordinal weekdays (like the 2nd Monday)"],
+    // Plain weekdays; ordinal ones are named above
     [
-      weekdays.some((day) => day.n !== undefined && day.n !== 0),
-      "ordinal weekdays (like the 2nd Monday)",
+      weekdays.some((day) => !isOrdinal(day)) && freq !== RRule.WEEKLY,
+      "weekdays",
     ],
-    [weekdays.length > 0 && freq !== RRule.WEEKLY, "weekdays"],
     [isSet(bymonth) && freq !== RRule.YEARLY, "months"],
     [
       isSet(bymonthday) && freq !== RRule.MONTHLY && freq !== RRule.YEARLY,
