@@ -188,6 +188,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- **Task editor accessibility (#50).** The editor is now a modal dialog (Radix
+  Dialog, rendered in the app's portal container): it has `role="dialog"` and
+  `aria-modal`, is named by its "Edit Task" title, closes on Escape, moves
+  focus inside and keeps Tab and Shift+Tab there (also in a shadow root, as in
+  the Obsidian plugin), and hides the rest of the page from assistive
+  technology while open. Its secondary text (the "Task Dates" heading,
+  recurrence labels and summary) uses `slate-500` instead of `slate-400`
+  (about 2.5:1), which meets WCAG AA (4.5:1) in all four themes; the coffee
+  theme's `--slate-500` and `--muted-foreground` are darker (`30 10% 40%`,
+  were about 4.0:1 on its card and 4.4:1 on its background). The yearly month
+  buttons expose their state with `aria-pressed`.
 - **Recurrence wording in the editor and the Recurring badge (#48).** The
   editor lists the rule parts its settings can't show after a colon ("These
   settings can't show: repetition count (COUNT)"), and warns "Saving replaces

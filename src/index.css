@@ -310,7 +310,8 @@
 
   /* Muted */
   --muted: 40 19% 90%;
-  --muted-foreground: 30 10% 46%; /* #857a66 - warm muted */
+  /* #70665c - warm muted, as --slate-500: at least 4.5:1 (WCAG AA) */
+  --muted-foreground: 30 10% 40%;
 
   /* Accent */
   --accent: 40 21% 94%; /* #f7f5f0 */
@@ -331,7 +332,8 @@
   --slate-200: 40 17% 80%; /* #d6d0c2 */
   --slate-300: 40 13% 68%; /* #b8b0a0 */
   --slate-400: 40 9% 56%; /* #9c9280 */
-  --slate-500: 30 10% 46%; /* #857a66 */
+  /* #70665c: at least 4.5:1 (WCAG AA) on the card, slate-50 and background */
+  --slate-500: 30 10% 40%;
   --slate-600: 30 11% 38%; /* #6e6352 */
   --slate-700: 30 14% 31%; /* #594f41 */
   --slate-800: 30 18% 24%; /* #4a3b32 */

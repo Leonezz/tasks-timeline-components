@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Task } from "../types";
 import { TaskEditModal, type RecurrenceFormat } from "./TaskEditModal";
+
+vi.mock("./ui/dialog", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./ui/dialog")>()),
+  // Portals render nothing on the server; render the dialog in place
+  DialogPortal: ({ children }: { children?: React.ReactNode }) => children,
+}));
 
 const renderModal = (task: Task, recurrenceFormat?: RecurrenceFormat) =>
   renderToStaticMarkup(

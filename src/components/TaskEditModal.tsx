@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { Frequency, RRule } from "rrule";
 import { DateTime } from "luxon";
@@ -11,7 +12,9 @@ import {
   recurrenceSaveFormat,
   resolveRecurrenceOnSave,
 } from "../utils/recurrence";
+import { keepTabInShadowRoot } from "../utils/focus-loop";
 import { DatePicker } from "./ui/date-picker";
+import { Dialog, DialogPortal } from "./ui/dialog";
 
 /**
  * How edited recurrence rules are written. "text" always writes Obsidian
@@ -179,11 +182,14 @@ const EditForm: React.FC<EditFormProps> = ({
   return (
     <div className="flex flex-col max-h-[85vh]">
       <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 sticky top-0 backdrop-blur-md z-10 shrink-0">
-        <h2 className="font-bold text-slate-800">Edit Task</h2>
+        {/* Names the dialog (aria-labelledby) */}
+        <DialogPrimitive.Title className="font-bold text-slate-800">
+          Edit Task
+        </DialogPrimitive.Title>
         <button
           onClick={onClose}
           aria-label="Close edit task modal"
-          className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="p-2 text-slate-500 hover:text-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <Icon name="X" size={20} />
         </button>
@@ -249,11 +255,11 @@ const EditForm: React.FC<EditFormProps> = ({
                 placeholder="Work, Personal..."
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none pl-9 text-slate-900"
               />
-              <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
+              <div className="absolute left-3 top-2.5 text-slate-500 pointer-events-none">
                 <Icon name="Folder" size={14} />
               </div>
               <div
-                className="absolute right-3 top-2.5 text-slate-400 pointer-events-none transition-transform duration-200"
+                className="absolute right-3 top-2.5 text-slate-500 pointer-events-none transition-transform duration-200"
                 style={{
                   transform: isCategoryOpen ? "rotate(180deg)" : "rotate(0deg)",
                 }}
@@ -285,7 +291,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         <Icon
                           name="Folder"
                           size={12}
-                          className="text-slate-400"
+                          className="text-slate-500"
                         />
                         {cat}
                       </button>
@@ -336,7 +342,7 @@ const EditForm: React.FC<EditFormProps> = ({
         </div>
 
         <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">
             Task Dates
           </label>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -431,7 +437,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Recurrence
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-500">
                     Repeats automatically
                   </span>
                 </div>
@@ -509,7 +515,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       <div className="space-y-1">
                         <span
                           id="weekdays-label"
-                          className="text-[10px] font-semibold text-slate-400 uppercase"
+                          className="text-[10px] font-semibold text-slate-500 uppercase"
                         >
                           On days
                         </span>
@@ -569,7 +575,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       <div className="space-y-3">
                         {recurrenceState.freq === RRule.YEARLY && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                            <label className="text-[10px] font-semibold text-slate-500 uppercase">
                               Months
                             </label>
                             <div className="grid grid-cols-6 gap-1">
@@ -580,6 +586,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                 return (
                                   <button
                                     key={m}
+                                    type="button"
+                                    aria-pressed={isSelected}
                                     onClick={() => {
                                       const prev = recurrenceState.byMonth;
                                       updateRecurrence({
@@ -604,7 +612,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         )}
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase">
                             Days
                           </label>
                           <div className="grid grid-cols-7 gap-1">
@@ -649,7 +657,7 @@ const EditForm: React.FC<EditFormProps> = ({
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
                           Start Recurrence
                         </label>
                         <DatePicker
@@ -666,7 +674,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
                           End Recurrence
                         </label>
                         <DatePicker
@@ -684,7 +692,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-400 italic bg-white/50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-700 text-center">
+                    <div className="text-[10px] text-slate-500 italic bg-white/50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-700 text-center">
                       {recurrencePreview}
                     </div>
                   </div>
@@ -727,32 +735,54 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   availableCategories,
   recurrenceFormat = "auto",
 }) => (
-  <AnimatePresence>
-    {isOpen && task && (
-      <>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-          animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-          exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-          className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
-        >
-          <EditForm
-            key={task.id}
-            task={task}
-            onSave={onSave}
-            onClose={onClose}
-            availableCategories={availableCategories}
-            recurrenceFormat={recurrenceFormat}
-          />
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
+  // A modal dialog: Escape and clicks outside close it, focus stays inside,
+  // and the rest of the page is hidden from assistive technology meanwhile.
+  // Radix keeps the parts mounted (forceMount) so framer-motion animates exit.
+  <Dialog
+    open={isOpen && task !== null}
+    onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}
+  >
+    <AnimatePresence>
+      {isOpen && task && (
+        <DialogPortal forceMount>
+          <DialogPrimitive.Overlay asChild forceMount>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            />
+          </DialogPrimitive.Overlay>
+          <DialogPrimitive.Content
+            asChild
+            forceMount
+            aria-modal="true"
+            // Named by its title; it has no description
+            aria-describedby={undefined}
+            onKeyDown={keepTabInShadowRoot}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+              animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+              exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+              className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
+            >
+              <EditForm
+                key={task.id}
+                task={task}
+                onSave={onSave}
+                onClose={onClose}
+                availableCategories={availableCategories}
+                recurrenceFormat={recurrenceFormat}
+              />
+            </motion.div>
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      )}
+    </AnimatePresence>
+  </Dialog>
 );

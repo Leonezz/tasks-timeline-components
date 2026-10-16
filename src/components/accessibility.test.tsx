@@ -1,13 +1,20 @@
 import { DateTime } from "luxon";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SettingsProvider, type SettingsContextType } from "../contexts";
 import { TasksProvider, type TasksContextType } from "../contexts";
 import type { FilterState, SortState, Task } from "../types";
 import { settingsBuilder } from "../stories/fixtures";
 import { InputBar } from "./InputBar";
+import { TaskEditModal } from "./TaskEditModal";
 import { TaskItem } from "./TaskItem";
 import { TodoList } from "./TodoList";
+
+vi.mock("./ui/dialog", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./ui/dialog")>()),
+  // Portals render nothing on the server; render the dialog in place
+  DialogPortal: ({ children }: { children?: React.ReactNode }) => children,
+}));
 
 const filters: FilterState = {
   tags: { include: [], exclude: [] },
@@ -184,5 +191,54 @@ describe("component accessibility affordances", () => {
     expect(html).toContain(
       'aria-label="Show backlog tasks by leaving focus mode"',
     );
+  });
+});
+
+describe("task editor accessibility", () => {
+  const yearlyTask = {
+    isRecurring: true,
+    recurringInterval: "FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=31",
+  };
+  const renderEditor = (overrides: Partial<Task> = {}) =>
+    renderToStaticMarkup(
+      <TaskEditModal
+        isOpen
+        task={createTask(overrides)}
+        onSave={() => undefined}
+        onClose={() => undefined}
+        availableCategories={[]}
+      />,
+    );
+  const escapeRegExp = (text: string) =>
+    text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  it("is a modal dialog named by its title", () => {
+    const html = renderEditor();
+    const dialog = /<div[^>]*role="dialog"[^>]*>/.exec(html)?.[0] ?? "";
+
+    expect(dialog).toContain('aria-modal="true"');
+    const labelledBy = /aria-labelledby="([^"]+)"/.exec(dialog)?.[1] ?? "";
+    expect(labelledBy).not.toBe("");
+    expect(html).toMatch(
+      new RegExp(
+        `<h2[^>]*id="${escapeRegExp(labelledBy)}"[^>]*>Edit Task</h2>`,
+      ),
+    );
+  });
+
+  it("exposes which yearly months are selected", () => {
+    const html = renderEditor(yearlyTask);
+
+    expect(html).toMatch(/<button[^>]*aria-pressed="true"[^>]*>Dec<\/button>/);
+    expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Jan<\/button>/);
+  });
+
+  it("does not use slate-400, which fails AA contrast, for text", () => {
+    const classes = [
+      ...renderEditor(yearlyTask).matchAll(/class="([^"]*)"/g),
+    ].flatMap(([, list]) => list.split(/\s+/));
+
+    expect(classes).toContain("text-slate-500");
+    expect(classes).not.toContain("text-slate-400");
   });
 });

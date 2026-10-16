@@ -1,10 +1,32 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { AppProvider } from "../../components/AppContext";
 import { TaskEditModal } from "../../components/TaskEditModal";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
 import { RRule } from "rrule";
+
+/** Renders the story in a shadow root, as the Obsidian plugin mounts the app. */
+const ShadowRootFrame: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+  return (
+    <div
+      data-testid="shadow-host"
+      ref={(host) => {
+        if (host && !shadowRoot) {
+          setShadowRoot(host.shadowRoot ?? host.attachShadow({ mode: "open" }));
+        }
+      }}
+    >
+      {shadowRoot && createPortal(children, shadowRoot)}
+    </div>
+  );
+};
 
 const meta: Meta<typeof TaskEditModal> = {
   title: "Core/TaskEditModal",
@@ -18,11 +40,22 @@ const meta: Meta<typeof TaskEditModal> = {
     onClose: { action: "closed" },
   },
   decorators: [
-    (Story) => (
-      <div className="w-full h-screen flex items-center justify-center bg-slate-50">
-        <Story />
-      </div>
-    ),
+    // AppProvider supplies the theme and the portal container the dialog
+    // renders into, so it stays inside the story's canvas
+    (Story, { parameters }) => {
+      const app = (
+        <AppProvider theme={parameters.theme as string | undefined}>
+          <div className="w-full h-screen flex items-center justify-center bg-slate-50">
+            <Story />
+          </div>
+        </AppProvider>
+      );
+      return parameters.shadowRoot ? (
+        <ShadowRootFrame>{app}</ShadowRootFrame>
+      ) : (
+        app
+      );
+    },
   ],
 };
 
@@ -413,6 +446,248 @@ export const WarnsWhichRulePartsSavingDrops: Story = {
     });
   },
 };
+
+// ========================================
+// Accessibility
+// ========================================
+
+/** The element that has focus, inside a shadow root too. */
+const focusedElement = (node: Node): Element | null => {
+  const root = node.getRootNode() as Document | ShadowRoot;
+  return root.activeElement;
+};
+
+/** Tab and Shift+Tab wrap around inside the dialog. */
+const expectFocusTrapped = async (dialog: HTMLElement) => {
+  const firstButton = within(dialog).getByRole("button", {
+    name: "Close edit task modal",
+  });
+  const saveButton = within(dialog).getByRole("button", { name: /save/i });
+
+  // Radix moves focus into the dialog when it opens
+  await waitFor(() =>
+    expect(dialog.contains(focusedElement(dialog))).toBe(true),
+  );
+
+  saveButton.focus();
+  await userEvent.tab();
+  expect(focusedElement(dialog)).toBe(firstButton);
+
+  await userEvent.tab({ shift: true });
+  expect(focusedElement(dialog)).toBe(saveButton);
+};
+
+export const DialogSemantics: Story = {
+  args: {
+    ...Default.args,
+    onClose: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const dialog = await canvas.findByRole("dialog", { name: "Edit Task" });
+
+    await step("Is a modal dialog named by its title", async () => {
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+    });
+
+    await step("Keeps Tab and Shift+Tab inside", async () => {
+      await expectFocusTrapped(dialog);
+    });
+
+    await step("Closes on Escape", async () => {
+      await userEvent.keyboard("{Escape}");
+      expect(args.onClose).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+// The Obsidian plugin renders the app in a shadow root, where
+// document.activeElement is the shadow host rather than the focused field
+export const DialogSemanticsInShadowRoot: Story = {
+  args: {
+    ...Default.args,
+    onClose: fn(),
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const host = canvasElement.querySelector<HTMLElement>(
+      '[data-testid="shadow-host"]',
+    );
+    const shadowRoot = host?.shadowRoot;
+    if (!shadowRoot) {
+      throw new Error("The story did not render into a shadow root");
+    }
+    const dialog = await waitFor(() => {
+      const found = shadowRoot.querySelector<HTMLElement>('[role="dialog"]');
+      if (!found) {
+        throw new Error("No dialog in the shadow root yet");
+      }
+      return found;
+    });
+
+    await step("Is a modal dialog", async () => {
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+      expect(within(dialog).getByRole("heading")).toHaveTextContent(
+        "Edit Task",
+      );
+    });
+
+    await step("Keeps Tab and Shift+Tab inside", async () => {
+      await expectFocusTrapped(dialog);
+    });
+
+    await step("Closes on Escape", async () => {
+      await userEvent.keyboard("{Escape}");
+      expect(args.onClose).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+// Date pickers portal their calendar outside the dialog; picking a date or
+// pressing Escape there must not close the editor
+export const DatePickerInsideDialog: Story = {
+  args: {
+    ...MinimalTask.args,
+    onClose: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Escape closes the open calendar only", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Select due date/ }),
+      );
+      expect(
+        await canvas.findByRole("button", { name: "Today" }),
+      ).toBeInTheDocument();
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(canvas.queryByRole("button", { name: "Today" })).toBeNull(),
+      );
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
+
+    await step("Picking a date keeps the editor open", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Select due date/ }),
+      );
+      await userEvent.click(
+        await canvas.findByRole("button", { name: "Today" }),
+      );
+      expect(
+        canvas.queryByRole("button", { name: /Select due date/ }),
+      ).toBeNull();
+      expect(
+        canvas.getByRole("dialog", { name: "Edit Task" }),
+      ).toBeInTheDocument();
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
+  },
+};
+
+export const MonthTogglesExposeState: Story = {
+  args: {
+    ...WithYearlyRecurrence.args,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("The rule's month is pressed", async () => {
+      expect(canvas.getByRole("button", { name: "Dec" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(canvas.getByRole("button", { name: "Jan" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    await step("Toggling a month updates its state", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Jan" }));
+      expect(canvas.getByRole("button", { name: "Jan" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+  },
+};
+
+/** "rgb(r, g, b)" as channels; fails loudly on anything else. */
+const rgbOf = (color: string): [number, number, number] => {
+  const match = /^rgb\((\d+), (\d+), (\d+)\)$/.exec(color);
+  if (!match) {
+    throw new Error(`Expected an opaque rgb() colour, got "${color}"`);
+  }
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+};
+
+const contrastRatio = (text: string, background: string): number => {
+  const luminance = (color: string) => {
+    const [r, g, b] = rgbOf(color).map((value) => {
+      const c = value / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [light, dark] = [luminance(text), luminance(background)].sort(
+    (a, b) => b - a,
+  );
+  return (light + 0.05) / (dark + 0.05);
+};
+
+/** The colour behind an element: its nearest ancestor with a background. */
+const backgroundBehind = (element: Element): string => {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const { backgroundColor } = getComputedStyle(node);
+    if (backgroundColor !== "rgba(0, 0, 0, 0)") {
+      return backgroundColor;
+    }
+  }
+  throw new Error("No background behind the element");
+};
+
+const themedEditorStory = (theme: string): Story => ({
+  args: {
+    isOpen: true,
+    task: taskBuilder.withRecurrence({
+      title: `Editor in the ${theme} theme`,
+      isRecurring: true,
+      recurringInterval: "FREQ=WEEKLY;INTERVAL=2",
+    }),
+    onSave: handleSave,
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  // Fail on any axe violation (the default only reports them)
+  parameters: { theme, a11y: { test: "error" } },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const dialog = await canvas.findByRole("dialog", { name: "Edit Task" });
+    // The accessibility checks run after this; mid-animation, the dialog's
+    // opacity blends every colour
+    await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe("1"));
+
+    await step("Secondary text meets WCAG AA (4.5:1)", async () => {
+      for (const text of ["Task Dates", "Repeats automatically", "On days"]) {
+        const element = canvas.getByText(text);
+        expect(
+          contrastRatio(
+            getComputedStyle(element).color,
+            backgroundBehind(element),
+          ),
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  },
+});
+
+export const LightTheme: Story = themedEditorStory("light");
+export const DarkTheme: Story = themedEditorStory("dark");
+export const MidnightTheme: Story = themedEditorStory("midnight");
+export const CoffeeTheme: Story = themedEditorStory("coffee");
 
 // ========================================
 // Status Variants
