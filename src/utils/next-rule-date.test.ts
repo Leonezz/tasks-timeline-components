@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { RRule } from "rrule";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RRule, rrulestr } from "rrule";
+import { DateTime } from "luxon";
 import { nextRuleDay } from "./next-rule-date";
 import {
   floatingCalendarDay,
@@ -139,6 +140,100 @@ describe("nextRuleDay matches rrule for rules with times of day (#46)", () => {
     expect(nextRuleDay(parse(rule), from, rule)).toBe(expected);
   });
 });
+
+/**
+ * rrule's answer for a rule with a UTC start: its first date after the end of
+ * `from` in the machine's zone, as a day in that zone.
+ */
+const localTruth = (rule: string, from: string): string | null => {
+  const next = rrulestr(rule).after(
+    DateTime.fromISO(from).endOf("day").toJSDate(),
+  );
+  return next ? DateTime.fromJSDate(next).toISODate() : null;
+};
+
+const UTC_RULES_WITH_TIMES = [
+  "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;COUNT=3",
+  "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,23;COUNT=5",
+  // 22:00 UTC is midnight in Berlin until the clocks change, then 23:00
+  // the day before, so one Berlin day has two dates
+  "DTSTART:20261020T220000Z\nRRULE:FREQ=DAILY;BYHOUR=22;COUNT=10",
+  "DTSTART:20261016T100000Z\nRRULE:FREQ=MONTHLY;BYDAY=MO;BYHOUR=9,23;BYSETPOS=3;COUNT=4",
+  "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;BYSETPOS=1;UNTIL=20261020T093000Z",
+  "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;BYSETPOS=1;UNTIL=20261020T083000Z",
+  // The 20th's 22:00 UTC date is on the 21st east of UTC
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=DAILY;BYMONTHDAY=20;BYHOUR=22;BYSETPOS=1;UNTIL=20261020T230000Z",
+].flatMap((rule) =>
+  [
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-18",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-24",
+    "2026-10-25",
+    "2026-10-28",
+    "2026-10-29",
+  ].map((from) => [rule, from] as const),
+);
+
+describe.each(["Europe/Berlin", "America/Los_Angeles", "Asia/Shanghai", "UTC"])(
+  "nextRuleDay matches rrule for UTC rules with times of day, in %s (#46)",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it.each(UTC_RULES_WITH_TIMES)("%j from %s", (rule, from) => {
+      expect(nextRuleDay(parse(rule), from, rule)).toBe(localTruth(rule, from));
+    });
+  },
+);
+
+/**
+ * UTC starts near and away from midnight in Europe, ending with COUNT or at
+ * an UNTIL time after the clocks change (October 25 in Europe, November 1
+ * in America).
+ */
+const UTC_SWEEP = ["20261016T080000Z", "20261016T223000Z"]
+  .flatMap((start) =>
+    [
+      "DAILY;BYHOUR=9,23",
+      "WEEKLY;BYDAY=MO,TH;BYHOUR=9,23",
+      "MONTHLY;BYDAY=MO;BYHOUR=0,22;BYMINUTE=15",
+    ]
+      .flatMap((rule) => [`${rule};COUNT=9`, `${rule};BYSETPOS=-1`])
+      .concat("DAILY")
+      .flatMap((rule) => [
+        `DTSTART:${start}\nRRULE:FREQ=${rule};UNTIL=20261102T080000Z`,
+        `DTSTART:${start}\nRRULE:FREQ=${rule};UNTIL=20261102T223000Z`,
+      ]),
+  )
+  .flatMap((rule) =>
+    ["2026-10-16", "2026-10-25", "2026-10-29", "2026-11-01"].map(
+      (from) => [rule, from] as const,
+    ),
+  );
+
+describe.each(["Europe/Berlin", "America/Los_Angeles"])(
+  "nextRuleDay matches rrule across UTC rules, in %s (#46)",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it.each(UTC_SWEEP)("%j from %s", (rule, from) => {
+      expect(nextRuleDay(parse(rule), from, rule)).toBe(localTruth(rule, from));
+    });
+  },
+);
 
 describe("nextRuleDay matches rrule for hourly, minutely and secondly rules (#46)", () => {
   // 2026-10-12 is a Monday

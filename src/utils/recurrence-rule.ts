@@ -43,6 +43,13 @@ export interface ParsedRecurrenceRule {
   startDateTime?: string;
   /** UNTIL's wall-clock time when it has one other than 23:59:59. */
   endDateTime?: string;
+  /**
+   * For a rule whose DTSTART is a UTC time other than midnight (read in the
+   * machine's zone above): DTSTART and UNTIL in UTC. rrule steps such a rule
+   * in UTC, where its BYHOUR, BYMINUTE and BYSECOND are.
+   */
+  utcStartDateTime?: string;
+  utcEndDateTime?: string;
   /** BYHOUR, BYMINUTE and BYSECOND, which `options` leaves out. */
   timesOfDay?: TimesOfDay;
   /** Obsidian Tasks "when done": the next date counts from completion. */

@@ -151,6 +151,31 @@ describe.each(TIME_ZONES)("nextOccurrence in %s", (zone, januaryOffset) => {
   });
 });
 
+describe.each(["Europe/Berlin", "America/New_York", "Asia/Shanghai"])(
+  "nextOccurrence for a UTC rule across a change of clocks, in %s (#46)",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("keeps the last date, at UNTIL", () => {
+      const rule =
+        "DTSTART:20261016T080000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T080000Z";
+
+      expect(nextDue("2026-11-04", rule)).toBe("2026-11-05");
+      expect(
+        nextOccurrence(
+          task({ dueAt: "2026-11-05", recurringInterval: rule }),
+          "2026-11-05",
+        ),
+      ).toBeNull();
+    });
+  },
+);
+
 describe("nextOccurrence: rules with no later date", () => {
   it.each([
     ["2026-02-10", "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30"],

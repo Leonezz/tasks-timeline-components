@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RRule } from "rrule";
+import { RRule, rrulestr } from "rrule";
 import { DateTime } from "luxon";
 import {
   isReadableRecurrenceRule,
@@ -278,6 +278,47 @@ describe.each([
       endDateTime: "2026-10-20T08:00:00",
       timesOfDay: { byminute: [0, 30] },
     });
+  });
+});
+
+/** The day of rrule's last date for a rule, in the machine's zone. */
+const lastLocalDay = (rule: string): string | null => {
+  const dates = rrulestr(rule).all();
+  const last = dates[dates.length - 1];
+  return last ? DateTime.fromJSDate(last).toISODate() : null;
+};
+
+describe.each([
+  "Europe/Berlin",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Asia/Shanghai",
+  "Pacific/Auckland",
+  "UTC",
+])("UTC end dates checked against rrule, read in %s (#46)", (zone) => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", zone);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    // UNTIL is the last date, after the clocks change (late October in
+    // Europe and early November in America)
+    "DTSTART:20261016T080000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T080000Z",
+    "DTSTART:20261016T223000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T223000Z",
+    "DTSTART:20261016T223000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T220000Z",
+    // ... and after they change in March
+    "DTSTART:20260301T120000Z\nRRULE:FREQ=DAILY;UNTIL=20260402T120000Z",
+    "DTSTART:20260301T120000Z\nRRULE:FREQ=DAILY;UNTIL=20260402T113000Z",
+    // BYHOUR is a UTC hour
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;UNTIL=20261020T083000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;UNTIL=20261020T093000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,23;UNTIL=20261020T220000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,23;UNTIL=20261020T233000Z",
+  ])("%j ends on the day of rrule's last date", (rule) => {
+    expect(parseRecurrenceRule(rule)?.end).toBe(lastLocalDay(rule));
   });
 });
 

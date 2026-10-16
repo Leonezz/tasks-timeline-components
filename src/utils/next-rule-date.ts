@@ -6,6 +6,7 @@ import {
   floatingEndOfDay,
   type ParsedRecurrenceRule,
 } from "./recurrence-rule";
+import { localCalendarDay } from "./recurrence-dates";
 import {
   asYearly,
   hasFilters,
@@ -68,6 +69,74 @@ const withDailySetPos = (
 const wallDate = (wall: string): Date =>
   DateTime.fromISO(wall, { zone: "utc" }).toJSDate();
 
+const localEndOfDay = (day: string): Date =>
+  DateTime.fromISO(day).endOf("day").toJSDate();
+
+/**
+ * Where a daily or longer rule's dates are computed: on floating days, or,
+ * for a UTC start whose times of day change the rule's days, in UTC as rrule
+ * steps it, with each date's day read in the machine's zone.
+ */
+interface DayLevelFrame {
+  /** The start day's midnight and the end day's last moment, as days. */
+  startDay: Date;
+  endOfEndDay: Date | null;
+  /** Days after this can hold a date after `from`'s day. */
+  daysAfter: Date;
+  dtstart: Date;
+  until: Date | null;
+  /** Dates after this fall after `from`'s day. */
+  after: Date;
+  dayOf: (date: Date) => string;
+}
+
+function floatingFrame(
+  rule: ParsedRecurrenceRule,
+  from: string,
+  withTimes: boolean,
+): DayLevelFrame {
+  const startDay = floatingDay(rule.start ?? from);
+  const endOfEndDay = rule.end ? floatingEndOfDay(rule.end) : null;
+  // After the whole day, so a rule never lands on the day it starts from
+  const after = floatingEndOfDay(from);
+  return {
+    startDay,
+    endOfEndDay,
+    daysAfter: after,
+    dtstart:
+      withTimes && rule.startDateTime ? wallDate(rule.startDateTime) : startDay,
+    until:
+      withTimes && rule.endDateTime ? wallDate(rule.endDateTime) : endOfEndDay,
+    after,
+    dayOf: floatingCalendarDay,
+  };
+}
+
+function utcFrame(
+  rule: ParsedRecurrenceRule,
+  utcStart: string,
+  from: string,
+): DayLevelFrame {
+  const dtstart = wallDate(utcStart);
+  const until = rule.utcEndDateTime
+    ? wallDate(rule.utcEndDateTime)
+    : rule.end
+      ? localEndOfDay(rule.end)
+      : null;
+  const after = localEndOfDay(from);
+  const utcDay = (date: Date) => floatingDay(floatingCalendarDay(date));
+  return {
+    startDay: utcDay(dtstart),
+    endOfEndDay: until ? floatingEndOfDay(floatingCalendarDay(until)) : null,
+    // A date after `after` falls on its UTC day or later
+    daysAfter: new Date(utcDay(after).getTime() - 1),
+    dtstart,
+    until,
+    after,
+    dayOf: localCalendarDay,
+  };
+}
+
 /** The day of a daily or longer rule's next date after `from`, or null. */
 function nextDayLevelDay(
   rule: ParsedRecurrenceRule,
@@ -82,10 +151,10 @@ function nextDayLevelDay(
   if (!options) {
     return noLaterDate(rule, from, ruleText);
   }
-  const startDay = floatingDay(rule.start ?? from);
-  const endOfEndDay = rule.end ? floatingEndOfDay(rule.end) : null;
-  // After the whole day, so a rule never lands on the day it starts from
-  const after = floatingEndOfDay(from);
+  const frame =
+    withTimes && rule.utcStartDateTime
+      ? utcFrame(rule, rule.utcStartDateTime, from)
+      : floatingFrame(rule, from, withTimes);
 
   // Cheap check first: a rule that skips periods, counts times of day or
   // picks positions can only match where the plain daily or weekly rule
@@ -93,14 +162,14 @@ function nextDayLevelDay(
   const exact = (options.interval ?? 1) === 1 && !withTimes;
   const yearly = asYearly(
     { ...options, interval: 1, ...(exact ? {} : { count: null }) },
-    startDay,
+    frame.startDay,
   );
   if (yearly) {
     const candidate = new RRule({
       ...yearly,
-      dtstart: startDay,
-      until: endOfEndDay,
-    }).after(after);
+      dtstart: frame.startDay,
+      until: frame.endOfEndDay,
+    }).after(frame.daysAfter);
     if (!candidate) {
       return noLaterDate(rule, from, ruleText);
     }
@@ -110,12 +179,10 @@ function nextDayLevelDay(
   }
   const next = new RRule({
     ...options,
-    dtstart:
-      withTimes && rule.startDateTime ? wallDate(rule.startDateTime) : startDay,
-    until:
-      withTimes && rule.endDateTime ? wallDate(rule.endDateTime) : endOfEndDay,
-  }).after(after);
-  return next ? floatingCalendarDay(next) : noLaterDate(rule, from, ruleText);
+    dtstart: frame.dtstart,
+    until: frame.until,
+  }).after(frame.after);
+  return next ? frame.dayOf(next) : noLaterDate(rule, from, ruleText);
 }
 
 /**

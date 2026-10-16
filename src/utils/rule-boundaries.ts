@@ -1,12 +1,14 @@
 import { DateTime } from "luxon";
 import { RRule, type Frequency, type Options } from "rrule";
-import type { RawRuleDate } from "./recurrence-dates";
+import { localCalendarDay, type RawRuleDate } from "./recurrence-dates";
 
 /**
  * Reading an RRULE's start (DTSTART) and end (UNTIL) as calendar days and
  * wall-clock times. A rule's dates are read in one frame: as written (the
  * UTC fields rrule gives floating and TZID times), in its TZID zone, or in
  * the machine's zone for UTC times earlier versions wrote at local midnight.
+ * rrule steps a rule with such a UTC start in UTC, where its BYHOUR, BYMINUTE
+ * and BYSECOND are, so its end day and UTC times are worked out in UTC.
  */
 
 /** BYHOUR, BYMINUTE and BYSECOND of a rule, each sorted without duplicates. */
@@ -21,6 +23,9 @@ export interface RuleBoundaries {
   end?: string;
   startDateTime?: string;
   endDateTime?: string;
+  /** DTSTART and UNTIL in UTC, for a start read in the machine's zone. */
+  utcStartDateTime?: string;
+  utcEndDateTime?: string;
 }
 
 /** A zone to read an instant in, or null for its UTC fields as written. */
@@ -63,6 +68,9 @@ const wallTime = (date: Date, frame: Frame): DateTime => {
 };
 
 const utcTime = (date: Date): string => date.toISOString().slice(11, 19);
+
+const asWritten = (date: Date): DateTime =>
+  DateTime.fromJSDate(date, { zone: "utc" });
 
 /**
  * Starts are read as written, except UTC times other than midnight, which
@@ -129,6 +137,24 @@ export const timesOfDayChangeDays = (rule: {
 const secondsOfDay = (wall: DateTime): number =>
   wall.hour * 3600 + wall.minute * 60 + wall.second;
 
+/**
+ * Every time of day a date of the rule can have, in seconds, sorted: each
+ * BYHOUR, BYMINUTE and BYSECOND, or else the start's (midnight without one).
+ */
+const timesOfDayOf = (
+  start: DateTime | undefined,
+  times: TimesOfDay | undefined,
+): number[] => {
+  const hours = times?.byhour ?? [start?.hour ?? 0];
+  const minutes = times?.byminute ?? [start?.minute ?? 0];
+  const seconds = times?.bysecond ?? [start?.second ?? 0];
+  return hours.flatMap((hour) =>
+    minutes.flatMap((minute) =>
+      seconds.map((second) => hour * 3600 + minute * 60 + second),
+    ),
+  );
+};
+
 /** The first time of day a date of the rule can have, in seconds. */
 const firstTimeOfDay = (
   start: DateTime | undefined,
@@ -151,6 +177,30 @@ const dayOf = (wall: DateTime): string => {
   return day;
 };
 
+/**
+ * For a daily or longer rule with a UTC start, which rrule steps in UTC: the
+ * local day of the last date at or before `until` it could have, at one of
+ * its UTC times of day. Comparing local times instead would move the end a
+ * day when the clocks change between the start and the end.
+ */
+function lastLocalDay(
+  until: Date,
+  utcStart: DateTime,
+  times: TimesOfDay | undefined,
+): string {
+  const end = asWritten(until);
+  const all = timesOfDayOf(utcStart, times);
+  const onEndDay = all.filter((time) => time <= secondsOfDay(end));
+  const last =
+    onEndDay.length > 0
+      ? end.startOf("day").plus({ seconds: onEndDay[onEndDay.length - 1] })
+      : end
+          .startOf("day")
+          .minus({ days: 1 })
+          .plus({ seconds: all[all.length - 1] });
+  return localCalendarDay(last.toJSDate());
+}
+
 interface BoundaryInput {
   dtstart?: Date | null;
   until?: Date | null;
@@ -164,21 +214,23 @@ interface BoundaryInput {
  * The start and end days of an RRULE, and their wall-clock times when they
  * have one. For daily and longer rules the end is the last day a date can
  * fall on: a day earlier when UNTIL's time comes before the first time of
- * day a date has (its start's time, or BYHOUR/BYMINUTE/BYSECOND). Hourly
- * and shorter rules end on UNTIL's own day; their dates are compared with
- * `endDateTime`.
+ * day a date has (its start's time, or BYHOUR/BYMINUTE/BYSECOND), compared
+ * in UTC for a UTC start read in local time. Hourly and shorter rules end on
+ * UNTIL's own day; their dates are compared with `endDateTime`.
  */
 export function readRuleBoundaries(input: BoundaryInput): RuleBoundaries {
   const { dtstart, until, tzid, raw, freq, times } = input;
   const frame = dtstart ? startFrame(dtstart, raw.start, tzid) : undefined;
   const start = dtstart ? wallTime(dtstart, frame ?? null) : undefined;
-  const boundaries: RuleBoundaries = {};
-  if (start) {
-    boundaries.start = dayOf(start);
-    if (secondsOfDay(start) !== 0) {
-      boundaries.startDateTime = start.toFormat(WALL_FORMAT);
-    }
-  }
+  const utcStart =
+    dtstart && frame === "local" ? asWritten(dtstart) : undefined;
+  const boundaries: RuleBoundaries = {
+    ...(start ? { start: dayOf(start) } : {}),
+    ...(start && secondsOfDay(start) !== 0
+      ? { startDateTime: start.toFormat(WALL_FORMAT) }
+      : {}),
+    ...(utcStart ? { utcStartDateTime: utcStart.toFormat(WALL_FORMAT) } : {}),
+  };
   if (!until) {
     return boundaries;
   }
@@ -186,13 +238,20 @@ export function readRuleBoundaries(input: BoundaryInput): RuleBoundaries {
   if (raw.end && !raw.end.hasTime) {
     return { ...boundaries, end: dayOf(end) };
   }
-  const endsBeforeFirstTime =
-    !SUB_DAILY.has(freq) && secondsOfDay(end) < firstTimeOfDay(start, times);
+  const endsBeforeFirstTime = () =>
+    secondsOfDay(end) < firstTimeOfDay(start, times);
   return {
     ...boundaries,
-    end: dayOf(endsBeforeFirstTime ? end.minus({ days: 1 }) : end),
+    end: SUB_DAILY.has(freq)
+      ? dayOf(end)
+      : utcStart
+        ? lastLocalDay(until, utcStart, times)
+        : dayOf(endsBeforeFirstTime() ? end.minus({ days: 1 }) : end),
     ...(secondsOfDay(end) !== 86_399
       ? { endDateTime: end.toFormat(WALL_FORMAT) }
+      : {}),
+    ...(utcStart
+      ? { utcEndDateTime: asWritten(until).toFormat(WALL_FORMAT) }
       : {}),
   };
 }

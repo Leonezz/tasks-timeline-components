@@ -152,11 +152,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - An `UNTIL` time before the day's first date (`DTSTART:20261016T100000`,
     `UNTIL=20261020T080000`) ends the series the day before for floating and
     plain-UTC values too, as it already did with `TZID`. `BYHOUR`,
-    `BYMINUTE` and `BYSECOND` count as the day's first time.
+    `BYMINUTE` and `BYSECOND` count as the day's first time. A UTC start
+    (`DTSTART:20261016T080000Z`) is compared in UTC, as rrule steps it, and
+    the last date's day is then read in local time, so a change of clocks
+    between the start and `UNTIL` no longer drops the last date, and
+    `BYHOUR` is a UTC hour whatever the machine's zone.
   - `BYHOUR`, `BYMINUTE` and `BYSECOND` were dropped before `BYSETPOS` picked
     a position and before `COUNT` counted, so the wrong days, or none, were
     picked. Daily and longer rules keep them, and their start and end times,
-    when `BYSETPOS` or `COUNT` depends on them.
+    when `BYSETPOS` or `COUNT` depends on them. With a UTC start they are
+    computed in UTC, and each date's day is read in local time.
   - Hourly, minutely and secondly rules are computed day by day from their
     real start time instead of as daily rules: day filters with a step that
     isn't whole days (`FREQ=HOURLY;INTERVAL=36;BYDAY=MO`), `COUNT` with
