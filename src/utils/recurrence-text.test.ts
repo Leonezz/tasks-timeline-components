@@ -56,6 +56,20 @@ describe("toTasksRecurrenceText", () => {
   });
 
   it.each([
+    [
+      "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;COUNT=10",
+      "every week on Monday for 10 times",
+    ],
+    ["RRULE:FREQ=DAILY;BYHOUR=9;COUNT=5", "every day for 5 times"],
+    ["FREQ=DAILY;BYHOUR=9;BYMINUTE=30;COUNT=5", "every day for 5 times"],
+  ])(
+    "leaves out one time a day with COUNT, which still counts days: %j",
+    (rule, text) => {
+      expect(toTasksRecurrenceText(rule)).toBe(text);
+    },
+  );
+
+  it.each([
     // COUNT counts each time of day
     "FREQ=DAILY;BYHOUR=9,17;COUNT=4",
     // BYSETPOS picks among the times of day

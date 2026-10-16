@@ -176,7 +176,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `UNTIL` time.
   - Times of day out of range (`BYHOUR=24`) make a rule unreadable instead of
     rolling over. Obsidian Tasks text isn't written for rules whose times of
-    day change their days, and the task editor lists times of day among the
+    day change their days (one time a day with `COUNT` still counts days, so
+    `FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;COUNT=10` is written as "every week on
+    Monday for 10 times"), and the task editor lists times of day among the
     parts it can't show.
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
