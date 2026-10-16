@@ -1,4 +1,4 @@
-import type { Task } from "@/types";
+import type { Task } from "../types";
 import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
 import { useId, useState } from "react";

@@ -5,11 +5,11 @@ import type {
   ProviderConfig,
   SecretFieldRenderer,
   VoiceProvider,
-} from "@/types";
+} from "../../types";
 import { Icon } from "../Icon";
-import { cn } from "@/utils";
-import { testProvider } from "@/providers";
-import type { AIProviderFactory, TestResult } from "@/providers/types";
+import { cn } from "../../utils";
+import { testProvider } from "../../providers";
+import type { AIProviderFactory, TestResult } from "../../providers/types";
 import { MotionDiv, MotionSpan } from "../Motion";
 import { AnimatePresence } from "framer-motion";
 

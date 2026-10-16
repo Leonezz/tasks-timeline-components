@@ -1,5 +1,5 @@
-import type { FontSize } from "@/types";
-import { cn } from "@/utils";
+import type { FontSize } from "../../types";
+import { cn } from "../../utils";
 
 const FONT_SIZES: { id: FontSize; label: string; class: string }[] = [
   { id: "sm", label: "Small", class: "text-sm" },

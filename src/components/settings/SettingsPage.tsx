@@ -12,9 +12,8 @@ import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
 import { Documentation } from "./Documentation";
 import styles from "../../index.css?inline";
-import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
-import { logger } from "@/utils/logger.ts";
+import { logger } from "../../utils/logger.ts";
 
 const RESERVED_TAB_IDS = ["general", "filters", "ai", "docs", "about"] as const;
 
