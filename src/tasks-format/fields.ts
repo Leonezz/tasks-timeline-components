@@ -58,6 +58,10 @@ const DATE_SYMBOLS: Record<DateKey, string> = {
   cancelled: cancelledDateSymbol,
 };
 
+/** Whether the field holds a date, which ends where its value does. */
+export const isDateField = (key: TasksFieldKey): key is DateKey =>
+  key in DATE_SYMBOLS;
+
 const PRIORITY_SYMBOLS = Object.keys(TasksPrioritySymbolToLabel).join("");
 
 /** Sticky patterns: symbol (group 1), gap (group 2), value (group 3). */
@@ -139,7 +143,7 @@ export function matchFieldAt(
     const value = key === "recurrence" ? ruleValue(raw) : raw;
     if (
       (key === "recurrence" && value === "") ||
-      (key in DATE_SYMBOLS && !isDate(value))
+      (isDateField(key as TasksFieldKey) && !isDate(value))
     ) {
       return null;
     }
@@ -252,10 +256,6 @@ export function sameValue(field: FieldText, task: Task): boolean {
   switch (field.key) {
     case "priority":
       return samePriority(field.symbol, task.priority);
-    case "onCompletion":
-      return field.value === task.onCompletion;
-    case "id":
-      return field.value === task.taskId;
     case "dependsOn":
       return sameIds(field.value, task.dependsOn);
     default:
@@ -321,7 +321,7 @@ export const readFieldValues = (fields: readonly FieldText[]): FieldValues =>
     );
 
 /** The order fields are added to a line in. */
-const WRITE_ORDER: readonly TasksFieldKey[] = [
+export const WRITE_ORDER: readonly TasksFieldKey[] = [
   "priority",
   "due",
   "start",

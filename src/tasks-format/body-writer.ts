@@ -1,7 +1,8 @@
 /**
- * Writes a task onto the layout of its line: each part the task changed is
- * replaced in place, parts it dropped are removed with the space before them,
- * new fields go after the last field, and everything else stays as written.
+ * Writes a task onto the layout of its line: each field the task changed is
+ * replaced in place, fields it dropped are removed with the space before
+ * them, and everything else stays as written. New fields, and fields that no
+ * longer read back where they are, are placed by `placeFields`.
  *
  * Pure module: no React, no DOM.
  */
@@ -13,10 +14,23 @@ import {
   withValue,
   writtenValue,
 } from "./fields";
-import { type TailPart, type TaskBodyLayout, renderTaskBody } from "./layout";
+import {
+  type TailPart,
+  type TaskBodyLayout,
+  notesOf,
+  remindersIn,
+  renderTaskBody,
+  tagsOf,
+  withoutReminders,
+} from "./layout";
+import {
+  type FieldPart,
+  editedPart,
+  firstFields,
+  isField,
+  placeFields,
+} from "./field-placement";
 import { TaskRegularExpressions } from "./regex";
-
-type FieldPart = Extract<TailPart, { kind: "field" }>;
 
 /** What happens to the first field of a kind: kept, given a new value, or removed. */
 type FieldEdit = { keep: true } | { value: string } | { remove: true };
@@ -29,22 +43,16 @@ function fieldEdit(part: FieldPart, task: Task): FieldEdit {
   return value === undefined ? { remove: true } : { value };
 }
 
-const isField = (part: TailPart): part is FieldPart => part.kind === "field";
-
 /**
  * The parts with the task's fields written in. A field written twice is
  * edited at its first place; the later ones stay unless the field is removed.
  */
-function editFields(parts: readonly TailPart[], task: Task): TailPart[] {
-  const fields = parts.filter(isField);
-  const firsts = fields.filter(
-    (part, index) =>
-      fields.findIndex((other) => other.field.key === part.field.key) === index,
-  );
-  const edits = new Map<TasksFieldKey, FieldEdit>(
-    firsts.map((part) => [part.field.key, fieldEdit(part, task)]),
-  );
-  const edited = parts.flatMap((part): TailPart[] => {
+function editInPlace(
+  parts: readonly TailPart[],
+  edits: ReadonlyMap<TasksFieldKey, FieldEdit>,
+  firsts: readonly FieldPart[],
+): TailPart[] {
+  return parts.flatMap((part): TailPart[] => {
     const edit = isField(part) ? edits.get(part.field.key) : undefined;
     if (!isField(part) || !edit || "keep" in edit) {
       return [part];
@@ -53,19 +61,9 @@ function editFields(parts: readonly TailPart[], task: Task): TailPart[] {
       return [];
     }
     return firsts.includes(part)
-      ? [{ ...part, field: withValue(part.field, edit.value) }]
+      ? [editedPart(part, { field: withValue(part.field, edit.value) })]
       : [part];
   });
-
-  const added: TailPart[] = taskFields(task)
-    .filter((field) => !edits.has(field.key))
-    .map((field) => ({ kind: "field", lead: " ", field }));
-  const lastField = edited.map(isField).lastIndexOf(true);
-  return [
-    ...edited.slice(0, lastField + 1),
-    ...added,
-    ...edited.slice(lastField + 1),
-  ];
 }
 
 const hashtagsIn = (text: string): string[] =>
@@ -73,9 +71,13 @@ const hashtagsIn = (text: string): string[] =>
     match[0].trim(),
   );
 
+/**
+ * The words of a description without its tags (and the space before each,
+ * as the Obsidian plugin takes them out) and ⏰ reminders.
+ */
 const withoutHashtags = (text: string): string =>
-  text
-    .replace(TaskRegularExpressions.hashTags, " ")
+  withoutReminders(text)
+    .replace(TaskRegularExpressions.hashTags, "")
     .split(/\s+/)
     .filter((word) => word !== "")
     .join(" ");
@@ -85,9 +87,11 @@ const sameDescription = (a: string, b: string): boolean =>
   withoutHashtags(a) === withoutHashtags(b) &&
   hashtagsIn(a).sort().join(" ") === hashtagsIn(b).sort().join(" ");
 
-const TRAILING_TAG = /(?:^|\s+)(#[^\s!@#$%^&*(),.?":{}|<>]+)$/u;
+const TAG_TEXT = '#[^\\s!@#$%^&*(),.?":{}|<>]+';
+const TRAILING_TAG = new RegExp(`(?:^|\\s+)(${TAG_TEXT})$`, "u");
+const LEADING_TAG = new RegExp(`^(${TAG_TEXT})(?:\\s+|$)`, "u");
 
-/** The title without the tags at its end that stay after the fields. */
+/** The title without the tags at its end that stay after the description. */
 function withoutTailTags(title: string, tailTags: readonly string[]): string {
   const match = TRAILING_TAG.exec(title);
   const at = match ? tailTags.lastIndexOf(match[1]) : -1;
@@ -99,79 +103,111 @@ function withoutTailTags(title: string, tailTags: readonly string[]): string {
     : title;
 }
 
+/** The title without the tags at its start that stay before the description. */
+function withoutHeadTags(title: string, headTags: readonly string[]): string {
+  const match = LEADING_TAG.exec(title);
+  const at = match ? headTags.indexOf(match[1]) : -1;
+  return match && at >= 0
+    ? withoutHeadTags(title.slice(match[0].length), [
+        ...headTags.slice(0, at),
+        ...headTags.slice(at + 1),
+      ])
+    : title;
+}
+
+/** New description words, with the ⏰ reminders of the old description kept. */
+const withReminders = (words: string, description: string): string =>
+  [
+    words,
+    ...remindersIn(description).filter((reminder) => !words.includes(reminder)),
+  ]
+    .filter((text) => text !== "")
+    .join(" ");
+
 /**
- * The description and tail parts for the task's title and tags. Tags after
- * the fields stay there while the task has them; the description is rewritten
- * only when its words or tags changed.
+ * The layout with the task's title and tags. Tags before and after the
+ * description stay there while the task has them; the description is
+ * rewritten only when its words or tags changed, keeping its ⏰ reminders.
  */
 function editDescription(
   layout: TaskBodyLayout,
-  parts: readonly TailPart[],
   task: Task,
   inlineTags: readonly string[],
-): { description: string; parts: TailPart[] } {
+): TaskBodyLayout {
   const wanted = new Set([...hashtagsIn(task.title), ...inlineTags]);
-  const keptParts = parts.filter(
-    (part) => part.kind !== "tag" || wanted.has(part.text),
+  const kept = (part: TailPart) => part.kind !== "tag" || wanted.has(part.text);
+  const head = layout.head.filter(kept);
+  const parts = layout.parts.filter(kept);
+  const title = withoutTailTags(
+    withoutHeadTags(task.title.trim(), tagsOf(head)),
+    tagsOf(parts),
   );
-  const tailTags = keptParts.flatMap((part) =>
-    part.kind === "tag" ? [part.text] : [],
-  );
-  const title = withoutTailTags(task.title.trim(), tailTags);
-  const titleTags = new Set([...hashtagsIn(title), ...tailTags]);
-  const description = [
+  const titleTags = new Set([
+    ...hashtagsIn(title),
+    ...tagsOf(head),
+    ...tagsOf(parts),
+  ]);
+  const words = [
     title,
     ...[...new Set(inlineTags)].filter((tag) => !titleTags.has(tag)),
   ]
     .filter((text) => text !== "")
     .join(" ");
   return {
-    description: sameDescription(description, layout.description)
+    ...layout,
+    head,
+    parts,
+    description: sameDescription(words, layout.description)
       ? layout.description
-      : description,
-    parts: keptParts,
+      : withReminders(words, layout.description),
   };
 }
 
 /**
- * Keeps the description and the first part apart when either changed, and
- * the text from starting with whitespace.
+ * The layout with the task's notes (`extra.lineNotes`) after the fields,
+ * when the line has none: a new line written for a task read from another,
+ * such as the next occurrence of a recurring task.
  */
-function spaced(
+function withNotes(
   layout: TaskBodyLayout,
-  description: string,
-  parts: TailPart[],
-): TailPart[] {
-  const [first, ...rest] = parts;
-  const unchanged =
-    description === layout.description && first?.lead === layout.parts[0]?.lead;
-  if (!first || unchanged) {
-    return parts;
-  }
-  if (description === "") {
-    return [{ ...first, lead: "" }, ...rest];
-  }
-  return first.lead === "" ? [{ ...first, lead: " " }, ...rest] : parts;
+  original: TaskBodyLayout,
+  task: Task,
+): TaskBodyLayout {
+  const notes = task.extra?.lineNotes?.trim();
+  return notes && notesOf(original) === ""
+    ? {
+        ...layout,
+        parts: [...layout.parts, { kind: "text", lead: " ", text: notes }],
+      }
+    : layout;
 }
 
 /**
  * The text after the checkbox for `task`, written onto the layout of its
  * original line. `inlineTags` are the task's tags that belong on the line.
+ *
+ * @throws When the line can't be read back as the task (see placeFields).
  */
 export function writeTaskBody(
   layout: TaskBodyLayout,
   task: Task,
   inlineTags: readonly string[],
 ): string {
-  const { description, parts } = editDescription(
-    layout,
-    editFields(layout.parts, task),
+  const firsts = firstFields([...layout.head, ...layout.parts]);
+  const edits = new Map(
+    firsts.map((part) => [part.field.key, fieldEdit(part, task)] as const),
+  );
+  const edited = editDescription(
+    {
+      ...layout,
+      head: editInPlace(layout.head, edits, firsts),
+      parts: editInPlace(layout.parts, edits, firsts),
+    },
     task,
     inlineTags,
   );
-  return renderTaskBody({
-    ...layout,
-    description,
-    parts: spaced(layout, description, parts),
-  });
+  const added = taskFields(task).filter((field) => !edits.has(field.key));
+  return renderTaskBody(
+    placeFields(layout, withNotes(edited, layout, task), added, task),
+  );
 }

@@ -5,16 +5,22 @@
  */
 import type { Task } from "../types";
 import { readFieldValues } from "./fields";
-import { readTaskBody, titleOf } from "./layout";
+import { notesOf, readTaskBody, titleOf } from "./layout";
 
 /**
  * Reads the Obsidian Tasks fields of a task whose `title` is the text after
  * the checkbox, as Obsidian Tasks does (originally its `fromLine`):
  *
- * - `title` is the text before the first field, with the tags written after
- *   the fields added back. A trailing block id (`^id`), notes, links and ⏰
- *   reminders after the fields are not part of it; `taskToMarkdown` keeps
- *   them where they are.
+ * - `title` is the text before the first field (or, on a line that starts
+ *   with fields, the text after them), with the tags written around the
+ *   fields added back. ⏰ reminders, a trailing block id (`^id`), and notes
+ *   and links after the fields are not part of it; `taskToMarkdown` keeps
+ *   them where they are. 🏁, 🆔, ⛔ and priority emoji count as fields only
+ *   next to the other fields, so "⛔ Don't touch prod" stays title text.
+ * - `extra.lineNotes` is the notes and links after the fields, which
+ *   `taskToMarkdown` writes on a new line for the task (the next occurrence
+ *   of a recurring task); ⏰ reminders, which are for one occurrence, are not
+ *   part of it.
  * - Fields: priority, 📅 due, 🛫 start, ⏳ scheduled (`extra.scheduledAt`),
  *   ➕ created, ✅ done (`completedAt`), ❌ cancelled (`cancelledAt`),
  *   🔁 recurrence (`recurringInterval`), 🏁 `onCompletion`, 🆔 `taskId` and
@@ -23,8 +29,11 @@ import { readTaskBody, titleOf } from "./layout";
 export const parseTasksFormatItem = (item: Task): Task => {
   const layout = readTaskBody(item.title);
   const { scheduledAt, priority, ...values } = readFieldValues(
-    layout.parts.flatMap((part) => (part.kind === "field" ? [part.field] : [])),
+    [...layout.head, ...layout.parts].flatMap((part) =>
+      part.kind === "field" ? [part.field] : [],
+    ),
   );
+  const notes = notesOf(layout);
   const isTasksTask = [
     values.startAt,
     scheduledAt,
@@ -51,6 +60,7 @@ export const parseTasksFormatItem = (item: Task): Task => {
     extra: {
       ...item.extra,
       ...(scheduledAt ? { scheduledAt } : {}),
+      ...(notes ? { lineNotes: notes } : {}),
       isTasksTask: isTasksTask ? "true" : "false",
     },
   };

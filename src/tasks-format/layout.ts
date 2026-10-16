@@ -1,19 +1,20 @@
 /**
- * The layout of a task line's text (after the checkbox): the description,
- * then the fields, tags and other text after it, then the block id. Reading
- * keeps every character, so an unchanged layout renders the text it was
- * read from byte for byte.
+ * The layout of a task line's text (after the checkbox): the description the
+ * title is read from, the fields, tags and other text before and after it,
+ * then the block id. Reading keeps every character, so an unchanged layout
+ * renders the text it was read from byte for byte.
  *
  * Pure module: no React, no DOM.
  */
 import {
   type FieldText,
+  type TasksFieldKey,
   FIELD_START_CODE_POINTS,
   fieldText,
   matchFieldAt,
 } from "./fields";
 
-/** A part after the description, with the whitespace before it. */
+/** A part before or after the description, with the whitespace before it. */
 export type TailPart =
   | { kind: "field"; lead: string; field: FieldText }
   | { kind: "tag"; lead: string; text: string }
@@ -21,8 +22,16 @@ export type TailPart =
   | { kind: "text"; lead: string; text: string };
 
 export interface TaskBodyLayout {
-  /** The text before the first field, as written (no trailing whitespace). */
+  /**
+   * The fields, tags and ⏰ reminders written before the description, when
+   * the text starts with them ("📅 2026-10-16 Water plants"); else empty.
+   */
+  head: TailPart[];
+  /** The whitespace between the head and the description ("" without a head). */
+  descriptionLead: string;
+  /** The text the title is read from, as written (no trailing whitespace). */
   description: string;
+  /** The fields, tags and other text after the description. */
   parts: TailPart[];
   /** The whitespace after the last part (or after the description). */
   trailing: string;
@@ -32,12 +41,29 @@ export interface TaskBodyLayout {
 
 /** A block id ends the line (Obsidian Tasks: / \^[a-zA-Z0-9-]+$/). */
 const BLOCK_LINK = /\s+\^[a-zA-Z0-9-]+\s*$/u;
-/** An obsidian-reminder ⏰ date (and time): not a Tasks field, ends the description. */
-const REMINDER = /⏰\uFE0F? *\d{4}-\d{2}-\d{2}(?: +\d{1,2}:\d{2})?/uy;
+/** An obsidian-reminder ⏰ date (and time). Not a Tasks field. */
+const REMINDER_SOURCE =
+  "⏰\\uFE0F? *\\d{4}-\\d{2}-\\d{2}(?: +\\d{1,2}:\\d{2})?";
+const REMINDER = new RegExp(REMINDER_SOURCE, "uy");
+const REMINDERS = new RegExp(REMINDER_SOURCE, "gu");
+/** A reminder with the whitespace before it, to take it out of a title. */
+const SPACED_REMINDERS = new RegExp(`\\s*${REMINDER_SOURCE}`, "gu");
 const REMINDER_CODE_POINT = 0x23f0;
 /** A tag, as the hashTags regex reads one (at least one character after #). */
 const TAG = /#[^\s!@#$%^&*(),.?":{}|<>]+/uy;
 const SPACE = /\s/u;
+
+/**
+ * Fields whose value is free words, and the priority, which has none: they
+ * are fields only next to the other fields, so "Fix 🔺 bug" and "⛔ Don't
+ * touch prod" stay title text.
+ */
+const RUN_ONLY_FIELDS: ReadonlySet<TasksFieldKey> = new Set<TasksFieldKey>([
+  "priority",
+  "onCompletion",
+  "id",
+  "dependsOn",
+]);
 
 const codePointLength = (text: string, index: number): number =>
   (text.codePointAt(index) ?? 0) > 0xffff ? 2 : 1;
@@ -55,36 +81,48 @@ const skipSpace = (text: string, index: number): number => {
   return at;
 };
 
+/** The ⏰ reminders written in `text`. */
+export const remindersIn = (text: string): string[] =>
+  text.match(REMINDERS) ?? [];
+
+/** `text` without its ⏰ reminders and the whitespace before each. */
+export const withoutReminders = (text: string): string =>
+  text.replace(SPACED_REMINDERS, "");
+
 type Token =
   | { kind: "field"; field: FieldText; end: number }
   | { kind: "text"; text: string; end: number };
 
-/** The field or reminder written at `index`, or null. */
+/**
+ * The field or reminder written at `index`, or null. A reminder, and a
+ * field in RUN_ONLY_FIELDS, counts only when the fields go on after it
+ * ("Call mom ⏰ 2026-10-16 09:00 about her birthday" is one sentence).
+ */
 function tokenAt(text: string, index: number): Token | null {
   const codePoint = text.codePointAt(index) ?? 0;
   if (codePoint === REMINDER_CODE_POINT) {
     const reminder = stickyMatch(REMINDER, text, index);
-    return reminder
-      ? { kind: "text", text: reminder, end: index + reminder.length }
+    const end = index + (reminder?.length ?? 0);
+    return reminder && endsFieldRun(text, end)
+      ? { kind: "text", text: reminder, end }
       : null;
   }
   if (!FIELD_START_CODE_POINTS.has(codePoint)) {
     return null;
   }
   const match = matchFieldAt(text, index);
-  if (!match) {
-    return null;
-  }
-  // A priority emoji inside the description ("Fix 🔺 bug") is not a field
-  if (match.field.key === "priority" && !endsFieldRun(text, match.end)) {
+  if (
+    !match ||
+    (RUN_ONLY_FIELDS.has(match.field.key) && !endsFieldRun(text, match.end))
+  ) {
     return null;
   }
   return { kind: "field", ...match };
 }
 
 /**
- * Whether only fields, reminders and tags follow `from` up to the end, or
- * up to the next field: a priority emoji there is a field.
+ * Whether only tags follow `from` up to the end, or up to the next field or
+ * reminder: a field in RUN_ONLY_FIELDS or a reminder there counts.
  */
 function endsFieldRun(text: string, from: number): boolean {
   let end = from;
@@ -109,13 +147,38 @@ const TOKEN_START = new RegExp(
   "gu",
 );
 
-function firstTokenIndex(text: string): number {
+function firstTokenIndex(text: string, from: number): number {
   for (const candidate of text.matchAll(TOKEN_START)) {
-    if (tokenAt(text, candidate.index)) {
+    if (candidate.index >= from && tokenAt(text, candidate.index)) {
       return candidate.index;
     }
   }
   return -1;
+}
+
+/**
+ * The end of the fields, reminders and tags the text starts with, when at
+ * least one field or reminder is among them; else 0.
+ */
+function headEnd(text: string): number {
+  let end = 0;
+  let hasToken = false;
+  for (;;) {
+    const start = skipSpace(text, end);
+    const token = start < text.length ? tokenAt(text, start) : null;
+    const tag =
+      token || (start === end && start > 0)
+        ? null
+        : stickyMatch(TAG, text, start);
+    if (token) {
+      end = token.end;
+      hasToken = true;
+    } else if (tag) {
+      end = start + tag.length;
+    } else {
+      return hasToken ? end : 0;
+    }
+  }
 }
 
 /** The end of the word of other text starting at `index`. */
@@ -139,20 +202,25 @@ const withText = (
     : [...parts, { kind: "text", lead, text }];
 };
 
-function readTail(
+/** The parts written from `from` up to `to`, and the whitespace after them. */
+function readParts(
   text: string,
   from: number,
+  to: number,
 ): { parts: TailPart[]; trailing: string } {
   let parts: TailPart[] = [];
   let index = from;
   for (;;) {
     const start = skipSpace(text, index);
-    if (start >= text.length) {
-      return { parts, trailing: text.slice(index) };
+    if (start >= to) {
+      return { parts, trailing: text.slice(index, to) };
     }
     const lead = text.slice(index, start);
     const token = tokenAt(text, start);
-    const tag = token || lead === "" ? null : stickyMatch(TAG, text, start);
+    const tag =
+      token || (lead === "" && start > 0)
+        ? null
+        : stickyMatch(TAG, text, start);
     if (token?.kind === "field") {
       parts = [...parts, { kind: "field", lead, field: token.field }];
       index = token.end;
@@ -174,36 +242,63 @@ export function readTaskBody(body: string): TaskBodyLayout {
   const block = BLOCK_LINK.exec(body);
   const blockLink = block ? block[0] : "";
   const rest = block ? body.slice(0, block.index) : body;
-  const first = firstTokenIndex(rest);
-  const description = (first < 0 ? rest : rest.slice(0, first)).trimEnd();
-  if (first < 0) {
-    return {
-      description,
-      parts: [],
-      trailing: rest.slice(description.length),
-      blockLink,
-    };
-  }
-  return { description, ...readTail(rest, description.length), blockLink };
+  // Fields before the title: the description is the text after them
+  const end = headEnd(rest);
+  const wordsAt = skipSpace(rest, end);
+  const hasHead = end > 0 && wordsAt < rest.length;
+  const descriptionStart = hasHead ? wordsAt : 0;
+  const first = firstTokenIndex(rest, descriptionStart);
+  const description = rest
+    .slice(descriptionStart, first < 0 ? rest.length : first)
+    .trimEnd();
+  return {
+    head: hasHead ? readParts(rest, 0, end).parts : [],
+    descriptionLead: hasHead ? rest.slice(end, wordsAt) : "",
+    description,
+    ...readParts(rest, descriptionStart + description.length, rest.length),
+    blockLink,
+  };
 }
 
 const partText = (part: TailPart): string =>
   part.kind === "field" ? fieldText(part.field) : part.text;
 
+const renderParts = (parts: readonly TailPart[]): string =>
+  parts.map((part) => part.lead + partText(part)).join("");
+
 export const renderTaskBody = (layout: TaskBodyLayout): string =>
+  renderParts(layout.head) +
+  layout.descriptionLead +
   layout.description +
-  layout.parts.map((part) => part.lead + partText(part)).join("") +
+  renderParts(layout.parts) +
   layout.trailing +
   layout.blockLink;
 
+export const tagsOf = (parts: readonly TailPart[]): string[] =>
+  parts.flatMap((part) => (part.kind === "tag" ? [part.text] : []));
+
 /**
- * The title Obsidian Tasks reads: the description, with the tags after the
- * fields added back ("Pay rent 📅 2026-10-01 #home" is "Pay rent #home").
+ * The title Obsidian Tasks reads: the description without ⏰ reminders, with
+ * the tags written before and after the fields added back in line order
+ * ("Pay rent 📅 2026-10-01 #home" is "Pay rent #home").
  */
 export const titleOf = (layout: TaskBodyLayout): string =>
   [
-    layout.description.trim(),
-    ...layout.parts.flatMap((part) => (part.kind === "tag" ? [part.text] : [])),
+    ...tagsOf(layout.head),
+    withoutReminders(layout.description).trim(),
+    ...tagsOf(layout.parts),
   ]
+    .filter((text) => text !== "")
+    .join(" ");
+
+/**
+ * The text after the description that is not a field, tag or ⏰ reminder:
+ * notes and links ("📅 2026-10-16 see [[Garden]]" has "see [[Garden]]").
+ */
+export const notesOf = (layout: TaskBodyLayout): string =>
+  layout.parts
+    .flatMap((part) =>
+      part.kind === "text" ? [withoutReminders(part.text).trim()] : [],
+    )
     .filter((text) => text !== "")
     .join(" ");

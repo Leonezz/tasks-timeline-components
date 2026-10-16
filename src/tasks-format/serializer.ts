@@ -107,16 +107,27 @@ const withStatus = (head: string, status: TaskStatus): string => {
 
 /**
  * Writes a task onto its original markdown line, changing only what the task
- * changed: the checkbox, the title and tags, and each field in its place
- * (fields the task gained go after the line's last field). The indentation,
- * list marker, block id (`^id`), ⏰ reminders, notes and links stay as written,
- * so a task read from the line and written back unchanged gives the line
- * byte for byte.
+ * changed: the checkbox, the title and tags, and each field in its place.
+ * The indentation, list marker, block id (`^id`), ⏰ reminders, notes and
+ * links stay as written, so a task read from the line and written back
+ * unchanged gives the line byte for byte.
+ *
+ * The line written reads back as the task. Fields the task gained go after
+ * the line's last field, or before a field when notes follow it (a priority
+ * or a 🔁 rule right before notes would not be read back). A field that no
+ * longer reads back where it is, such as a rule followed by notes once the
+ * field between them is removed, moves the same way. When no field is left
+ * that can stand between the title and the notes, the notes join the title,
+ * as Obsidian Tasks reads such a line; no text is dropped. On a line without
+ * notes (a new line), the task's `extra.lineNotes` are written after the
+ * fields.
  *
  * @param task The updated Task object.
  * @param originalLine The original markdown line from the file.
  * @returns The new markdown line, or `originalLine` when it is not a task line.
- * @throws When the task holds a value a line can't (see formatTasksMetadata).
+ * @throws When the task holds a value a line can't (see formatTasksMetadata),
+ * or when the line would not read back as the task (a title that would be
+ * read as a field, such as "Fix bug 🔺" before a date).
  */
 export const taskToMarkdown = (task: Task, originalLine: string): string => {
   const match = TaskRegularExpressions.taskRegex.exec(originalLine);

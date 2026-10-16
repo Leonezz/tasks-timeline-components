@@ -134,6 +134,42 @@ describe("readTaskBody", () => {
     expect(misread).toEqual([]);
   });
 
+  it("reads every field edit back, and keeps the line's text", () => {
+    const fields = (task: Task) => [
+      task.priority,
+      task.dueAt,
+      task.recurringInterval,
+      task.onCompletion,
+      task.taskId,
+      task.dependsOn?.join(","),
+    ];
+    const textOf = (body: string) =>
+      readTaskBody(body).parts.flatMap((part) =>
+        part.kind === "text" ? [part.text] : [],
+      );
+    const misread = [...generatedBodies(3000)]
+      .map((body) => `- [ ] ${body.trimStart()}`)
+      .flatMap((line) => {
+        const edited: Task = {
+          ...parse(line.slice(6)),
+          priority: "high",
+          recurringInterval: "every 3 days",
+          onCompletion: "keep",
+          dependsOn: ["x1"],
+        };
+        const written = taskToMarkdown(edited, line);
+        const dropped = textOf(line.slice(6)).filter(
+          (text) => !written.includes(text),
+        );
+        return JSON.stringify(fields(parse(written.slice(6)))) ===
+          JSON.stringify(fields(edited)) && dropped.length === 0
+          ? []
+          : [{ line, written, dropped }];
+      });
+
+    expect(misread).toEqual([]);
+  });
+
   it("splits the description, fields, tags, notes and block id", () => {
     const layout = readTaskBody(
       "Water plants 🔁 every week when done see [[Garden]] #home 📅 2026-10-16 ^blk1",
