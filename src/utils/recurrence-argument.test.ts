@@ -134,6 +134,11 @@ describe("readRecurrenceArgument with natural wordings", () => {
       "every week until December 31, 2026",
     ],
     ["every week until Dec 31, 2026", "every week until December 31, 2026"],
+    // rrule reads "Sept" and a date without its comma too
+    ["every week until Sept 30, 2027", "every week until September 30, 2027"],
+    ["every week until sept 30 2027", "every week until September 30, 2027"],
+    ["every week until December 31 2026", "every week until December 31, 2026"],
+    ["every week until Dec 31 2026", "every week until December 31, 2026"],
     ["every week when  done", "every week when done"],
     ["every week When Done", "every week when done"],
     [

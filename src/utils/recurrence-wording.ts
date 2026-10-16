@@ -213,6 +213,9 @@ const UNTIL = /\b(?:until|till?)\b/i;
 const END_DATE_FORMATS = [
   "LLLL d, yyyy",
   "LLL d, yyyy",
+  // rrule reads a worded date without its comma too
+  "LLLL d yyyy",
+  "LLL d yyyy",
   "yyyy-M-d",
   "M/d/yyyy",
   "yyyy/M/d",
@@ -224,9 +227,10 @@ export type RuleEnd =
 
 /**
  * Splits the "until" clause off rule text and reads its date (YYYY-MM-DD):
- * "December 31, 2026" in any case and spacing, "Dec 31, 2026", 2026-12-31,
- * 12/31/2026 or 2026/12/31. A date that doesn't exist (February 30) is
- * refused rather than rolled over to a later day.
+ * "December 31, 2026" in any case and spacing, with or without its comma,
+ * "Dec 31, 2026", "Sept 30, 2027", 2026-12-31, 12/31/2026 or 2026/12/31. A
+ * date that doesn't exist (February 30) is refused rather than rolled over
+ * to a later day.
  */
 export function splitRuleEnd(text: string): RuleEnd {
   const match = UNTIL.exec(text);
@@ -234,7 +238,11 @@ export function splitRuleEnd(text: string): RuleEnd {
     return { ok: true, body: text.trim() };
   }
   const written = text.slice(match.index + match[0].length).trim();
-  const date = written.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ");
+  const date = written
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    // luxon only reads "Sep"
+    .replace(/\bsept\b/i, "Sep");
   const attempts = END_DATE_FORMATS.map((format) =>
     DateTime.fromFormat(date, format, { locale: "en-US", zone: "utc" }),
   );

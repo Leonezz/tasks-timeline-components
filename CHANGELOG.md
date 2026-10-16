@@ -136,7 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the first day" as a day of every month, so they are refused.
   - Case and spacing no longer matter: "until december 31,2026" and
     "when  done" are read and stored as "until December 31, 2026" and
-    "when done". An end date that doesn't exist ("until February 30, 2027",
+    "when done". End dates without the comma ("December 31 2026") and with
+    "Sept" are read as rrule reads them. An end date that doesn't exist ("until February 30, 2027",
     "until 2027-02-30") is refused as not a date instead of rolling over to
     March (#44).
 - **Next dates for weekly rules with month days, and slow rules.** A weekly
