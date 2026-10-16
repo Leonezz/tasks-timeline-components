@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { DatePicker } from "../../components/ui/date-picker";
 import { DateTime } from "luxon";
 
@@ -80,6 +81,23 @@ export const DateOnly: Story = {
  */
 export const DateAndTime: Story = {
   render: () => <DatePickerDemo showTime={true} />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body);
+
+    await step("Open the picker", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Pick date and time" }),
+      );
+    });
+
+    await step("Time field is labelled", async () => {
+      const timeInput = await page.findByLabelText("Time");
+      expect(timeInput).toHaveAttribute("type", "time");
+      expect(timeInput).toHaveValue("00:00");
+    });
+  },
 };
 
 /**
@@ -89,6 +107,29 @@ export const DateAndTime: Story = {
  */
 export const PrePopulatedDate: Story = {
   render: () => <DatePickerDemo showTime={false} initialValue="2026-02-05" />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body);
+
+    await step("Open the picker", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", {
+          name: DateTime.fromISO("2026-02-05").toFormat("MMM dd, yyyy"),
+        }),
+      );
+    });
+
+    await step("Days are named by full date and expose selection", async () => {
+      const selected = await page.findByRole("button", {
+        name: "Thursday, February 5, 2026",
+      });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+      expect(
+        page.getByRole("button", { name: "Friday, February 6, 2026" }),
+      ).toHaveAttribute("aria-pressed", "false");
+    });
+  },
 };
 
 /**

@@ -300,15 +300,21 @@ export const ExpandCollapse: Story = {
     });
 
     await step("Click to collapse year section", async () => {
-      const collapseButton = canvas.getByRole("button");
+      const collapseButton = canvas.getByRole("button", {
+        name: new RegExp(`^Collapse ${currentYear},`),
+      });
       await userEvent.click(collapseButton);
       await delay(500); // Wait for collapse animation
+      expect(collapseButton).toHaveAttribute("aria-expanded", "false");
     });
 
     await step("Click again to expand", async () => {
-      const expandButton = canvas.getByRole("button");
+      const expandButton = canvas.getByRole("button", {
+        name: new RegExp(`^Expand ${currentYear},`),
+      });
       await userEvent.click(expandButton);
       await delay(500); // Wait for expand animation
+      expect(expandButton).toHaveAttribute("aria-expanded", "true");
     });
   },
 };

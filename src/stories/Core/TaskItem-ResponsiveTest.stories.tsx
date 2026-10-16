@@ -1,9 +1,48 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TaskItem } from "../../components/TaskItem";
-import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
-import { taskBuilder } from "../fixtures";
+import {
+  TasksProvider,
+  type TasksContextType,
+} from "../../contexts/TasksContext";
+import {
+  SettingsProvider,
+  type SettingsContextType,
+} from "../../contexts/SettingsContext";
+import { settingsBuilder, taskBuilder } from "../fixtures";
 import { DateTime } from "luxon";
+
+// TaskItem reads its handlers and settings from context, not props
+const tasksContextValue: TasksContextType = {
+    tasks: [],
+    availableCategories: ["Work", "Personal"],
+    availableTags: ["urgent", "important"],
+    onUpdateTask: (task) => console.log("Update:", task),
+    onDeleteTask: (id) => console.log("Delete:", id),
+    onAddTask: (task) => console.log("Add:", task),
+    onEditTask: (task) => console.log("Edit:", task),
+    onAICommand: async (input) => console.log("AI command:", input),
+  },
+  settingsContextValue: SettingsContextType = {
+    settings: settingsBuilder.default(),
+    updateSettings: (settings) => console.log("Update settings:", settings),
+    isFocusMode: false,
+    toggleFocusMode: () => console.log("Toggle focus mode"),
+    isAiMode: false,
+    toggleAiMode: () => console.log("Toggle AI mode"),
+    filters: {
+      tags: { include: [], exclude: [] },
+      categories: { include: [], exclude: [] },
+      priorities: { include: [], exclude: [] },
+      statuses: { include: [], exclude: [] },
+      enableScript: false,
+      script: "",
+    },
+    onFilterChange: (filters) => console.log("Filter change:", filters),
+    sort: { field: "dueAt", direction: "asc", script: "" },
+    onSortChange: (sort) => console.log("Sort change:", sort),
+    onVoiceError: (msg) => console.error("Voice error:", msg),
+  };
 
 const meta: Meta<typeof TaskItem> = {
   title: "Core/TaskItem Responsive Tests",
@@ -40,11 +79,15 @@ const meta: Meta<typeof TaskItem> = {
   decorators: [
     (Story) => (
       <AppProvider>
-        <div className="bg-slate-50 min-h-screen p-4">
-          <div className="max-w-4xl mx-auto">
-            <Story />
-          </div>
-        </div>
+        <TasksProvider value={tasksContextValue}>
+          <SettingsProvider value={settingsContextValue}>
+            <div className="bg-slate-50 min-h-screen p-4">
+              <div className="max-w-4xl mx-auto">
+                <Story />
+              </div>
+            </div>
+          </SettingsProvider>
+        </TasksProvider>
       </AppProvider>
     ),
   ],
@@ -52,13 +95,6 @@ const meta: Meta<typeof TaskItem> = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-// Mock handlers
-const mockHandlers = {
-  onUpdate: (task: Task) => console.log("Update:", task),
-  onDelete: (id: string) => console.log("Delete:", id),
-  onEdit: (task: Task) => console.log("Edit:", task),
-};
 
 /**
  * Long Title Test - Mobile (320px)
@@ -87,7 +123,6 @@ export const LongTitleMobile: Story = {
       description:
         "This task has a very long title to test responsive truncation behavior at narrow viewport widths.",
     }),
-    ...mockHandlers,
   },
   parameters: {
     viewport: { defaultViewport: "mobile" },
@@ -116,7 +151,6 @@ export const MultipleBadgesMobile: Story = {
         { id: "3", name: "very-long-tag-name" },
       ],
     }),
-    ...mockHandlers,
   },
   parameters: {
     viewport: { defaultViewport: "mobile" },
@@ -140,7 +174,6 @@ export const LongTitleTablet: Story = {
       dueAt: DateTime.now().plus({ days: 2 }).toISODate()!,
       priority: "medium",
     }),
-    ...mockHandlers,
   },
   parameters: {
     viewport: { defaultViewport: "tablet" },
@@ -162,7 +195,6 @@ export const LongTitleDesktop: Story = {
       priority: "low",
       category: "Personal",
     }),
-    ...mockHandlers,
   },
   parameters: {
     viewport: { defaultViewport: "desktop" },
@@ -184,7 +216,6 @@ export const MultipleTasksComparison: Story = {
           title: "Short title",
           priority: "high",
         })}
-        {...mockHandlers}
       />
       <TaskItem
         task={taskBuilder.base({
@@ -192,7 +223,6 @@ export const MultipleTasksComparison: Story = {
           title: "Medium length title that is somewhat longer",
           priority: "medium",
         })}
-        {...mockHandlers}
       />
       <TaskItem
         task={taskBuilder.base({
@@ -203,7 +233,6 @@ export const MultipleTasksComparison: Story = {
           category: "Work",
           tags: [{ id: "1", name: "urgent" }],
         })}
-        {...mockHandlers}
       />
       <TaskItem
         task={taskBuilder.base({
@@ -219,7 +248,6 @@ export const MultipleTasksComparison: Story = {
             { id: "2", name: "tag2" },
           ],
         })}
-        {...mockHandlers}
       />
     </div>
   ),
@@ -242,7 +270,6 @@ export const BadgeTruncationTest: Story = {
       category: "Very Long Category Name That Should Truncate",
       tags: [{ id: "1", name: "extremely-long-tag-name-that-should-truncate" }],
     }),
-    ...mockHandlers,
   },
   parameters: {
     viewport: { defaultViewport: "mobile" },

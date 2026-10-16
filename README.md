@@ -536,6 +536,24 @@ pnpm dev
 pnpm storybook
 ```
 
+### Run Tests
+
+```bash
+# Unit tests (Node)
+pnpm test
+
+# Storybook play tests (headless Chromium via Playwright)
+pnpm test-storybook
+```
+
+The Storybook tests need the Chromium headless shell that matches the
+installed Playwright version. Install it once, and again after upgrading
+Playwright:
+
+```bash
+pnpm exec playwright install chromium-headless-shell
+```
+
 ### Build Library
 
 ```bash
