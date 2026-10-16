@@ -71,13 +71,16 @@ export class TaskRegularExpressions {
   public static readonly dueDateRegex = /[📅📆🗓] *(\d{4}-\d{2}-\d{2})/u;
   public static readonly doneDateRegex = /✅ *(\d{4}-\d{2}-\d{2})/u;
   /**
-   * The whole recurrence token: from 🔁 to the next metadata emoji, #tag,
-   * ^block-id or the end. Taking only the characters a rule text uses split
-   * lines written with RRULE syntax or numeric dates ("🔁 FREQ=WEEKLY;BYDAY=MO"
-   * kept "FREQ" and put the rest in the title).
+   * The recurrence after 🔁 (optionally followed by U+FE0F, as Obsidian Tasks
+   * allows): a text rule in the characters Tasks reads ([a-zA-Z0-9, !]), so
+   * the next field (🏁, ❌, 🆔, a [[link]], #tag) is never taken into it. Two
+   * shapes earlier versions wrote are also read whole, so they can be
+   * repaired on the next save: RRULE syntax ("RRULE:FREQ=WEEKLY;BYDAY=MO",
+   * "FREQ=DAILY") and text with a numeric end date ("every month until
+   * 2026-12-31").
    */
   public static readonly recurrenceRegex =
-    /🔁 ?(.+?)(?=\s+(?:[🛫➕⏳⌛📅📆🗓✅🔁🔺⏫🔼🔽⏬]|#[^\s#]|\^[a-zA-Z0-9-]+\s*$)|\s*$)/u;
+    /🔁\uFE0F? *((?:RRULE:|DTSTART|[A-Z]+=)[A-Za-z0-9=;:,+\-/]+|[a-zA-Z0-9, !]*?\buntil\s+(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{4}|\d{4}\/\d{1,2}\/\d{1,2})(?:\s+when done)?|[a-zA-Z0-9, !]+)/u;
 
   // regex from @702573N
   public static readonly hexColorRegex =

@@ -211,3 +211,67 @@ describe("lines written by v0.8.0", () => {
     ).toBe("every week");
   });
 });
+
+/** What a line means, so a rewritten line can be compared with the original. */
+const meaning = (task: Task) => ({
+  title: task.title,
+  rule: task.recurringInterval,
+  dueAt: task.dueAt,
+  startAt: task.startAt,
+  createdAt: task.createdAt,
+  completedAt: task.completedAt,
+  scheduledAt: task.extra?.scheduledAt,
+  priority: task.priority,
+});
+
+describe("the recurrence token stops at the next field", () => {
+  it.each([
+    "🏁 delete",
+    "❌ 2026-10-01",
+    "🆔 abc123",
+    "⛔ abc123",
+    "⏰ 2026-10-01 09:00",
+    "📅 2026-10-01",
+    "⏳ 2026-10-01",
+    "🛫 2026-10-01",
+    "✅ 2026-10-01",
+    "➕ 2026-10-01",
+    "🔺",
+    "⏫",
+    "🔼",
+    "🔽",
+    "⏬",
+    "(call the landlord first)",
+    "[[Budget]]",
+    "#home",
+  ])("reads only the rule before %j, and a rewrite means the same", (field) => {
+    const line = `- [ ] Pay rent 🔁 every week ${field}`;
+    const { task, written } = rewriteLine(line);
+
+    expect(task.recurringInterval).toBe("every week");
+    expect(written).toContain("🔁 every week");
+    expect(meaning(rewriteLine(written).task)).toEqual(meaning(task));
+  });
+
+  it("reads 🔁 followed by U+FE0F", () => {
+    expect(parseLine("Pay rent 🔁\uFE0F every day").recurringInterval).toBe(
+      "every day",
+    );
+  });
+
+  it("reads a numeric end date and stops at the next field", () => {
+    const { task, written } = rewriteLine(
+      "- [ ] Pay rent 🔁 every month until 2026-12-31 🏁 delete",
+    );
+
+    expect(task.recurringInterval).toBe("every month until 2026-12-31");
+    expect(written).toContain("🔁 every month until December 31, 2026");
+    expect(written).toContain("🏁 delete");
+  });
+
+  it("leaves a line with fields in Obsidian Tasks order unchanged", () => {
+    const line = "- [ ] Pay rent 🏁 delete 📅 2026-10-01 🔁 every week";
+
+    expect(rewriteLine(line).written).toBe(line);
+  });
+});
