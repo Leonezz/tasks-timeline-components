@@ -16,6 +16,7 @@ export { InputBar } from "./InputBar";
 
 // Modal & Dialog Components
 export { TaskEditModal } from "./TaskEditModal";
+export type { RecurrenceFormat } from "./TaskEditModal";
 export * from "./settings/index";
 export { HelpModal } from "./HelpModal";
 export { AgentConversationPanel } from "./AgentConversationPanel";
