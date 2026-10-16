@@ -110,9 +110,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a task's id to a different task after reloading. The task editor now keeps
   the task as it opened it and refuses to save when the task now at that id is
   a different one or changed elsewhere ("This task changed since you opened
-  it — close and reopen it"), comparing `extra.rawText` when both have it and
-  the title and dates otherwise. Editor saves pass that opened version to
-  `onTaskUpdated` as `previous`.
+  it — close and reopen it"), comparing `extra.rawText` when both have it.
+  Otherwise (JSON or localStorage hosts) it compares every stored field the
+  save writes back: title, description, workflow status, priority, category,
+  tags (by name and color), dates, the recurrence rule and switch, and the
+  other `extra` fields, so a change the agent made while the editor was open
+  is no longer silently reverted (#45). Editor saves pass that opened version
+  to `onTaskUpdated` as `previous`.
 - **Recurrence text the parser only partly understood was saved with a
   different meaning.** rrule's text parser skips words it doesn't know
   ("every day except Sunday" read as "every day", "every year on December 25"

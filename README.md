@@ -353,8 +353,11 @@ interface TasksTimelineAppProps {
 - When saving from the task editor, a rejected `onTaskUpdated` keeps the editor
   open with the error and the user's changes. The editor refuses to save when
   the task now at that id is not the one it opened (ids that are line positions
-  can move to another task after a reload), and passes the opened version as
-  `previous`.
+  can move to another task after a reload) or changed since, and passes the
+  opened version as `previous`. It compares `extra.rawText` when both versions
+  have one, and otherwise every stored field the save writes back (title,
+  description, workflow status, priority, category, tag names and colors,
+  dates, recurrence and the other `extra` fields).
 - `DEFAULT_SETTINGS` (the built-in default `AppSettings`) is exported from the main
   entry.
 - If `settingsRepository.loadSettings()` rejects, the app runs with in-memory
