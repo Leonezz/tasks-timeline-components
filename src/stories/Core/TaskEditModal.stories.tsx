@@ -457,6 +457,32 @@ const focusedElement = (node: Node): Element | null => {
   return root.activeElement;
 };
 
+/** The story's own content: inside its shadow root when it renders in one. */
+const storyContent = (canvasElement: HTMLElement): HTMLElement => {
+  const host = canvasElement.querySelector('[data-testid="shadow-host"]');
+  if (!host) {
+    return canvasElement;
+  }
+  const content = host.shadowRoot?.firstElementChild;
+  if (!(content instanceof HTMLElement)) {
+    throw new Error("The story's shadow root has no content yet");
+  }
+  return content;
+};
+
+/** The editor's dialog in `container`, once it has opened. */
+const findEditor = (container: HTMLElement): Promise<HTMLElement> =>
+  waitFor(() => {
+    // Date pickers are dialogs too, but not modal ones
+    const dialog = container.querySelector<HTMLElement>(
+      '[role="dialog"][aria-modal="true"]',
+    );
+    if (!dialog) {
+      throw new Error("The editor has not opened");
+    }
+    return dialog;
+  });
+
 /** Tab and Shift+Tab wrap around inside the dialog. */
 const expectFocusTrapped = async (dialog: HTMLElement) => {
   const firstButton = within(dialog).getByRole("button", {
@@ -583,6 +609,120 @@ export const DatePickerInsideDialog: Story = {
         canvas.getByRole("dialog", { name: "Edit Task" }),
       ).toBeInTheDocument();
       expect(args.onClose).not.toHaveBeenCalled();
+    });
+  },
+};
+
+// Radix's dialog overlay locks page scrolling with a document-level wheel and
+// touchmove listener. In a shadow root that listener sees the shadow host as
+// the event's target, so it cancelled scrolling inside the editor too.
+export const ScrollsInShadowRoot: Story = {
+  args: {
+    ...WithYearlyRecurrence.args,
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement, step }) => {
+    const dialog = await findEditor(
+      await waitFor(() => storyContent(canvasElement)),
+    );
+    const body = Array.from(dialog.querySelectorAll<HTMLElement>("*")).find(
+      (element) => getComputedStyle(element).overflowY === "auto",
+    );
+    if (!body) {
+      throw new Error("The editor has no scrolling body");
+    }
+
+    await step("Wheel scrolling is not cancelled", async () => {
+      const wheel = new WheelEvent("wheel", {
+        deltaY: 120,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+      body.dispatchEvent(wheel);
+      expect(wheel.defaultPrevented).toBe(false);
+    });
+
+    await step("Touch scrolling is not cancelled", async () => {
+      const touchAt = (clientY: number) => {
+        const touch = new Touch({
+          identifier: 1,
+          target: body,
+          clientX: 100,
+          clientY,
+        });
+        return {
+          touches: [touch],
+          targetTouches: [touch],
+          changedTouches: [touch],
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        };
+      };
+      body.dispatchEvent(new TouchEvent("touchstart", touchAt(200)));
+      // A swipe up, which scrolls the body down
+      const move = new TouchEvent("touchmove", touchAt(100));
+      body.dispatchEvent(move);
+      expect(move.defaultPrevented).toBe(false);
+    });
+  },
+};
+
+// In a shadow root, Radix's focus loops read document.activeElement (the
+// shadow host). Tab from a date picker's last field left the editor for the
+// host page, and Shift+Tab from the picker went back to the editor.
+export const DatePickerKeepsTabInShadowRoot: Story = {
+  args: {
+    ...MinimalTask.args,
+    onClose: fn(),
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement, step }) => {
+    const content = await waitFor(() => storyContent(canvasElement));
+    const dialog = await findEditor(content);
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /Select due date/ }),
+    );
+    const picker = await waitFor(() => {
+      const found = content.querySelector<HTMLElement>(
+        "[data-radix-popper-content-wrapper]",
+      );
+      if (!found) {
+        throw new Error("The date picker has not opened");
+      }
+      return found;
+    });
+    const fields = Array.from(
+      picker.querySelectorAll<HTMLElement>("button, input"),
+    ).filter((field) => field.tabIndex >= 0 && !field.hasAttribute("disabled"));
+    const first = fields[0];
+    const last = fields[fields.length - 1];
+
+    await step("Tab from its last field wraps to its first", async () => {
+      last.focus();
+      await userEvent.tab();
+      expect(focusedElement(picker)).toBe(first);
+    });
+
+    await step("Shift+Tab from its first field wraps to its last", async () => {
+      await userEvent.tab({ shift: true });
+      expect(focusedElement(picker)).toBe(last);
+    });
+
+    // In a shadow root Radix focuses the picker itself when it opens
+    await step("Shift+Tab from the picker itself stays in it", async () => {
+      const popover = picker.querySelector<HTMLElement>('[role="dialog"]');
+      if (!popover) {
+        throw new Error("The date picker has no dialog element");
+      }
+      popover.focus();
+      await userEvent.tab({ shift: true });
+      expect(focusedElement(picker)).toBe(last);
     });
   },
 };

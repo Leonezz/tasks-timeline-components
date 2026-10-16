@@ -749,14 +749,19 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
     <AnimatePresence>
       {isOpen && task && (
         <DialogPortal forceMount>
-          <DialogPrimitive.Overlay asChild forceMount>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-            />
-          </DialogPrimitive.Overlay>
+          {/* Not Radix's Overlay: its scroll lock checks a document
+              listener's event.target, which in a shadow root is the shadow
+              host, so it cancelled wheel and touch scrolling inside the
+              editor too. Clicks here still close the editor (Content's
+              pointer-down-outside). */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            // Radix disables pointer events outside the dialog; take them here
+            style={{ pointerEvents: "auto" }}
+          />
           <DialogPrimitive.Content
             asChild
             forceMount
