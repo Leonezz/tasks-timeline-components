@@ -119,7 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as every December). The task tools now store text in the library's own
   words, return it as `understoodAs`, and reject text with skipped words, an
   "until" without a month, day and year, "when done" anywhere but the end,
-  and an end date before today or the task's date. Lines already in a vault
+  a repetition count ("for 3 times", which never ends without a start
+  date), and an end date before today or the task's date. Lines already in a vault
   are written back unchanged.
 - **Next dates for weekly rules with month days, and slow rules.** A weekly
   rule with a day of the month, day of the year, week number or Easter
@@ -132,14 +133,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't
-  show.
+  show, and dropped when its settings change.
 - Yearly rules that skip years and name months ("every 2 years on the 1st in
   June") can be written as Obsidian Tasks text.
 - **Lines written by v0.8.0 were split by the parser.** The recurrence after
-  🔁 is now read up to the next metadata emoji, `#tag` or `^block-id`, so
-  `🔁 RRULE:FREQ=WEEKLY;BYDAY=MO` or `🔁 every month until 2026-12-31` no
-  longer leave part of the rule in the title, and writing such a line repairs
-  it to text (`🔁 every week on Monday`).
+  🔁 is read as rule text (the characters Obsidian Tasks reads), plus the two
+  shapes v0.8.0 wrote: RRULE syntax (`🔁 RRULE:FREQ=WEEKLY;BYDAY=MO`) and a
+  numeric end date (`🔁 every month until 2026-12-31`). Those no longer leave
+  part of the rule in the title, and writing such a line repairs it to text
+  (`🔁 every week on Monday`). The rule stops at the next field (🏁, ❌, 🆔,
+  ⛔, ⏰, dates, priorities, `[[links]]`, `#tags`), and `🔁` followed by
+  U+FE0F is read.
 - `complete_task` reports when it marked the task done but could not add the
   next occurrence, with the occurrence's details so it can be created with
   `create_task` (all its fields, including the description).
