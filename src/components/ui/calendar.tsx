@@ -50,7 +50,8 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
 
   const handleDayClick = (day: Date) => {
     if (disabled?.(day)) return;
-    onSelect?.(day);
+    // Like react-day-picker's single mode: clicking the selected day clears it
+    onSelect?.(selected && isSameDay(day, selected) ? undefined : day);
   };
 
   return (

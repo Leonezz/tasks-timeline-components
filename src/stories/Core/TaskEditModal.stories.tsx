@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { TaskEditModal } from "../../components/TaskEditModal";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
 import { RRule } from "rrule";
+import { DateTime } from "luxon";
 
 const meta: Meta<typeof TaskEditModal> = {
   title: "Core/TaskEditModal",
@@ -487,6 +488,68 @@ export const SaveTask: Story = {
       await userEvent.click(saveButton);
       await delay(100);
       // OnSave should be called
+    });
+  },
+};
+
+// Fixed March 2026 dates keep calendar day buttons unique
+const clearDatesTask = taskBuilder.completed({
+  id: "clear-dates",
+  title: "Task with dates to clear",
+  dueAt: DateTime.local(2026, 3, 10, 9, 30).toISO()!,
+  startAt: DateTime.local(2026, 3, 5, 8, 0).toISO()!,
+  completedAt: DateTime.local(2026, 3, 12, 18, 0).toISO()!,
+});
+
+export const ClearDates: Story = {
+  args: {
+    ...Default.args,
+    task: clearDatesTask,
+    onSave: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body),
+      // DatePicker trigger text for a value, in the same format and locale
+      pickerLabel = (iso: string) =>
+        DateTime.fromISO(iso).toFormat("MMM dd, yyyy HH:mm"),
+      clearDate = async (iso: string, placeholder: string) => {
+        await userEvent.click(
+          canvas.getByRole("button", { name: pickerLabel(iso) }),
+        );
+        await delay(200);
+        // Clicking the selected day again deselects it
+        await userEvent.click(
+          page.getByRole("button", {
+            name: String(DateTime.fromISO(iso).day),
+          }),
+        );
+        await userEvent.keyboard("{Escape}");
+        await delay(200);
+        expect(
+          canvas.getByRole("button", { name: placeholder }),
+        ).toBeInTheDocument();
+      };
+
+    await step("Clear the due date", async () => {
+      await clearDate(clearDatesTask.dueAt!, "Select due date");
+    });
+
+    await step("Clear the start date", async () => {
+      await clearDate(clearDatesTask.startAt!, "Select start date");
+    });
+
+    await step("Clear the completed date", async () => {
+      await clearDate(clearDatesTask.completedAt!, "Select completed date");
+    });
+
+    await step("Save writes empty dates", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await delay(100);
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ dueAt: "", startAt: "", completedAt: "" }),
+      );
     });
   },
 };
