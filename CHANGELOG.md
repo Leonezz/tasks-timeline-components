@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`aiFetch` prop** on `TasksTimelineApp` (and `fetch` option on
+  `useAIAgent`): a `fetch` implementation for every request the built-in AI
+  providers make. Electron hosts such as Obsidian can route provider calls
+  through their own HTTP client (for example `requestUrl`) and reach
+  providers that do not allow browser CORS. The Settings **Test Connection**
+  button uses it too. It is a runtime option, never stored in
+  `ProviderConfig` or settings. Passing both `aiFetch` and
+  `aiProviderFactory` throws (Test Connection reports it as a failed test),
+  because a custom factory makes its own requests and the fetch would be
+  ignored. An `aiFetch` that is not a function, or that resolves to something
+  other than a fetch `Response` (such as an unconverted Obsidian `requestUrl`
+  result), fails with an explicit error; there is no fallback to the global
+  `fetch`. Errors the host fetch throws reach the agent and Test Connection
+  unchanged.
+- `SettingsPage`, `SettingsModal` and `SettingsPageAI` accept `aiFetch` and
+  `aiProviderFactory` for **Test Connection**. Hosts that render
+  `SettingsPage` themselves (such as a plugin settings tab) should pass the
+  same values they give `TasksTimelineApp`.
+
 ### Fixed
 
 - **Obsidian recurring tasks were not treated as recurring.** The Obsidian
@@ -230,6 +251,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `UNTIL=2026-12-31` or a numeric text end date no longer shows another or a
   raw end date; they keep "when done", and show a rule as written when rrule's
   text would leave parts out (`BYSETPOS`, `BYEASTER`, `WKST`).
+- **Test Connection ignored `aiProviderFactory`.** The Settings button always
+  tested the built-in provider, even when the host's factory supplied the one
+  the agent uses. It now tests the provider from `aiProviderFactory` when one
+  is given.
+- The published type declarations now type-check for consumers. Thirteen
+  `.d.ts` files imported from the repo-only `@/types` path alias,
+  `dist/index.d.ts` re-exported `./index.css`, and
+  `dist/components/settings/SettingsPage.d.ts` imported `vite-env.d.ts` from
+  outside `dist/`. Hosts no longer need an ambient `declare module "@/types"`
+  or `declare module "*.css"` shim. The stylesheet is still published as
+  `@tasks-timeline/components/index.css`.
+- `pnpm build:lib` now fails if a declaration in `dist/` uses the `@/` alias,
+  imports a stylesheet, or has a relative path that does not resolve inside
+  `dist/` (`scripts/check-declarations.ts`). ESLint rejects `@/` imports in
+  `src/`.
+- **Dates could not be cleared.** Since the native date inputs were replaced
+  by the calendar picker (0.0.6), the calendar always reported a day, so the
+  task badges' date popovers and the edit modal's Due, Start At and Completed
+  fields could change a date but never remove it. Clicking the selected day
+  again now deselects it (`onSelect(undefined)`, as in react-day-picker's
+  single mode); saving then writes `""`. The edit modal's Created field still
+  keeps its date when cleared, as before.
+- **Calendar picker accessibility.** Day buttons were announced by their
+  number alone and didn't expose which day was selected. They are now named
+  by the full date (for example "Tuesday, March 10, 2026") and set
+  `aria-pressed`, since clicking the selected day clears it. The month
+  buttons are named "Previous month" and "Next month". The **Time** label in
+  the task badges' date popovers and in `DatePicker` is now associated with
+  its input.
+- Task date badges are named like the category and priority badges, for
+  example "Change due date for Write report. Current due date: Today", instead
+  of by their visible label alone ("Due: Today").
 
 ### Changed
 

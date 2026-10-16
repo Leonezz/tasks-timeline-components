@@ -25,6 +25,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [timeValue, setTimeValue] = React.useState("00:00");
+  const timeInputId = React.useId();
 
   // Parse the incoming value to get date and time
   const dateTime = value ? DateTime.fromISO(value) : null;
@@ -106,10 +107,14 @@ export function DatePicker({
         />
         {showTime && (
           <div className="border-t border-border p-3">
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+            <label
+              htmlFor={timeInputId}
+              className="text-xs font-medium text-muted-foreground mb-1 block"
+            >
               Time
             </label>
             <input
+              id={timeInputId}
               type="time"
               value={timeValue}
               onChange={handleTimeChange}

@@ -27,6 +27,19 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // tsc copies import specifiers into the published .d.ts files verbatim,
+      // so the "@/" path alias would break every consumer's type-check
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/*'],
+              message: 'Use a relative import. tsc does not rewrite the "@/" path alias, so it leaks into the published .d.ts files.',
+            },
+          ],
+        },
+      ],
       // Prevent timezone bugs by banning dangerous date patterns
       'no-restricted-syntax': [
         'error',

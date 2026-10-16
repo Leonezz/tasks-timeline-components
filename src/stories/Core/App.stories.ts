@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { TasksTimelineApp } from "../../TasksTimelineApp";
-import type { Task } from "../../types";
+import type { SettingsRepository, Task } from "../../types";
 import { delay, withinShadow } from "../test-utils";
 import { taskBuilder } from "../fixtures/tasks";
 
@@ -147,6 +147,63 @@ export const SystemLightMode: Story = {
   },
   parameters: {
     backgrounds: { default: "light" },
+  },
+};
+
+// ========================================
+// Host AI Fetch
+// ========================================
+
+const firstRunSettingsRepository: SettingsRepository = {
+  name: "first-run-memory",
+  loadSettings: async () => null,
+  saveSettings: async () => undefined,
+};
+
+/** Settings "Test Connection" in the app goes through the `aiFetch` prop. */
+export const TestConnectionWithAIFetch: Story = {
+  args: {
+    tasks: mockTasks,
+    onTaskAdded: handleTaskAdded,
+    onTaskUpdated: handleTaskUpdated,
+    onTaskDeleted: handleTaskDeleted,
+    apiKey: "test-gemini-api-key",
+    settingsRepository: firstRunSettingsRepository,
+    aiFetch: fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: { role: "model", parts: [{ text: "Hello" }] },
+                finishReason: "STOP",
+                index: 0,
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    ),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open the AI settings", async () => {
+      await userEvent.click(
+        await canvas.findByRole("button", { name: "Open settings and docs" }),
+      );
+      await userEvent.click(await canvas.findByRole("button", { name: "AI" }));
+    });
+
+    await step("Test the connection through aiFetch", async () => {
+      await userEvent.click(
+        await canvas.findByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        'Connected to gemini-2.0-flash. Response: "Hello"',
+      );
+      await expect(args.aiFetch).toHaveBeenCalledOnce();
+    });
   },
 };
 

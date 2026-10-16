@@ -1,7 +1,7 @@
-import type { Priority, Task } from "@/types";
+import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
 import { MotionDiv } from "./Motion";
-import { cn } from "@/utils";
+import { cn } from "../utils";
 import {
   Popover,
   PopoverClose,

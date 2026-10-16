@@ -1,4 +1,4 @@
-import type { DateGroupBy } from "@/types";
+import type { DateGroupBy } from "../../types";
 
 export const GROUP_STRATEGIES: { id: DateGroupBy; label: string }[] = [
   { id: "dueAt", label: "Due Date" },
