@@ -457,8 +457,10 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
 - **Recurrence arguments.** `create_task`, `update_task` and
   `batch_update_tasks` accept RRULE syntax or Obsidian Tasks text. Text is
   stored in the library's own words and returned as `understoodAs`; text with
-  words the parser would skip, an incomplete "until" date or an end date that
-  has passed is rejected.
+  words the parser would skip, an incomplete or impossible "until" date
+  (February 30) or an end date that has passed is rejected. Abbreviations
+  ("Mon", "Sept"), ordinals ("the first Monday", "the last day"), "weekdays",
+  and any letter case or spacing are accepted.
 - **`notify_user` without `showToast`.** The tool falls back to
   `ctx.notify(variant, "title: description")` and returns
   `{ success: true, degraded: true, warning }`. With neither callback it

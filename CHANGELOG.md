@@ -126,6 +126,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repetition count ("for 3 times", which never ends without a start
   date), and an end date before today or the task's date. Lines already in a vault
   are written back unchanged.
+  - Each word is checked for its meaning in the parsed rule rather than
+    against the library's wording, so text rrule reads in full is accepted:
+    abbreviations ("Mon", "Thurs", "Sept"), "Mondays", ordinals ("the first
+    Monday", "the last day"), "weekdays", seven listed days, an interval of 1,
+    and "til"/"till". Words rrule drops are still refused ("every 2 days on
+    weekdays", "every week in summer", which rrule reads as Sunday), as is an
+    end date it stops before ("every week on Mondays until …") (#44).
+  - Case and spacing no longer matter: "until december 31,2026" and
+    "when  done" are read and stored as "until December 31, 2026" and
+    "when done". An end date that doesn't exist ("until February 30, 2027",
+    "until 2027-02-30") is refused as not a date instead of rolling over to
+    March (#44).
 - **Next dates for weekly rules with month days, and slow rules.** A weekly
   rule with a day of the month, day of the year, week number or Easter
   repeats on any weekday, as rrule computes it, not only its start's

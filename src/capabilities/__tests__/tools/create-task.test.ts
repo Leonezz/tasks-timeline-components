@@ -261,6 +261,21 @@ describe("create_task tool", () => {
     });
   });
 
+  it("stores natural wordings rrule reads in full", async () => {
+    const result = await createCreateTaskTool(ctx).execute({
+      title: "Report",
+      recurrence: "Every month on the first Mon until december 31,2099",
+    });
+
+    expect(result.result).toMatchObject({
+      success: true,
+      understoodAs: "every month on the 1st Monday until December 31, 2099",
+    });
+    expect(vi.mocked(ctx.addTask).mock.calls[0][0].recurringInterval).toBe(
+      "every month on the 1st Monday until December 31, 2099",
+    );
+  });
+
   it("stores text in the library's words and returns understoodAs", async () => {
     const result = await createCreateTaskTool(ctx).execute({
       title: "Report",

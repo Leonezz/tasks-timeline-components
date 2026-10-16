@@ -1,6 +1,6 @@
-import { RRule, type Frequency } from "rrule";
 import { DateTime } from "luxon";
 import {
+  formatRuleEndDate,
   isRRuleSyntax,
   normalizeTextRule,
   parseRecurrenceRule,
@@ -8,43 +8,21 @@ import {
   type ParsedRecurrenceRule,
 } from "./recurrence-rule";
 import { recurrenceRuleToText } from "./recurrence-text";
+import { splitRuleEnd, wordsTheRuleSkips } from "./recurrence-wording";
 
 /**
  * Checking the `recurrence` argument of the task tools. rrule's text parser
  * quietly skips words it doesn't know ("every day except Sunday" reads as
- * "every day"), so text is only accepted when the rule written back in the
- * library's own words covers every word that was given, and it is stored in
- * those words.
+ * "every day"), so text is only accepted when the parsed rule means every
+ * word that was given, and it is stored in the library's own words.
  */
 
 export type RecurrenceArgument =
   | { ok: true; rule: string | null; understoodAs?: string }
   | { ok: false; error: string };
 
-const WHEN_DONE_AT_END = /\s+when done\s*$/i;
-const WHEN_DONE_ANYWHERE = /\bwhen done\b/i;
-const UNTIL = /\buntil\b/i;
-const FULL_END_DATE =
-  /\buntil (January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, \d{4}$/;
-/** Words the library's text can leave out without changing the rule. */
-const FILLER = new Set(["on", "the", "in", "at", "and"]);
-const PERIOD_WORDS: Partial<Record<Frequency, string[]>> = {
-  [RRule.YEARLY]: ["year", "years", "yearly"],
-  [RRule.MONTHLY]: ["month", "months", "monthly"],
-  [RRule.WEEKLY]: ["week", "weeks", "weekly"],
-  [RRule.DAILY]: ["day", "days", "daily"],
-};
-
-const words = (text: string): string[] =>
-  text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 0);
-
-/** Whether words[i] comes right after "every" or "every N". */
-const followsEvery = (given: string[], i: number): boolean =>
-  given[i - 1] === "every" ||
-  (/^\d+$/.test(given[i - 1] ?? "") && given[i - 2] === "every");
+const WHEN_DONE_AT_END = /\s+when\s+done\s*$/i;
+const WHEN_DONE_ANYWHERE = /\bwhen\s+done\b/i;
 
 const reject = (value: string, reason: string): RecurrenceArgument => ({
   ok: false,
@@ -54,32 +32,77 @@ const reject = (value: string, reason: string): RecurrenceArgument => ({
 const endsTooEarly = (rule: ParsedRecurrenceRule, notBefore: string): boolean =>
   rule.end !== undefined && rule.end < notBefore;
 
+/**
+ * The text with its end date written out ("until December 31, 2026") and
+ * "when done" spaced as Obsidian Tasks reads it, or why it can't be.
+ */
+function canonicalText(
+  value: string,
+):
+  | { ok: true; text: string; body: string; end?: string }
+  | { ok: false; reason: string } {
+  const whenDone = WHEN_DONE_AT_END.test(value);
+  const withoutWhenDone = value.replace(WHEN_DONE_AT_END, "");
+  if (WHEN_DONE_ANYWHERE.test(withoutWhenDone)) {
+    return { ok: false, reason: '"when done" can only come at the end.' };
+  }
+  const split = splitRuleEnd(withoutWhenDone);
+  if (!split.ok) {
+    return split;
+  }
+  const until = split.end ? ` until ${formatRuleEndDate(split.end)}` : "";
+  return {
+    ok: true,
+    text: `${split.body}${until}${whenDone ? " when done" : ""}`,
+    body: split.body,
+    end: split.end,
+  };
+}
+
+/** The given words the parsed rule doesn't mean, and its end if dropped. */
+const skippedParts = (
+  canonical: { body: string; end?: string },
+  parsed: ParsedRecurrenceRule,
+  understoodAs: string,
+): string[] => [
+  ...wordsTheRuleSkips(canonical.body, parsed, understoodAs),
+  // rrule stops reading after some words ("Mondays"), dropping the end
+  ...(canonical.end && parsed.end === undefined
+    ? [`until ${formatRuleEndDate(canonical.end)}`]
+    : []),
+];
+
 /** Text: normalized, fully understood, and stored in the library's words. */
 function readTextArgument(
   value: string,
   notBefore: string,
 ): RecurrenceArgument {
-  const body = value.replace(WHEN_DONE_AT_END, "");
-  if (WHEN_DONE_ANYWHERE.test(body)) {
-    return reject(value, '"when done" can only come at the end.');
+  const canonical = canonicalText(value);
+  if (!canonical.ok) {
+    return reject(value, canonical.reason);
   }
-  const normalized = normalizeTextRule(value);
+  const normalized = normalizeTextRule(canonical.text);
   if (!normalized) {
     return reject(
       value,
       'an Obsidian Tasks line can only hold letters, digits, spaces, commas and "!".',
     );
   }
-  const normalizedBody = normalized.replace(WHEN_DONE_AT_END, "");
-  if (UNTIL.test(normalizedBody) && !FULL_END_DATE.test(normalizedBody)) {
-    return reject(
-      value,
-      'the end date needs a month, day and year, like "until December 31, 2026".',
-    );
-  }
   const parsed = parseRecurrenceRule(normalized);
   if (!parsed) {
     return reject(value, "it isn't a rule the parser can read.");
+  }
+  if (parsed.options.count) {
+    return reject(
+      value,
+      'a number of repetitions ("for 3 times") never ends here, because each completion counts again; use "until <date>".',
+    );
+  }
+  if (parsed.end !== undefined && parsed.end !== canonical.end) {
+    return reject(
+      value,
+      `the parser reads its end date as ${parsed.end}, not ${canonical.end ?? "none"}.`,
+    );
   }
   let understoodAs: string;
   try {
@@ -90,23 +113,7 @@ function readTextArgument(
       error instanceof Error ? error.message : String(error),
     );
   }
-  if (parsed.options.count) {
-    return reject(
-      value,
-      'a number of repetitions ("for 3 times") never ends here, because each completion counts again; use "until <date>".',
-    );
-  }
-  const known = new Set([...words(understoodAs), ...FILLER]);
-  const periodWords = new Set(
-    PERIOD_WORDS[parsed.options.freq ?? RRule.YEARLY] ?? [],
-  );
-  const given = words(normalizedBody);
-  const skipped = given.filter(
-    (word, i) =>
-      !known.has(word) &&
-      // "year" in "every year in December", which reads as "every December"
-      !(periodWords.has(word) && followsEvery(given, i)),
-  );
+  const skipped = skippedParts(canonical, parsed, understoodAs);
   if (skipped.length > 0) {
     return reject(
       value,
