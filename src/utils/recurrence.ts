@@ -169,14 +169,19 @@ export function readRecurrenceRule(
 
 const toRepeatOptions = (state: RecurrenceFormState) => {
   const { freq, interval, byWeekDay, byMonth, byMonthDay } = state;
+  // The day buttons are 1-31 and "Last day" (-1); other days counted from the
+  // month's end are dropped, as the editor warns
+  const monthDays = byMonthDay.filter(
+    (day) => (day >= 1 && day <= 31) || day === -1,
+  );
   return {
     freq,
     interval,
     byweekday: freq === RRule.WEEKLY && byWeekDay.length > 0 ? byWeekDay : null,
     bymonth: freq === RRule.YEARLY && byMonth.length > 0 ? byMonth : null,
     bymonthday:
-      (freq === RRule.MONTHLY || freq === RRule.YEARLY) && byMonthDay.length > 0
-        ? byMonthDay
+      (freq === RRule.MONTHLY || freq === RRule.YEARLY) && monthDays.length > 0
+        ? monthDays
         : null,
   };
 };

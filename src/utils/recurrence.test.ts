@@ -411,3 +411,23 @@ describe("the last day of the month", () => {
     ).toContain("days counted from the month's end");
   });
 });
+
+describe("days counted from the month's end", () => {
+  it("are dropped when the settings change, as the editor warns", () => {
+    const stored = "FREQ=MONTHLY;BYMONTHDAY=-2,15";
+    const read = readRecurrenceRule(stored);
+    expect(read.state.byMonthDay).toEqual([-2, 15]);
+
+    expect(
+      resolveRecurrenceOnSave(
+        { recurringInterval: stored },
+        {
+          isRecurring: true,
+          controlsTouched: true,
+          format: "rrule",
+          state: { ...read.state, interval: 2 },
+        },
+      ).recurringInterval,
+    ).toBe("RRULE:FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=15");
+  });
+});
