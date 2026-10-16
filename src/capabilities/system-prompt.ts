@@ -47,8 +47,8 @@ When creating or updating tasks:
 - Set recurrence to empty string to clear recurrence
 - Text rules are stored in the library's own wording and returned as understoodAs; check it says what the user asked for
 - Hosts that store Obsidian Tasks text also store RRULE syntax as text (returned as understoodAs) and reject rules a Tasks line can't hold, such as DTSTART (set the task's startAt instead) or BYSETPOS
-- Text may use abbreviations ("Mon", "Sept"), ordinals ("the first Monday", "the last day"), "weekdays" and any letter case or spacing
-- These are rejected and nothing is saved: rules the parser can't read, text with words the parser would skip (such as "except", "of December" or "weekend"), an "until" without a month, day and year, an end date that doesn't exist (February 30), "when done" anywhere but the end, and an end date before today or the task's own date
+- Text may use abbreviations ("Mon", "Sept"), ordinals ("the first Monday", "the last day" of a monthly rule or a yearly one in given months), "weekdays" and any letter case or spacing
+- These are rejected and nothing is saved: rules the parser can't read, text with words the parser would skip (such as "except", "of December", "weekend", or "the last day" of a weekly or yearly rule without a month, which it reads as every month), an "until" without a month, day and year, an end date that doesn't exist (February 30), "when done" anywhere but the end, and an end date before today or the task's own date
 
 Tasks from Obsidian notes may store recurrence as text instead, such as "every week", "every week when done" or "every week until December 31, 2026". Treat these as recurring and leave the text unchanged unless the user asks to change the recurrence. Text rules may only use letters, digits, spaces, commas and "!" (an Obsidian Tasks line can't hold anything else); write end dates as "until December 31, 2026".
 

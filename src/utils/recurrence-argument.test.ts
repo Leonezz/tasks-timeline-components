@@ -89,6 +89,9 @@ describe("readRecurrenceArgument with natural wordings", () => {
     ["every month on the first", "every month on the 1st"],
     ["every month on the first day", "every month on the 1st"],
     ["every month on the last day", "every month on the last"],
+    ["every 2 months on the last day", "every 2 months on the last"],
+    ["every December on the last day", "every December on the last"],
+    ["every year on the last day in December", "every December on the last"],
     ["every week on Mon", "every week on Monday"],
     ["every week on Mon, Fri", "every week on Monday, Friday"],
     ["every week on Tue, Thu", "every week on Tuesday, Thursday"],
@@ -144,6 +147,12 @@ describe("readRecurrenceArgument with natural wordings", () => {
   it.each([
     ["every 2 days on weekdays", "weekdays"],
     ["every day on the last day", "last day"],
+    // rrule reads these as a day of every month, not of each year or week
+    ["every year on the last day", "last day"],
+    ["every year on the first day", "first day"],
+    ["every 2 years on the first day", "first day"],
+    ["every week on the first day", "first day"],
+    ["every week on the last day", "last day"],
     ["every day on Monday", "monday"],
     ["every weekday on Saturday", "saturday"],
     ["every month on the fourth", "fourth"],

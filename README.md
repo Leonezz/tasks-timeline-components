@@ -477,8 +477,9 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
   stored in the library's own words and returned as `understoodAs`; text with
   words the parser would skip, an incomplete or impossible "until" date
   (February 30) or an end date that has passed is rejected. Abbreviations
-  ("Mon", "Sept"), ordinals ("the first Monday", "the last day"), "weekdays",
-  and any letter case or spacing are accepted. Hourly, minutely and secondly
+  ("Mon", "Sept"), ordinals ("the first Monday", "the last day" of a monthly
+  rule or a yearly one in given months), "weekdays", and any letter case or
+  spacing are accepted. Hourly, minutely and secondly
   rules are computed by day; the few combinations that can't be (time-of-day
   parts on a step that doesn't divide a day, or within each hour together
   with `COUNT`, `BYSETPOS` or an `UNTIL` time) are rejected as unsupported,

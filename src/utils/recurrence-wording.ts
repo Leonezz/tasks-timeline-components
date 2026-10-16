@@ -118,6 +118,15 @@ const hasWeekday = (
 ): boolean =>
   weekdaysOf(options).some(([day, nth]) => day === weekday && nth === n);
 
+/**
+ * Whether the rule's month days are days of the month it repeats in: monthly,
+ * or yearly in given months. Otherwise rrule still reads "the last day" as a
+ * month day, so a yearly or weekly rule would repeat every month.
+ */
+const repeatsInWholeMonths = ({ freq, bymonth }: Partial<Options>): boolean =>
+  freq === RRule.MONTHLY ||
+  (freq === RRule.YEARLY && toList(bymonth).length > 0);
+
 /** "first Monday", "second last Friday", "1st", "last day". */
 function readOrdinal(ctx: WordContext, i: number, nth: number): Reading {
   const { given, options } = ctx;
@@ -132,9 +141,11 @@ function readOrdinal(ctx: WordContext, i: number, nth: number): Reading {
     return [next + 1 - i, hasWeekday(ctx, weekday, n)];
   }
   const meant = toList(options.bymonthday).map(Number).includes(n);
-  // "the last day" is the last day of the month
-  const day = given[next] === "day" || given[next] === "days" ? 1 : 0;
-  return [next + day - i, meant];
+  if (given[next] === "day" || given[next] === "days") {
+    // "the last day" is the last day of the month, not of a year or week
+    return [next + 1 - i, meant && repeatsInWholeMonths(options)];
+  }
+  return [next - i, meant];
 }
 
 function readWord(ctx: WordContext, i: number): Reading {

@@ -131,6 +131,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and "til"/"till". Words rrule drops are still refused ("every 2 days on
     weekdays", "every week in summer", which rrule reads as Sunday), as is an
     end date it stops before ("every week on Mondays until …") (#44).
+    "The first/last day" only counts in a monthly rule or a yearly one in
+    given months: rrule reads "every year on the last day" and "every week on
+    the first day" as a day of every month, so they are refused.
   - Case and spacing no longer matter: "until december 31,2026" and
     "when  done" are read and stored as "until December 31, 2026" and
     "when done". An end date that doesn't exist ("until February 30, 2027",
