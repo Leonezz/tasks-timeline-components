@@ -1,10 +1,15 @@
-import type { AppSettings, DateGroupBy, FontSize, ThemeOption } from "@/types";
+import type {
+  AppSettings,
+  DateGroupBy,
+  FontSize,
+  ThemeOption,
+} from "../../types";
 import { ThemeSection } from "./ThemeSection";
 import { TypographySection } from "./TypographySection";
 import { ViewSection } from "./ViewSection";
 import { DATE_FORMATS } from "./ViewSectionConstants";
 import { useState } from "react";
-import { cn } from "@/utils";
+import { cn } from "../../utils";
 import { MotionSpan } from "../Motion";
 import { Icon } from "../Icon";
 

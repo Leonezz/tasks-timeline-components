@@ -71,7 +71,6 @@ export type {
 export { TasksTimelineApp } from "./TasksTimelineApp";
 export type { TasksTimelineAppProps } from "./TasksTimelineApp";
 export { DEFAULT_SETTINGS } from "./defaultSettings";
-export * from "./index.css";
 
 // Obsidian Tasks plugin format (pure parse/serialize)
 export * from "./tasks-format";

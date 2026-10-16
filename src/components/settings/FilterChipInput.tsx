@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { FilterRule } from "@/types";
+import type { FilterRule } from "../../types";
 import { Icon } from "../Icon";
 
 interface FilterChipInputProps<T extends string = string> {

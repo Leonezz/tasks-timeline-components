@@ -41,6 +41,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- The published type declarations now type-check for consumers. Thirteen
+  `.d.ts` files imported from the repo-only `@/types` path alias,
+  `dist/index.d.ts` re-exported `./index.css`, and
+  `dist/components/settings/SettingsPage.d.ts` imported `vite-env.d.ts` from
+  outside `dist/`. Hosts no longer need an ambient `declare module "@/types"`
+  or `declare module "*.css"` shim. The stylesheet is still published as
+  `@tasks-timeline/components/index.css`.
+- `pnpm build:lib` now fails if a declaration in `dist/` uses the `@/` alias,
+  imports a stylesheet, or has a relative path that does not resolve inside
+  `dist/` (`scripts/check-declarations.ts`). ESLint rejects `@/` imports in
+  `src/`.
 
 ### Changed
 

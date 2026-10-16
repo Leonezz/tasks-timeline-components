@@ -1,5 +1,5 @@
-import type { DateGroupBy } from "@/types";
-import { cn } from "@/utils";
+import type { DateGroupBy } from "../../types";
+import { cn } from "../../utils";
 import { MotionSpan } from "../Motion";
 import { Icon } from "../Icon";
 import { GROUP_STRATEGIES, DATE_FORMATS } from "./ViewSectionConstants";
