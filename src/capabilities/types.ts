@@ -32,16 +32,24 @@ export interface CapabilityContext {
     detail?: DetailBlock[];
     timeout?: number | null;
   }): void;
+  /**
+   * Asks a yes/no question. Resolves `true` for yes, `false` for no, and
+   * `null` when the user closes the question without answering. Rejects when
+   * the host can no longer ask (for example after unmount); `select` and
+   * `prompt` follow the same contract.
+   */
   confirm?(title: string, description?: string): Promise<boolean | null>;
   /**
    * What destructive tools do when `confirm` is not provided. Defaults to "require".
    * Has no effect when `confirm` is provided.
    */
   confirmPolicy?: ConfirmPolicy;
+  /** Resolves the chosen value, or `null` when the user cancels or closes it. */
   select?(
     title: string,
     options: { label: string; value: string }[],
   ): Promise<string | null>;
+  /** Resolves the entered text, or `null` when the user cancels or closes it. */
   prompt?(question: string): Promise<string | null>;
 }
 

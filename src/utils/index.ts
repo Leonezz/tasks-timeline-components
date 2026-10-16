@@ -13,6 +13,7 @@ export {
   deriveTaskRenderState,
   isWorkflowStatus,
   taskMatchesStatus,
+  removeTagAt,
   groupTasksByYearAndDate,
   computeDateValidation,
   type DateValidationState,

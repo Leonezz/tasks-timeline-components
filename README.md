@@ -384,6 +384,11 @@ const settings: AppSettings = {
 };
 ```
 
+Requests go straight from the browser to the provider. The Anthropic provider
+sends the `anthropic-dangerous-direct-browser-access: true` header that
+Anthropic requires for browser (and Electron, e.g. Obsidian) requests, so your
+API key is visible to anyone who can inspect the page.
+
 ### AI Capabilities
 
 The framework-agnostic capabilities layer can be wired to the built-in agent or to
@@ -427,6 +432,17 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
     tool returns `{ success: false, error }` explaining that confirmation is required.
   - `confirmPolicy: "skip"` — the action proceeds without asking (pre-0.6.0
     behavior). Headless hosts such as MCP servers should set this explicitly.
+- **Asking the user.** `confirm` resolves `true` for yes, `false` for no and
+  `null` when the user closes the question; `select` and `prompt` resolve the
+  answer or `null`. `ask_user` reports `null` as `dismissed: true`. When the
+  host can no longer ask (the built-in app after unmount), the callback should
+  reject: `ask_user` then returns `{ question, answer: null, error }` and
+  destructive tools return an error instead of waiting forever.
+- **`notify_user` without `showToast`.** The tool falls back to
+  `ctx.notify(variant, "title: description")` and returns
+  `{ success: true, degraded: true, warning }`. With neither callback it
+  returns `{ success: false, error }`. Notifications stay until dismissed
+  unless the model passes a `timeout`.
 
 ## Development
 

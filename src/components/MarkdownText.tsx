@@ -129,11 +129,9 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
     () => ({
       p({ children, ...props }) {
         if (inline) {
+          // Inherit white-space so a `truncate` parent can keep it on one line
           return (
-            <span
-              {...omitMarkdownNode(props)}
-              className={cn("whitespace-pre-wrap", paragraphClassName)}
-            >
+            <span {...omitMarkdownNode(props)} className={paragraphClassName}>
               {children}
             </span>
           );

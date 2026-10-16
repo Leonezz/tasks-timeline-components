@@ -3,6 +3,7 @@ import type { Task } from "../types";
 import {
   deriveTaskRenderState,
   deriveWorkflowStatus,
+  removeTagAt,
   taskMatchesStatus,
 } from "./task";
 
@@ -79,5 +80,27 @@ describe("task render state", () => {
     expect(renderState.primaryStatus).toBe("done");
     expect(renderState.isUrgent).toBe(false);
     expect(taskMatchesStatus(task, "overdue")).toBe(false);
+  });
+});
+
+describe("removeTagAt", () => {
+  it("removes only the tag at the index when tags share an id", () => {
+    const tags = [
+      { id: "#TODO", name: "TODO" },
+      { id: "#TODO", name: "TODO" },
+      { id: "#home", name: "home" },
+    ];
+
+    expect(removeTagAt(tags, 1)).toEqual([
+      { id: "#TODO", name: "TODO" },
+      { id: "#home", name: "home" },
+    ]);
+    expect(tags).toHaveLength(3);
+  });
+
+  it("returns the same tags for an index out of range", () => {
+    const tags = [{ id: "a", name: "a" }];
+
+    expect(removeTagAt(tags, 5)).toEqual(tags);
   });
 });

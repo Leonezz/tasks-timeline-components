@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent } from "storybook/test";
+import { expect, fn, userEvent } from "storybook/test";
 import { TagBadge } from "../../components/TagBadge";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
@@ -12,6 +12,9 @@ const meta: Meta<typeof TagBadge> = {
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
+  },
+  args: {
+    index: 0,
   },
   argTypes: {
     onUpdate: { action: "task-updated" },
@@ -104,6 +107,7 @@ export const FirstOfManyTags: Story = {
 export const MiddleOfManyTags: Story = {
   args: {
     tag: { id: "2", name: "urgent" },
+    index: 1,
     task: taskBuilder.base({
       tags: [
         { id: "1", name: "work" },
@@ -119,6 +123,7 @@ export const MiddleOfManyTags: Story = {
 export const LastOfManyTags: Story = {
   args: {
     tag: { id: "3", name: "client" },
+    index: 2,
     task: taskBuilder.base({
       tags: [
         { id: "1", name: "work" },
@@ -149,13 +154,13 @@ export const PopoverOpen: Story = {
     const canvas = withinShadow(canvasElement);
 
     await step("Click tag to open remove popover", async () => {
-      const button = canvas.getByRole("button", { name: /Click to remove/i });
+      const button = canvas.getByRole("button", { name: "work" });
       await userEvent.click(button);
       await delay(200);
     });
 
     await step("Verify Remove Tag button is visible", async () => {
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       expect(removeButton).toBeInTheDocument();
     });
   },
@@ -197,13 +202,13 @@ export const RemoveTag: Story = {
     const canvas = withinShadow(canvasElement);
 
     await step("Click tag to open popover", async () => {
-      const button = canvas.getByRole("button", { name: /Click to remove/i });
+      const button = canvas.getByRole("button", { name: "work" });
       await userEvent.click(button);
       await delay(200);
     });
 
     await step("Click Remove Tag button", async () => {
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       await userEvent.click(removeButton);
       await delay(100);
       // OnUpdate should be called with tags array without this tag
@@ -230,7 +235,7 @@ export const RemoveLastTag: Story = {
     });
 
     await step("Remove the only tag", async () => {
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       await userEvent.click(removeButton);
       await delay(100);
       // OnUpdate should be called with empty tags array
@@ -255,11 +260,55 @@ export const RemoveFromManyTags: Story = {
     });
 
     await step("Remove tag from array of 5", async () => {
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       await userEvent.click(removeButton);
       await delay(100);
       // OnUpdate should be called with 4 tags remaining
     });
+  },
+};
+
+// Regression for #8: tags parsed from text can share an id
+export const RemoveOneOfDuplicateIdTags: Story = {
+  args: {
+    tag: { id: "#TODO", name: "TODO" },
+    index: 1,
+    task: taskBuilder.base({
+      title: "Tags parsed from text",
+      tags: [
+        { id: "#TODO", name: "TODO" },
+        { id: "#TODO", name: "TODO" },
+        { id: "#home", name: "home" },
+      ],
+    }),
+    onUpdate: fn(),
+    badgeClass,
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open popover", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "TODO" }));
+      await delay(200);
+    });
+
+    await step(
+      "Remove only this tag, not every tag sharing its id",
+      async () => {
+        await userEvent.click(
+          canvas.getByRole("button", { name: /^Remove tag TODO/ }),
+        );
+        expect(args.onUpdate).toHaveBeenCalledOnce();
+        expect(args.onUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tags: [
+              { id: "#TODO", name: "TODO" },
+              { id: "#home", name: "home" },
+            ],
+          }),
+        );
+      },
+    );
   },
 };
 
@@ -488,7 +537,7 @@ export const KeyboardNavigation: Story = {
     await step("Press Enter to open popover", async () => {
       await userEvent.keyboard("{Enter}");
       await delay(200);
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       expect(removeButton).toBeInTheDocument();
     });
   },
@@ -502,8 +551,8 @@ export const AriaLabels: Story = {
     const canvas = withinShadow(canvasElement);
 
     await step("Verify button has accessible title", async () => {
-      const button = canvas.getByRole("button", { name: /Click to remove/i });
-      expect(button).toHaveAttribute("title", "Click to remove");
+      const button = canvas.getByRole("button", { name: "work" });
+      expect(button).toHaveAttribute("title", "Remove tag");
     });
   },
 };
@@ -524,8 +573,8 @@ export const ScreenReaderText: Story = {
       const button = canvas.getByRole("button");
       await userEvent.click(button);
       await delay(200);
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
-      expect(removeButton.textContent).toContain("Remove Tag");
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
+      expect(removeButton.textContent).toContain("work");
     });
   },
 };
@@ -548,7 +597,7 @@ export const RapidRemoveClicks: Story = {
     });
 
     await step("Rapidly click remove button", async () => {
-      const removeButton = canvas.getByRole("button", { name: /Remove Tag/i });
+      const removeButton = canvas.getByRole("button", { name: /^Remove tag/ });
       await userEvent.click(removeButton);
       // Should only trigger once despite rapid clicks
       await delay(50);

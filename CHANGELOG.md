@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`ask_user` confirm answers were swapped (#33).** In the built-in app,
+  clicking **No** reported `dismissed: true` and closing the question with
+  **X** reported `answer: "no"`. **No** now resolves `false` (`answer: "no"`)
+  and **X** resolves `null` (`dismissed: true`). Closing a select or prompt
+  question with **X** now resolves `null` instead of `false`.
+- **Agent turns no longer hang when the app unmounts mid-question (#33).**
+  Questions still waiting at unmount reject, and later `confirm`/`select`/
+  `prompt` calls reject immediately. `ask_user` reports this as
+  `{ question, answer: null, error }`; destructive tools return an error.
+- `ask_user` declares the `description` argument it already passed to
+  `confirm`, so models can send it.
+- **`notify_user` no longer reports success when nothing was shown (#33).**
+  See Changed.
+- `batch_update_tasks` showed two notifications for one batch (a rich toast
+  and a plain one). It now shows the rich toast, or `ctx.notify` when the host
+  has no `showToast`.
+- **Duplicate React key warning and over-eager tag removal (#8).** Tags that
+  share an id (tags parsed from text such as `#TODO`) rendered with duplicate
+  keys in the overflow tag popover, and removing one removed every tag with
+  that id. Keys and removal now use the tag's position.
+- **Invalid `transform-origin` CSS (#8).** Popover and dropdown menu content
+  used Tailwind v3 syntax that Tailwind v4 compiled to
+  `transform-origin: --radix-…`, which Chromium reports as a deprecated
+  `:--radix-*` custom state. They now use `var(--radix-…)`.
+- **Long task titles wrap instead of truncating (#12).** Inline
+  `MarkdownText` no longer forces `white-space: pre-wrap`; it inherits
+  white-space from its parent, so the title button's `truncate` applies again.
+- **Anthropic requests fail in browser hosts (#15).** The Anthropic provider
+  sends the `anthropic-dangerous-direct-browser-access: true` header again
+  (dropped in the AI SDK migration), so requests from browsers and Electron
+  hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
+  Settings **Test Connection** button for Anthropic.
+
+### Changed
+
+- `notify_user` without `ctx.showToast` falls back to
+  `ctx.notify(variant, "title: description")` and returns
+  `{ success: true, degraded: true, warning }`. With neither callback it
+  returns `{ success: false, error }` instead of `{ success: true }`.
+- The system prompt no longer says `notify_user` can show detail blocks; it
+  never accepted them.
+- Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
+  Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+
 ## [0.8.0] - 2026-10-14
 
 ### Changed

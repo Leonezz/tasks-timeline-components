@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import React, { useState } from "react";
-import { expect, userEvent } from "storybook/test";
+import { expect, spyOn, userEvent } from "storybook/test";
 import { delay, withinShadow } from "../test-utils";
 import { TaskItem } from "../../components/TaskItem";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
 import type { DateValidationState } from "../../utils";
-import { TasksProvider } from "../../contexts/TasksContext";
+import { TasksProvider, useTasksContext } from "../../contexts/TasksContext";
 import { SettingsProvider } from "../../contexts/SettingsContext";
 import { AppProvider } from "../../components/AppContext";
 import { DateTime } from "luxon";
@@ -181,9 +181,86 @@ export const WithTags: Story = {
 // Edge Cases
 // ========================================
 
+// Regression for #12: a long title stays on one line and truncates
 export const VeryLongTitle: Story = {
   args: {
     task: edgeCaseTasks.veryLongTitle,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Title is truncated, not wrapped", async () => {
+      const titleButton = canvas.getByRole("button", {
+        name: /^Edit task title:/,
+      });
+      const titleText = titleButton.querySelector("span.inline");
+      expect(titleText).not.toBeNull();
+      expect(getComputedStyle(titleText as Element).whiteSpace).toBe("nowrap");
+      expect(titleButton.scrollWidth).toBeGreaterThan(titleButton.clientWidth);
+    });
+  },
+};
+
+/** Keeps the task in state so removals show up in the rendered item. */
+const StatefulTaskItem = ({ task: initialTask }: { task: Task }) => {
+  const [task, setTask] = useState(initialTask),
+    tasksContext = useTasksContext();
+  return (
+    <TasksProvider value={{ ...tasksContext, onUpdateTask: setTask }}>
+      <TaskItem task={task} />
+    </TasksProvider>
+  );
+};
+
+// Regression for #8: tags parsed from text can share an id
+export const DuplicateTagIdsInOverflow: Story = {
+  args: {
+    task: taskBuilder.base({
+      id: "dup-tags",
+      title: "Tags parsed from text",
+      tags: [
+        { id: "#TODO", name: "TODO" },
+        { id: "#TODO", name: "TODO" },
+        { id: "#TODO", name: "TODO" },
+        { id: "#TODO", name: "TODO" },
+      ],
+    }),
+  },
+  render: (args) => <StatefulTaskItem task={args.task} />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+    const consoleError = spyOn(console, "error");
+
+    try {
+      await step("Open the overflow tags popover", async () => {
+        await userEvent.click(
+          canvas.getByRole("button", { name: /^Show 2 more tags/ }),
+        );
+        await delay(200);
+      });
+
+      await step("Overflow tags render without duplicate keys", async () => {
+        expect(
+          canvas.getAllByRole("button", { name: /^Remove tag TODO/ }),
+        ).toHaveLength(2);
+        const duplicateKeyWarnings = consoleError.mock.calls.filter((call) =>
+          String(call[0]).includes("same key"),
+        );
+        expect(duplicateKeyWarnings).toHaveLength(0);
+      });
+
+      await step("Removing one tag keeps the others", async () => {
+        await userEvent.click(
+          canvas.getAllByRole("button", { name: /^Remove tag TODO/ })[0],
+        );
+        await delay(200);
+        expect(
+          canvas.getByRole("button", { name: /^Show 1 more tags/ }),
+        ).toBeInTheDocument();
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
   },
 };
 

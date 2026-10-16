@@ -182,21 +182,20 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
         updated.push(finalTask);
       }
 
-      if (updated.length > 0) {
-        ctx.showToast?.({
+      // One notification per batch: the rich toast when the host has one
+      const summary = `Updated ${updated.length} task${updated.length === 1 ? "" : "s"}`;
+      if (ctx.showToast && updated.length > 0) {
+        ctx.showToast({
           variant: "success",
-          title: `Updated ${updated.length} task${updated.length === 1 ? "" : "s"}`,
+          title: summary,
           detail: [
             { type: "task-list", tasks: updated, label: "Updated Tasks" },
           ],
           timeout: 6000,
         });
+      } else {
+        ctx.notify?.("success", summary);
       }
-
-      ctx.notify?.(
-        "success",
-        `Updated ${filtered.length} task${filtered.length === 1 ? "" : "s"}`,
-      );
 
       return {
         name: "batch_update_tasks",

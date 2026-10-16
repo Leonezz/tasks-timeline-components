@@ -95,14 +95,51 @@ describe("notify_user tool", () => {
     );
   });
 
-  it("returns success even when showToast is not provided", async () => {
+  it("defaults to a persistent notification when timeout is omitted", async () => {
+    const tool = createNotifyUserTool(ctx);
+    await tool.execute({ variant: "info", title: "Stays" });
+
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: null }),
+    );
+  });
+
+  it("does not also send a plain notification when it shows a toast", async () => {
+    const tool = createNotifyUserTool(ctx);
+    await tool.execute({ variant: "info", title: "Once" });
+
+    expect(ctx.notify).not.toHaveBeenCalled();
+  });
+
+  it("degrades explicitly to notify when showToast is not provided", async () => {
     const ctxNoToast = makeContext();
     const tool = createNotifyUserTool(ctxNoToast);
     const result = await tool.execute({
-      variant: "info",
-      title: "Hello",
+      variant: "warning",
+      title: "Heads up",
+      description: "Two tasks overlap",
+      body: "Details that cannot be shown",
     });
 
-    expect(result.result).toEqual({ success: true });
+    expect(ctxNoToast.notify).toHaveBeenCalledWith(
+      "warning",
+      "Heads up: Two tasks overlap",
+    );
+    expect(result.result).toEqual({
+      success: true,
+      degraded: true,
+      warning: expect.stringContaining("body and timeout were dropped"),
+    });
+  });
+
+  it("returns an error when the host cannot notify at all", async () => {
+    const ctxSilent = makeContext({ notify: undefined });
+    const tool = createNotifyUserTool(ctxSilent);
+    const result = await tool.execute({ variant: "info", title: "Hello" });
+
+    expect(result.result).toEqual({
+      success: false,
+      error: expect.stringContaining("cannot show notifications"),
+    });
   });
 });

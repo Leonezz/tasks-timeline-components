@@ -167,6 +167,10 @@ export const taskMatchesStatus = (
   );
 };
 
+/** Removes only the tag at `index`; tags parsed from text can share an id. */
+export const removeTagAt = (tags: Task["tags"], index: number): Task["tags"] =>
+  tags.filter((_, i) => i !== index);
+
 export const groupTasksByYearAndDate = (
   tasks: Task[],
   strategies: DateGroupBy[] = ["dueAt"],
