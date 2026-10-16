@@ -338,6 +338,82 @@ export const SaveFailureKeepsEdits: Story = {
   },
 };
 
+// Hosts that store Obsidian Tasks text see the text saving writes, which can
+// be worded differently from rrule's ("every 2 years June on the 1st")
+export const TextPreviewMatchesSavedRule: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Renew the passport",
+      isRecurring: undefined,
+      recurringInterval: "every year on the 1st in June",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+    recurrenceFormat: "text",
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Repeat every 2 years", async () => {
+      const interval = canvas.getByLabelText("Recurrence interval");
+      // Clearing the field resets it to 1, so replace the value instead
+      await userEvent.tripleClick(interval);
+      await userEvent.keyboard("2");
+    });
+
+    await step("The preview is the text that is saved", async () => {
+      expect(
+        canvas.getByText("every 2 years on the 1st in June"),
+      ).toBeInTheDocument();
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recurringInterval: "every 2 years on the 1st in June",
+        }),
+      );
+    });
+  },
+};
+
+// Changing the settings of a rule with parts they can't show replaces it
+export const WarnsWhichRulePartsSavingDrops: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.withRecurrence({
+      title: "Five weekly check-ins",
+      isRecurring: true,
+      recurringInterval: "FREQ=WEEKLY;COUNT=5",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Says which parts the settings can't show", async () => {
+      expect(
+        canvas.getByText(
+          /These settings can't show: repetition count \(COUNT\)\./,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    await step("Warns what saving drops once the settings change", async () => {
+      const interval = canvas.getByLabelText("Recurrence interval");
+      await userEvent.tripleClick(interval);
+      await userEvent.keyboard("2");
+      expect(
+        canvas.getByText(
+          "Saving replaces the stored rule and drops the parts these settings can't show: repetition count (COUNT).",
+        ),
+      ).toBeInTheDocument();
+    });
+  },
+};
+
 // ========================================
 // Status Variants
 // ========================================

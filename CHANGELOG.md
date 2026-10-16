@@ -188,6 +188,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- **Recurrence wording in the editor and the Recurring badge (#48).** The
+  editor lists the rule parts its settings can't show after a colon ("These
+  settings can't show: repetition count (COUNT)"), and warns "Saving replaces
+  the stored rule and drops the parts these settings can't show: …". When it
+  writes Obsidian Tasks text, its preview is the text saving writes ("every 2
+  years on the 1st in June", which rrule words "every 2 years June on the
+  1st"). The **Recurring** badge's tooltip and label give the start and end
+  dates the editor and `complete_task` read, so a legacy UTC `UNTIL`, a dashed
+  `UNTIL=2026-12-31` or a numeric text end date no longer shows another or a
+  raw end date; they keep "when done", and show a rule as written when rrule's
+  text would leave parts out (`BYSETPOS`, `BYEASTER`, `WKST`).
 
 ### Changed
 

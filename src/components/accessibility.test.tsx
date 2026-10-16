@@ -138,6 +138,22 @@ describe("component accessibility affordances", () => {
     expect(html).toContain(">Recurring<");
   });
 
+  it("describes a recurring task's rule as the editor reads it", () => {
+    // rrule can't read this end date itself
+    const task = createTask({
+      isRecurring: true,
+      recurringInterval: "FREQ=WEEKLY;UNTIL=2026-12-31",
+    });
+    const html = renderWithProviders(<TaskItem task={task} />, {
+      tasks: [task],
+    });
+
+    expect(html).toContain(
+      'aria-label="Recurring task: every week until December 31, 2026"',
+    );
+    expect(html).toContain('title="every week until December 31, 2026"');
+  });
+
   it("does not force task titles to wrap inside the truncating title button", () => {
     const task = createTask();
     const html = renderWithProviders(<TaskItem task={task} />, {

@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { RRule } from "rrule";
+import { describeStoredRecurrence } from "./recurrence";
 
 const safeDate = (dateStr: string): DateTime => {
   if (!dateStr) {
@@ -78,14 +78,9 @@ export const formatSmartDate = (
   return target.toRelative({ base: now }) || "INVALID";
 };
 
-export const formatRecurrence = (ruleStr: string): string => {
-  if (!ruleStr) {
-    return "";
-  }
-  try {
-    const rule = RRule.fromString(ruleStr);
-    return rule.toText();
-  } catch {
-    return ruleStr;
-  }
-};
+/**
+ * A stored recurrence rule in words, as the task editor and complete_task
+ * read it; a rule that can't be put in words is shown as written.
+ */
+export const formatRecurrence = (ruleStr: string): string =>
+  ruleStr ? (describeStoredRecurrence(ruleStr) ?? ruleStr) : "";

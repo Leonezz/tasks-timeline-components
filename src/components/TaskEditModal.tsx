@@ -6,7 +6,7 @@ import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
 import { cn, deriveWorkflowStatus, isTaskRecurring } from "../utils";
 import {
-  describeRecurrence,
+  previewRecurrence,
   readRecurrenceRule,
   recurrenceSaveFormat,
   resolveRecurrenceOnSave,
@@ -92,6 +92,12 @@ const EditForm: React.FC<EditFormProps> = ({
     [recurrenceControlsTouched, setRecurrenceControlsTouched] = useState(false),
     [saveError, setSaveError] = useState<string | null>(null),
     [isSaving, setIsSaving] = useState(false),
+    // Obsidian Tasks lines only hold text rules ("every 2 weeks on Monday")
+    saveFormat = recurrenceSaveFormat(
+      recurrenceFormat,
+      storedRule.source,
+      task,
+    ),
     updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
       setRecurrenceControlsTouched(true);
       setRecurrenceState((prev) => ({ ...prev, ...updates }));
@@ -103,12 +109,7 @@ const EditForm: React.FC<EditFormProps> = ({
           isRecurring: Boolean(editedTask.isRecurring),
           controlsTouched: recurrenceControlsTouched,
           state: recurrenceState,
-          // Obsidian Tasks lines only hold text rules ("every 2 weeks on Monday")
-          format: recurrenceSaveFormat(
-            recurrenceFormat,
-            storedRule.source,
-            task,
-          ),
+          format: saveFormat,
           whenDone: storedRule.whenDone,
         });
       } catch (error) {
@@ -150,20 +151,26 @@ const EditForm: React.FC<EditFormProps> = ({
         {storedRule.source === "unparsed" &&
           ". These settings can't show it; it is kept unless you change them."}
         {unsupportedParts !== "" &&
-          `. These settings can't show its ${unsupportedParts}; it is kept as written unless you change them, which replaces it.`}
+          `. These settings can't show: ${unsupportedParts}. The rule is kept as written unless you change them, which replaces it.`}
       </>
     ) : (
       <>
         {(() => {
           try {
-            return describeRecurrence(recurrenceState);
+            // In text format, the text saving writes
+            return previewRecurrence(
+              recurrenceState,
+              saveFormat,
+              storedRule.whenDone,
+            );
           } catch (error) {
-            return `Invalid rule: ${error instanceof Error ? error.message : String(error)}`;
+            return `Invalid rule: ${errorText(error)}`;
           }
         })()}
         {unsupportedParts !== "" && (
           <span className="block not-italic text-amber-600">
-            Saving replaces the stored rule and drops its {unsupportedParts}.
+            Saving replaces the stored rule and drops the parts these settings
+            can&apos;t show: {unsupportedParts}.
           </span>
         )}
       </>
