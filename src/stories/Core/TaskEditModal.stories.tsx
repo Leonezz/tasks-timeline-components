@@ -47,15 +47,24 @@ const meta: Meta<typeof TaskEditModal> = {
   },
   decorators: [
     // AppProvider supplies the theme and the portal container the dialog
-    // renders into, so it stays inside the story's canvas
+    // renders into, so it stays inside the story's canvas. With
+    // `appProvider: false` the story is a consumer using the exported editor
+    // in its own themed wrapper instead.
     (Story, { parameters }) => {
-      const app = (
-        <AppProvider theme={parameters.theme as string | undefined}>
-          <div className="w-full h-screen flex items-center justify-center bg-slate-50">
-            <Story />
-          </div>
-        </AppProvider>
+      const theme = parameters.theme as string | undefined;
+      const content = (
+        <div className="w-full h-screen flex items-center justify-center bg-slate-50">
+          <Story />
+        </div>
       );
+      const app =
+        parameters.appProvider === false ? (
+          <div className="tasks-timeline-app" data-theme={theme}>
+            {content}
+          </div>
+        ) : (
+          <AppProvider theme={theme}>{content}</AppProvider>
+        );
       return parameters.shadowRoot ? (
         <ShadowRootFrame>{app}</ShadowRootFrame>
       ) : (
@@ -837,6 +846,53 @@ export const ReturnsFocusToOpenerInShadowRoot: Story = {
   ...ReturnsFocusToOpener,
   parameters: {
     shadowRoot: true,
+  },
+};
+
+// The exported editor used without AppProvider, which the package does not
+// export, has no portal container: it renders in place, inside the
+// consumer's themed wrapper, rather than in document.body
+export const RendersInPlaceWithoutAppProvider: Story = {
+  args: {
+    ...Default.args,
+  },
+  parameters: {
+    appProvider: false,
+    theme: "midnight",
+  },
+  play: async ({ canvasElement }) => {
+    const wrapper = canvasElement.querySelector<HTMLElement>(
+      '.tasks-timeline-app[data-theme="midnight"]',
+    );
+    if (!wrapper) {
+      throw new Error("The story has no themed wrapper");
+    }
+    const dialog = await findEditor(canvasElement.ownerDocument.body);
+
+    expect(wrapper.contains(dialog)).toBe(true);
+    // The consumer's midnight card, not the light one on :root
+    expect(getComputedStyle(dialog).getPropertyValue("--card")).toBe(
+      getComputedStyle(wrapper).getPropertyValue("--card"),
+    );
+  },
+};
+
+// ...and inside the consumer's own shadow root
+export const RendersInPlaceInConsumerShadowRoot: Story = {
+  args: {
+    ...Default.args,
+  },
+  parameters: {
+    appProvider: false,
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement }) => {
+    const content = await waitFor(() => storyContent(canvasElement));
+
+    await findEditor(content);
+    expect(
+      canvasElement.ownerDocument.body.querySelector('[role="dialog"]'),
+    ).toBeNull();
   },
 };
 

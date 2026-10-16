@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { SettingsProvider, type SettingsContextType } from "../contexts";
 import { TasksProvider, type TasksContextType } from "../contexts";
 import type { FilterState, SortState, Task } from "../types";
@@ -9,12 +9,6 @@ import { InputBar } from "./InputBar";
 import { TaskEditModal } from "./TaskEditModal";
 import { TaskItem } from "./TaskItem";
 import { TodoList } from "./TodoList";
-
-vi.mock("./ui/dialog", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./ui/dialog")>()),
-  // Portals render nothing on the server; render the dialog in place
-  DialogPortal: ({ children }: { children?: React.ReactNode }) => children,
-}));
 
 const filters: FilterState = {
   tags: { include: [], exclude: [] },
@@ -211,6 +205,26 @@ describe("task editor accessibility", () => {
     );
   const escapeRegExp = (text: string) =>
     text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Without AppProvider there is no portal container; portalling to
+  // document.body would leave the consumer's theme and shadow root behind
+  it("renders in place without an AppProvider", () => {
+    const html = renderToStaticMarkup(
+      <div className="tasks-timeline-app" data-theme="midnight">
+        <TaskEditModal
+          isOpen
+          task={createTask()}
+          onSave={() => undefined}
+          onClose={() => undefined}
+          availableCategories={[]}
+        />
+      </div>,
+    );
+
+    expect(html).toMatch(
+      /^<div class="tasks-timeline-app" data-theme="midnight">.*role="dialog"/,
+    );
+  });
 
   it("is a modal dialog named by its title", () => {
     const html = renderEditor();

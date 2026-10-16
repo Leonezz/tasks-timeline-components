@@ -3,22 +3,33 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { usePortalContainer } from "../../hooks/usePortalContainer";
+import {
+  useHasPortalProvider,
+  usePortalContainer,
+} from "../../hooks/usePortalContainer";
 
 /**
  * Portals into the app's portal container, inside its shadow root when it has
- * one, so dialogs keep the app's styles and theme.
+ * one, so dialogs keep the app's styles and theme. Outside an AppProvider
+ * (a consumer using an exported component on its own) there is no container:
+ * the dialog renders in place, inside the consumer's themed wrapper and
+ * shadow root, rather than in document.body without either.
  */
 const DialogPortal = ({
   container,
+  children,
   ...props
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>) => {
   const portalContainer = usePortalContainer();
+  const hasPortalProvider = useHasPortalProvider();
+  if (!container && !hasPortalProvider) {
+    // Overlay and Content mount and unmount themselves (Presence)
+    return <>{children}</>;
+  }
   return (
-    <DialogPrimitive.Portal
-      container={container ?? portalContainer}
-      {...props}
-    />
+    <DialogPrimitive.Portal container={container ?? portalContainer} {...props}>
+      {children}
+    </DialogPrimitive.Portal>
   );
 };
 DialogPortal.displayName = DialogPrimitive.Portal.displayName;
