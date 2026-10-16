@@ -457,4 +457,63 @@ describe("batch_update_tasks tool", () => {
       }),
     );
   });
+
+  it("matches tasks that have a rule but no isRecurring flag with recurring filters", async () => {
+    const ruleOnlyCtx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([
+        {
+          id: "rule-only",
+          title: "Water plants",
+          status: "todo",
+          priority: "low",
+          tags: [],
+          // Shape of a task parsed by an older parser: a rule, no flag
+          recurringInterval: "every week",
+        },
+      ]),
+      confirm: mockConfirm as CapabilityContext["confirm"],
+    });
+    const tool = createBatchUpdateTasksTool(ruleOnlyCtx);
+
+    const recurring = await tool.execute({
+      filter: { recurring: true },
+      update: { priority: "high" },
+    });
+    const notRecurring = await tool.execute({
+      filter: { recurring: false },
+      update: { priority: "high" },
+    });
+
+    expect(recurring.result).toMatchObject({ updatedCount: 1 });
+    expect(notRecurring.result).toMatchObject({ updatedCount: 0 });
+  });
+
+  it("rejects an unreadable recurrence rule before asking or updating", async () => {
+    const result = await createBatchUpdateTasksTool(ctx).execute({
+      filter: { category: "work" },
+      update: { recurrence: "BYDAY=MO" },
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        'Cannot use the recurrence rule "BYDAY=MO"',
+      ),
+    });
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
+  it("rejects a recurrence that is not a string", async () => {
+    const result = await createBatchUpdateTasksTool(ctx).execute({
+      filter: { category: "work" },
+      update: { recurrence: ["FREQ=DAILY"] },
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("recurrence must be a string"),
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
 });
