@@ -478,7 +478,11 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
   words the parser would skip, an incomplete or impossible "until" date
   (February 30) or an end date that has passed is rejected. Abbreviations
   ("Mon", "Sept"), ordinals ("the first Monday", "the last day"), "weekdays",
-  and any letter case or spacing are accepted.
+  and any letter case or spacing are accepted. Hourly, minutely and secondly
+  rules are computed by day; the few combinations that can't be (time-of-day
+  parts on a step that doesn't divide a day, or within each hour together
+  with `COUNT`, `BYSETPOS` or an `UNTIL` time) are rejected as unsupported,
+  and `complete_task` returns the same error for such a stored rule.
 - **Hosts that store Obsidian Tasks text** set `recurrenceFormat: "text"` on
   the context (`TasksTimelineApp` sets it on the built-in agent's context from
   its `recurrenceFormat` prop). The three tools then store RRULE syntax as

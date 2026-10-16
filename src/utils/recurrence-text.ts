@@ -8,6 +8,7 @@ import {
   type ParsedRecurrenceRule,
   unreadableRuleError,
 } from "./recurrence-rule";
+import { timesOfDayChangeDays } from "./rule-boundaries";
 
 /**
  * Writing rules as rrule's English text, the form Obsidian Tasks lines hold
@@ -237,6 +238,11 @@ export function recurrenceRuleToText(rule: ParsedRecurrenceRule): string {
   if (rule.start) {
     throw new Error(
       "Obsidian Tasks recurrence rules can't store a start date. Clear Start Recurrence (the task's own start date still works) to save this rule.",
+    );
+  }
+  if (timesOfDayChangeDays(rule)) {
+    throw new Error(
+      "This recurrence can't be written as Obsidian Tasks text: its times of day (BYHOUR, BYMINUTE, BYSECOND) change which days it has, and a Tasks line can't hold them.",
     );
   }
   const options = toTextFriendly(rule.options);

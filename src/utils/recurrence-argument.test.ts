@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { readRecurrenceArgument } from "./recurrence-argument";
 
+describe("readRecurrenceArgument with rules the library can't compute", () => {
+  it.each([
+    ["FREQ=HOURLY;INTERVAL=5;BYHOUR=3", "BYHOUR, BYMINUTE or BYSECOND"],
+    ["FREQ=HOURLY;BYMINUTE=0,30;COUNT=10", "BYMINUTE or BYSECOND within"],
+  ])("rejects %j before it is stored", (value, reason) => {
+    expect(readRecurrenceArgument(value, "2026-01-01")).toEqual({
+      ok: false,
+      error: expect.stringContaining(`isn't supported: ${reason}`),
+    });
+  });
+});
+
 describe("readRecurrenceArgument for hosts that store Obsidian Tasks text", () => {
   const readAsText = (value: string) =>
     readRecurrenceArgument(value, "2026-01-01", "text");

@@ -9,6 +9,7 @@ import {
 } from "./recurrence-rule";
 import { recurrenceRuleToText } from "./recurrence-text";
 import { splitRuleEnd, wordsTheRuleSkips } from "./recurrence-wording";
+import { DAY_BASED_ADVICE, unsupportedSubDailyReason } from "./sub-daily-rule";
 
 /**
  * Checking the `recurrence` argument of the task tools. rrule's text parser
@@ -17,17 +18,34 @@ import { splitRuleEnd, wordsTheRuleSkips } from "./recurrence-wording";
  * word that was given, and it is stored in the library's own words.
  */
 
+type Rejection = { ok: false; error: string };
+
 export type RecurrenceArgument =
   | { ok: true; rule: string | null; understoodAs?: string }
-  | { ok: false; error: string };
+  | Rejection;
 
 const WHEN_DONE_AT_END = /\s+when\s+done\s*$/i;
 const WHEN_DONE_ANYWHERE = /\bwhen\s+done\b/i;
 
-const reject = (value: string, reason: string): RecurrenceArgument => ({
+const reject = (value: string, reason: string): Rejection => ({
   ok: false,
   error: `Cannot use the recurrence rule "${value}": ${reason} ${RECURRENCE_RULE_HELP}`,
 });
+
+/** The rule read from `rule` (`value` as given), unless unreadable or unsupported. */
+function readUsableRule(
+  value: string,
+  rule: string,
+): { ok: true; parsed: ParsedRecurrenceRule } | Rejection {
+  const parsed = parseRecurrenceRule(rule);
+  if (!parsed) {
+    return reject(value, "it isn't a rule the parser can read.");
+  }
+  const unsupported = unsupportedSubDailyReason(parsed);
+  return unsupported
+    ? reject(value, `it isn't supported: ${unsupported}. ${DAY_BASED_ADVICE}`)
+    : { ok: true, parsed };
+}
 
 const endsTooEarly = (rule: ParsedRecurrenceRule, notBefore: string): boolean =>
   rule.end !== undefined && rule.end < notBefore;
@@ -88,10 +106,11 @@ function readTextArgument(
       'an Obsidian Tasks line can only hold letters, digits, spaces, commas and "!".',
     );
   }
-  const parsed = parseRecurrenceRule(normalized);
-  if (!parsed) {
-    return reject(value, "it isn't a rule the parser can read.");
+  const usable = readUsableRule(value, normalized);
+  if (!usable.ok) {
+    return usable;
   }
+  const { parsed } = usable;
   if (parsed.options.count) {
     return reject(
       value,
@@ -161,10 +180,11 @@ function readRRuleArgument(
   notBefore: string,
   storage: RecurrenceStorage,
 ): RecurrenceArgument {
-  const parsed = parseRecurrenceRule(value);
-  if (!parsed) {
-    return reject(value, "it isn't a rule the parser can read.");
+  const usable = readUsableRule(value, value);
+  if (!usable.ok) {
+    return usable;
   }
+  const { parsed } = usable;
   if (endsTooEarly(parsed, notBefore)) {
     return reject(value, `it ends on ${parsed.end}, before ${notBefore}.`);
   }

@@ -72,9 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rules that can never match ended the series.** A rule without `UNTIL` or
   `COUNT` that has no later date (`FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30`) now
   makes `complete_task` fail and change nothing, instead of completing the
-  task and reporting that the recurrence ended. The search is bounded, and
-  hourly, minutely and secondly rules are computed as daily, since tasks are
-  day-based.
+  task and reporting that the recurrence ended. The search is bounded.
 - **Recurrence text with punctuation corrupted Obsidian Tasks lines.** A line
   only holds letters, digits, spaces, commas and "!" after 🔁, so
   `every month until 2026-12-31` was read back as "every month until 2026"
@@ -143,9 +141,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repeats on any weekday, as rrule computes it, not only its start's
   weekday; ordinal weekdays in daily and weekly rules count as plain ones;
   `COUNT` no longer limits the quick existence check of rules that skip
-  periods; hourly rules with day filters keep whole-day intervals; and daily
-  rules with `BYSETPOS` other than 1 or -1 fail fast instead of taking
-  seconds.
+  periods; and daily rules with `BYSETPOS` past the day's dates fail fast
+  instead of taking seconds.
+- **Uncommon RRULE combinations were computed on the wrong days (#46).**
+  Checked against rrule itself, including generated sweeps of hourly,
+  minutely and timed rules.
+  - An `UNTIL` time before the day's first date (`DTSTART:20261016T100000`,
+    `UNTIL=20261020T080000`) ends the series the day before for floating and
+    plain-UTC values too, as it already did with `TZID`. `BYHOUR`,
+    `BYMINUTE` and `BYSECOND` count as the day's first time.
+  - `BYHOUR`, `BYMINUTE` and `BYSECOND` were dropped before `BYSETPOS` picked
+    a position and before `COUNT` counted, so the wrong days, or none, were
+    picked. Daily and longer rules keep them, and their start and end times,
+    when `BYSETPOS` or `COUNT` depends on them.
+  - Hourly, minutely and secondly rules are computed day by day from their
+    real start time instead of as daily rules: day filters with a step that
+    isn't whole days (`FREQ=HOURLY;INTERVAL=36;BYDAY=MO`), `COUNT` with
+    filters (which counts each hour, not each day), `BYHOUR` the step never
+    reaches (`INTERVAL=2;BYHOUR=3`, for which rrule itself never returns) and
+    `UNTIL` times. They are searched ten years ahead, with an error beyond.
+  - Two combinations are rejected as unsupported, with an explicit error, by
+    `create_task`, `update_task`, `batch_update_tasks` and `complete_task`:
+    `BYHOUR`/`BYMINUTE`/`BYSECOND` on an hourly or shorter rule whose step
+    neither divides a day nor is whole days, and `BYMINUTE`/`BYSECOND`
+    within each hour or minute together with `COUNT`, `BYSETPOS` or an
+    `UNTIL` time.
+  - Times of day out of range (`BYHOUR=24`) make a rule unreadable instead of
+    rolling over. Obsidian Tasks text isn't written for rules whose times of
+    day change their days, and the task editor lists times of day among the
+    parts it can't show.
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't

@@ -51,6 +51,23 @@ describe("toTasksRecurrenceText", () => {
     ).toThrow("can't store a start date");
   });
 
+  it("leaves out a time of day that doesn't change the days", () => {
+    expect(toTasksRecurrenceText("FREQ=DAILY;BYHOUR=9")).toBe("every day");
+  });
+
+  it.each([
+    // COUNT counts each time of day
+    "FREQ=DAILY;BYHOUR=9,17;COUNT=4",
+    // BYSETPOS picks among the times of day
+    "FREQ=MONTHLY;BYDAY=MO;BYHOUR=9,17;BYSETPOS=3",
+    // BYHOUR picks which steps count
+    "FREQ=HOURLY;INTERVAL=2;BYHOUR=3",
+  ])("refuses %j, whose times of day change its days", (rule) => {
+    expect(() => toTasksRecurrenceText(rule)).toThrow(
+      "its times of day (BYHOUR, BYMINUTE, BYSECOND) change which days it has",
+    );
+  });
+
   it("refuses unreadable RRULE syntax", () => {
     expect(() => toTasksRecurrenceText("FREQ=WEEKLY;INTERVAL=0")).toThrow(
       'Cannot read the recurrence rule "FREQ=WEEKLY;INTERVAL=0"',

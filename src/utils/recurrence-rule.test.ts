@@ -219,6 +219,78 @@ describe("TZID end dates", () => {
   );
 });
 
+describe.each([
+  "UTC",
+  "America/Los_Angeles",
+  "Asia/Shanghai",
+  "Pacific/Auckland",
+])("end dates with a time, read in %s (#46)", (zone) => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", zone);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    // The 20th's date would be at 10:00, after the 8:00 end
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;UNTIL=20261020T080000",
+      "2026-10-19",
+    ],
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;UNTIL=20261020T100000",
+      "2026-10-20",
+    ],
+    [
+      "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;UNTIL=20261020T080000Z",
+      "2026-10-19",
+    ],
+    [
+      "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;UNTIL=20261020T120000Z",
+      "2026-10-20",
+    ],
+    // Dates at 7:00 (BYHOUR) come before the 8:00 end
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;BYHOUR=7;UNTIL=20261020T080000",
+      "2026-10-20",
+    ],
+    // Without a start, dates are at midnight
+    ["FREQ=DAILY;UNTIL=20261020T080000", "2026-10-20"],
+    // A time zone's end is compared in that zone (07:00 in Tokyo)
+    [
+      "DTSTART;TZID=Asia/Tokyo:20261016T080000\nRRULE:FREQ=DAILY;UNTIL=20261019T220000Z",
+      "2026-10-19",
+    ],
+  ])("%j ends on %s", (rule, end) => {
+    expect(parseRecurrenceRule(rule)?.end).toBe(end);
+  });
+
+  it("keeps the start and end times for computing with them", () => {
+    expect(
+      parseRecurrenceRule(
+        "DTSTART:20261016T100000\nRRULE:FREQ=HOURLY;BYMINUTE=0,30;UNTIL=20261020T080000",
+      ),
+    ).toMatchObject({
+      start: "2026-10-16",
+      startDateTime: "2026-10-16T10:00:00",
+      end: "2026-10-20",
+      endDateTime: "2026-10-20T08:00:00",
+      timesOfDay: { byminute: [0, 30] },
+    });
+  });
+});
+
+describe("times of day", () => {
+  it.each([
+    "FREQ=DAILY;BYHOUR=24",
+    "FREQ=DAILY;BYMINUTE=60",
+    "FREQ=DAILY;BYSECOND=61",
+  ])("rejects %j, which rrule would roll over", (rule) => {
+    expect(parseRecurrenceRule(rule)).toBeNull();
+  });
+});
+
 describe("other start and end forms", () => {
   it("reads DTSTART= inside the rule", () => {
     expect(
