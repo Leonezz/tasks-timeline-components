@@ -6,6 +6,7 @@ import type {
   SecretFieldRenderer,
 } from "../../types";
 import type { VoiceRuntime } from "../../utils/voice-providers";
+import type { AIProviderFactory } from "../../providers/types";
 import { MotionDiv } from "../Motion";
 import { SettingsPage } from "./SettingsPage";
 
@@ -23,6 +24,10 @@ interface SettingsModalProps {
   renderSecretField?: SecretFieldRenderer;
   /** Host voice runtime; `browserSpeechSupported: false` disables the Browser voice provider. */
   voiceRuntime?: VoiceRuntime;
+  /** Host provider factory used by "Test Connection". */
+  aiProviderFactory?: AIProviderFactory;
+  /** Fetch for the built-in providers used by "Test Connection". */
+  aiFetch?: typeof fetch;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -36,6 +41,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   customTabs,
   renderSecretField,
   voiceRuntime,
+  aiProviderFactory,
+  aiFetch,
 }) => (
   <AnimatePresence>
     {isOpen && (
@@ -65,6 +72,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             customTabs={customTabs}
             renderSecretField={renderSecretField}
             voiceRuntime={voiceRuntime}
+            aiProviderFactory={aiProviderFactory}
+            aiFetch={aiFetch}
           />
         </MotionDiv>
       </>

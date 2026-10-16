@@ -1,7 +1,7 @@
-import type { Task } from "@/types";
+import type { Task } from "../types";
 import { Icon } from "./Icon";
 import { MotionDiv } from "./Motion";
-import { cn } from "@/utils";
+import { cn } from "../utils";
 import { useState } from "react";
 import {
   Popover,

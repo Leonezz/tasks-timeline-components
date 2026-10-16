@@ -1,7 +1,8 @@
 import { SettingsPageAI } from "../../components/settings/SettingsPageAI";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AppSettings } from "../../types";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import type { AIProviderFactory } from "../../providers/types";
 import { settingsBuilder } from "../fixtures";
 
 const meta: Meta<typeof SettingsPageAI> = {
@@ -223,6 +224,82 @@ export const CustomProviderValidation: Story = {
       );
       await expect(canvas.getByRole("alert")).toHaveTextContent(
         "Custom provider base URL is required.",
+      );
+    });
+  },
+};
+
+// ========================================
+// Host Runtime (aiFetch / aiProviderFactory)
+// ========================================
+
+const geminiHelloReply = {
+  candidates: [
+    {
+      content: { role: "model", parts: [{ text: "Hello" }] },
+      finishReason: "STOP",
+      index: 0,
+    },
+  ],
+  usageMetadata: {
+    promptTokenCount: 3,
+    candidatesTokenCount: 1,
+    totalTokenCount: 4,
+  },
+};
+
+/** "Test Connection" goes through the host's fetch, never the network. */
+export const TestConnectionWithHostFetch: Story = {
+  args: {
+    ...GeminiProvider.args,
+    aiFetch: fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify(geminiHelloReply), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    ),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Send the connection test through the host fetch", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        'Connected to gemini-2.0-flash. Response: "Hello"',
+      );
+      await expect(args.aiFetch).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+/** "Test Connection" tests the provider the host's factory builds. */
+export const TestConnectionWithHostFactory: Story = {
+  args: {
+    ...GeminiProvider.args,
+    aiProviderFactory: fn<AIProviderFactory>(async () => ({
+      chat: async () => ({ text: "" }),
+      test: async () => ({
+        success: true,
+        message: "Connected through the host provider",
+      }),
+    })),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Test the host factory's provider", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        "Connected through the host provider",
+      );
+      await expect(args.aiProviderFactory).toHaveBeenCalledWith(
+        "gemini",
+        expect.objectContaining({ model: "gemini-2.0-flash" }),
       );
     });
   },

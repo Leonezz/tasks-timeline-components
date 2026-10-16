@@ -13,6 +13,7 @@ import {
   formatRecurrence,
   formatSmartDate,
   formatTime,
+  isTaskRecurring,
   removeTagAt,
   type DateValidationState,
 } from "../utils";
@@ -544,11 +545,12 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <DateBadge
                 type="dueDate"
                 date={task.dueAt!}
-                label={`Due: ${formatSmartDate(
+                prefix="Due: "
+                label={formatSmartDate(
                   task.dueAt!,
                   settings.useRelativeDates,
                   settings.dateFormat,
-                )}`}
+                )}
                 icon="Calendar"
                 task={task}
                 onUpdate={onUpdateTask}
@@ -559,11 +561,12 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               <DateBadge
                 type="completedAt"
                 date={task.completedAt!}
-                label={`Done: ${formatSmartDate(
+                prefix="Done: "
+                label={formatSmartDate(
                   task.completedAt!,
                   settings.useRelativeDates,
                   settings.dateFormat,
-                )}`}
+                )}
                 icon="CheckCircle2"
                 task={task}
                 onUpdate={onUpdateTask}
@@ -573,7 +576,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 )}
               />
             )}
-            {task.isRecurring && task.recurringInterval && (
+            {isTaskRecurring(task) && task.recurringInterval && (
               <div
                 className={cn(
                   badgeClass,

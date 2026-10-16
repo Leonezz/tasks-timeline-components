@@ -1,6 +1,6 @@
 import type { CapabilityContext, ResourceSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
-import { deriveTaskRenderState } from "../../utils/task";
+import { deriveTaskRenderState, isTaskRecurring } from "../../utils/task";
 
 export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
   return {
@@ -51,7 +51,7 @@ export function createStatsResource(ctx: CapabilityContext): ResourceSpec {
           stats.completedToday += 1;
         }
 
-        if (task.isRecurring) {
+        if (isTaskRecurring(task)) {
           stats.recurring += 1;
         }
       }

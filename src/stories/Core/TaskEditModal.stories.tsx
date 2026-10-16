@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { TaskEditModal } from "../../components/TaskEditModal";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
 import { RRule } from "rrule";
+import { DateTime } from "luxon";
 
 const meta: Meta<typeof TaskEditModal> = {
   title: "Core/TaskEditModal",
@@ -238,6 +239,106 @@ export const WithRecurrenceEndDate: Story = {
   },
 };
 
+// Regression: parsed Obsidian Tasks lines (`🔁 every week`) carry a text rule
+// and no isRecurring flag; saving without changes must keep the rule
+export const SaveKeepsTextRecurrenceRule: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Water the plants",
+      isRecurring: undefined,
+      recurringInterval: "every week",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Shows the task as recurring", async () => {
+      expect(
+        canvas.getByRole("switch", { name: /Toggle task recurrence/i }),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+
+    await step("Saving without changes keeps the rule", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledOnce();
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ recurringInterval: "every week" }),
+      );
+    });
+  },
+};
+
+// Editing an Obsidian Tasks rule must save text, which Obsidian Tasks lines
+// can hold, not RRULE syntax
+export const EditTextRecurrenceRuleSavesText: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Water the plants",
+      isRecurring: undefined,
+      recurringInterval: "every week when done",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Change the frequency to daily", async () => {
+      await userEvent.selectOptions(
+        canvas.getByLabelText("Recurrence frequency"),
+        String(RRule.DAILY),
+      );
+    });
+
+    await step("Saves Obsidian Tasks text and keeps 'when done'", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recurringInterval: "every day when done",
+        }),
+      );
+    });
+  },
+};
+
+// A host save that fails (e.g. a rule the vault can't store) must not close
+// the editor and lose the user's edits
+export const SaveFailureKeepsEdits: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({ title: "Task to save" }),
+    onSave: fn(async () => {
+      throw new Error("The vault is read-only");
+    }),
+    onClose: fn(),
+    availableCategories: ["Work"],
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Edit the title and save", async () => {
+      const title = canvas.getByDisplayValue("Task to save");
+      await userEvent.clear(title);
+      await userEvent.type(title, "Renamed task");
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+    });
+
+    await step("Shows the error and keeps the edit", async () => {
+      expect(await canvas.findByRole("alert")).toHaveTextContent(
+        "Could not save the task: The vault is read-only",
+      );
+      expect(canvas.getByDisplayValue("Renamed task")).toBeInTheDocument();
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
+  },
+};
+
 // ========================================
 // Status Variants
 // ========================================
@@ -409,19 +510,21 @@ export const ToggleRecurrence: Story = {
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
-    await step("Find recurrence checkbox", async () => {
-      const recurrenceCheckbox = canvas.getByRole("checkbox", {
-        name: /recurring/i,
+    await step("Find recurrence switch", async () => {
+      const recurrenceSwitch = canvas.getByRole("switch", {
+        name: /recurrence/i,
       });
-      expect(recurrenceCheckbox).toBeInTheDocument();
+      expect(recurrenceSwitch).toHaveAttribute("aria-checked", "false");
     });
 
     await step("Toggle recurrence on", async () => {
-      const recurrenceCheckbox = canvas.getByRole("checkbox", {
-        name: /recurring/i,
+      const recurrenceSwitch = canvas.getByRole("switch", {
+        name: /recurrence/i,
       });
-      await userEvent.click(recurrenceCheckbox);
+      await userEvent.click(recurrenceSwitch);
       await delay(200);
+      expect(recurrenceSwitch).toHaveAttribute("aria-checked", "true");
+      expect(canvas.getByLabelText("Recurrence interval")).toBeInTheDocument();
     });
   },
 };
@@ -433,10 +536,17 @@ export const SelectCategory: Story = {
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
-    await step("Find category selector", async () => {
-      // Category is typically a select or button that opens popover
-      const categoryButton = canvas.getByText(/Work/i);
-      expect(categoryButton).toBeInTheDocument();
+    await step("Find category input", async () => {
+      const categoryInput = canvas.getByLabelText("Category");
+      expect(categoryInput).toHaveValue("Work");
+    });
+
+    await step("Pick a suggested category", async () => {
+      const categoryInput = canvas.getByLabelText("Category");
+      await userEvent.clear(categoryInput);
+      await userEvent.type(categoryInput, "Pers");
+      await userEvent.click(canvas.getByRole("button", { name: "Personal" }));
+      expect(categoryInput).toHaveValue("Personal");
     });
   },
 };
@@ -478,6 +588,79 @@ export const SaveTask: Story = {
       await userEvent.click(saveButton);
       await delay(100);
       // OnSave should be called
+    });
+  },
+};
+
+// Fixed March 2026 dates keep calendar day buttons unique
+const clearDatesTask = taskBuilder.completed({
+  id: "clear-dates",
+  title: "Task with dates to clear",
+  dueAt: DateTime.local(2026, 3, 10, 9, 30).toISO()!,
+  startAt: DateTime.local(2026, 3, 5, 8, 0).toISO()!,
+  completedAt: DateTime.local(2026, 3, 12, 18, 0).toISO()!,
+});
+
+export const ClearDates: Story = {
+  args: {
+    ...Default.args,
+    task: clearDatesTask,
+    onSave: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body),
+      // DatePicker trigger text for a value, in the same format and locale
+      pickerLabel = (iso: string) =>
+        DateTime.fromISO(iso).toFormat("MMM dd, yyyy HH:mm"),
+      clearDate = async (iso: string, dayName: string, placeholder: string) => {
+        await userEvent.click(
+          canvas.getByRole("button", { name: pickerLabel(iso) }),
+        );
+        await delay(200);
+        // Clicking the selected day again deselects it
+        const day = page.getByRole("button", { name: dayName });
+        expect(day).toHaveAttribute("aria-pressed", "true");
+        await userEvent.click(day);
+        expect(day).toHaveAttribute("aria-pressed", "false");
+        await userEvent.keyboard("{Escape}");
+        await delay(200);
+        expect(
+          canvas.getByRole("button", { name: placeholder }),
+        ).toBeInTheDocument();
+      };
+
+    await step("Clear the due date", async () => {
+      await clearDate(
+        clearDatesTask.dueAt!,
+        "Tuesday, March 10, 2026",
+        "Select due date",
+      );
+    });
+
+    await step("Clear the start date", async () => {
+      await clearDate(
+        clearDatesTask.startAt!,
+        "Thursday, March 5, 2026",
+        "Select start date",
+      );
+    });
+
+    await step("Clear the completed date", async () => {
+      await clearDate(
+        clearDatesTask.completedAt!,
+        "Thursday, March 12, 2026",
+        "Select completed date",
+      );
+    });
+
+    await step("Save writes empty dates", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await delay(100);
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ dueAt: "", startAt: "", completedAt: "" }),
+      );
     });
   },
 };

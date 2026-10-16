@@ -1,19 +1,36 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Frequency, RRule, Weekday } from "rrule";
+import { Frequency, RRule } from "rrule";
 import { DateTime } from "luxon";
 import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
-import { cn, deriveWorkflowStatus } from "../utils";
+import { cn, deriveWorkflowStatus, isTaskRecurring } from "../utils";
+import {
+  describeRecurrence,
+  readRecurrenceRule,
+  recurrenceSaveFormat,
+  resolveRecurrenceOnSave,
+} from "../utils/recurrence";
 import { DatePicker } from "./ui/date-picker";
+
+/**
+ * How edited recurrence rules are written. "text" always writes Obsidian
+ * Tasks text; "auto" writes text for text rules and tasks from the Obsidian
+ * Tasks parser, and RRULE syntax otherwise.
+ */
+export type RecurrenceFormat = "auto" | "text";
 
 interface TaskEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task | null;
-  onSave: (task: Task) => void;
+  /** May return a promise; if it rejects, the editor stays open and shows why. */
+  onSave: (task: Task) => void | Promise<void>;
   availableCategories: string[];
+  recurrenceFormat?: RecurrenceFormat;
 }
+
+const LAST_DAY_OF_MONTH = -1;
 
 const FREQUENCY_OPTIONS = [
     { value: RRule.DAILY, label: "Daily" },
@@ -47,109 +64,69 @@ const FREQUENCY_OPTIONS = [
 
 interface EditFormProps {
   task: Task;
-  onSave: (task: Task) => void;
+  onSave: (task: Task) => void | Promise<void>;
   onClose: () => void;
   availableCategories: string[];
+  recurrenceFormat: RecurrenceFormat;
 }
+
+const errorText = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 const EditForm: React.FC<EditFormProps> = ({
   task,
   onSave,
   onClose,
   availableCategories,
+  recurrenceFormat,
 }) => {
-  const [editedTask, setEditedTask] = useState<Task>(task),
+  const [editedTask, setEditedTask] = useState<Task>(() => ({
+      ...task,
+      isRecurring: isTaskRecurring(task),
+    })),
     editedWorkflowStatus = deriveWorkflowStatus(editedTask),
     [isCategoryOpen, setIsCategoryOpen] = useState(false),
-    // Initialize Recurrence State lazily
-    [recurrenceState, setRecurrenceState] = useState(() => {
-      let freq: Frequency = RRule.WEEKLY,
-        interval = 1,
-        byWeekDay: Weekday[] = [],
-        byMonth: number[] = [],
-        byMonthDay: number[] = [],
-        start = "",
-        end = "";
-
-      if (task.isRecurring && task.recurringInterval) {
-        try {
-          const rule = RRule.fromString(task.recurringInterval);
-          freq = rule.options.freq;
-          interval = rule.options.interval;
-
-          const rawByWeekday = rule.options.byweekday;
-          if (rawByWeekday) {
-            const asArray = Array.isArray(rawByWeekday)
-              ? rawByWeekday
-              : [rawByWeekday];
-            byWeekDay = asArray.map((d) =>
-              typeof d === "number" ? new Weekday(d) : d,
-            );
-          }
-
-          byMonth = rule.options.bymonth
-            ? Array.isArray(rule.options.bymonth)
-              ? rule.options.bymonth
-              : [rule.options.bymonth]
-            : [];
-          byMonthDay = rule.options.bymonthday
-            ? Array.isArray(rule.options.bymonthday)
-              ? rule.options.bymonthday
-              : [rule.options.bymonthday]
-            : [];
-
-          if (rule.options.dtstart) {
-            start = DateTime.fromJSDate(rule.options.dtstart).toISODate() || "";
-          }
-          if (rule.options.until) {
-            end = DateTime.fromJSDate(rule.options.until).toISODate() || "";
-          }
-        } catch (e) {
-          console.error(`parse recurrence rule failed with err: ${e}`);
-          // Defaults
-        }
-      }
-      return { freq, interval, byWeekDay, byMonth, byMonthDay, start, end };
-    }),
+    [storedRule] = useState(() => readRecurrenceRule(task.recurringInterval)),
+    [recurrenceState, setRecurrenceState] = useState(storedRule.state),
+    // Until the controls change, saving keeps the stored rule verbatim
+    [recurrenceControlsTouched, setRecurrenceControlsTouched] = useState(false),
+    [saveError, setSaveError] = useState<string | null>(null),
+    [isSaving, setIsSaving] = useState(false),
     updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
+      setRecurrenceControlsTouched(true);
       setRecurrenceState((prev) => ({ ...prev, ...updates }));
     },
-    handleSave = () => {
-      const finalTask = { ...editedTask };
-
-      // Construct RRule string if recurring
-      if (finalTask.isRecurring) {
-        try {
-          const { start, end, freq, interval, byWeekDay, byMonth, byMonthDay } =
-              recurrenceState,
-            // Helper to convert ISO string to JS Date for RRule
-            dtStart = start ? DateTime.fromISO(start).toJSDate() : undefined,
-            until = end
-              ? DateTime.fromISO(end).endOf("day").toJSDate()
-              : undefined,
-            rule = new RRule({
-              freq,
-              interval,
-              byweekday: freq === RRule.WEEKLY ? byWeekDay : null,
-              bymonth:
-                freq === RRule.YEARLY && byMonth.length > 0 ? byMonth : null,
-              bymonthday:
-                (freq === RRule.MONTHLY || freq === RRule.YEARLY) &&
-                byMonthDay.length > 0
-                  ? byMonthDay
-                  : null,
-              dtstart: dtStart,
-              until,
-            });
-          finalTask.recurringInterval = rule.toString();
-        } catch (e) {
-          console.error("Failed to generate RRule", e);
-        }
-      } else {
-        finalTask.recurringInterval = undefined;
+    handleSave = async () => {
+      let recurrence: ReturnType<typeof resolveRecurrenceOnSave>;
+      try {
+        recurrence = resolveRecurrenceOnSave(task, {
+          isRecurring: Boolean(editedTask.isRecurring),
+          controlsTouched: recurrenceControlsTouched,
+          state: recurrenceState,
+          // Obsidian Tasks lines only hold text rules ("every 2 weeks on Monday")
+          format: recurrenceSaveFormat(
+            recurrenceFormat,
+            storedRule.source,
+            task,
+          ),
+          whenDone: storedRule.whenDone,
+        });
+      } catch (error) {
+        setSaveError(
+          `Could not build the recurrence rule: ${errorText(error)}`,
+        );
+        return;
       }
-
-      onSave(finalTask);
+      setSaveError(null);
+      setIsSaving(true);
+      try {
+        // Stays open on failure so the user's edits are not lost
+        await onSave({ ...editedTask, ...recurrence });
+      } catch (error) {
+        setSaveError(`Could not save the task: ${errorText(error)}`);
+      } finally {
+        setIsSaving(false);
+      }
     },
     toggleRecurrence = () => {
       setEditedTask((prev) => ({ ...prev, isRecurring: !prev.isRecurring }));
@@ -158,6 +135,38 @@ const EditForm: React.FC<EditFormProps> = ({
       (c) =>
         c.toLowerCase().includes((editedTask.category || "").toLowerCase()) &&
         c.toLowerCase() !== (editedTask.category || "").toLowerCase(),
+    );
+
+  const unsupportedParts = storedRule.unsupportedParts.join(", "),
+    keepsStoredRule =
+      !recurrenceControlsTouched &&
+      (storedRule.source === "text" ||
+        storedRule.source === "unparsed" ||
+        unsupportedParts !== ""),
+    recurrencePreview = keepsStoredRule ? (
+      <>
+        Current rule:{" "}
+        <span className="not-italic">{task.recurringInterval}</span>
+        {storedRule.source === "unparsed" &&
+          ". These settings can't show it; it is kept unless you change them."}
+        {unsupportedParts !== "" &&
+          `. These settings can't show its ${unsupportedParts}; it is kept as written unless you change them, which replaces it.`}
+      </>
+    ) : (
+      <>
+        {(() => {
+          try {
+            return describeRecurrence(recurrenceState);
+          } catch (error) {
+            return `Invalid rule: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        })()}
+        {unsupportedParts !== "" && (
+          <span className="block not-italic text-amber-600">
+            Saving replaces the stored rule and drops its {unsupportedParts}.
+          </span>
+        )}
+      </>
     );
 
   return (
@@ -592,33 +601,40 @@ const EditForm: React.FC<EditFormProps> = ({
                             Days
                           </label>
                           <div className="grid grid-cols-7 gap-1">
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                              (d) => {
-                                const isSelected =
-                                  recurrenceState.byMonthDay.includes(d);
-                                return (
-                                  <button
-                                    key={d}
-                                    onClick={() => {
-                                      const prev = recurrenceState.byMonthDay;
-                                      updateRecurrence({
-                                        byMonthDay: prev.includes(d)
-                                          ? prev.filter((x) => x !== d)
-                                          : [...prev, d],
-                                      });
-                                    }}
-                                    className={cn(
-                                      "w-full aspect-square flex items-center justify-center text-[15px] rounded border transition-colors",
-                                      isSelected
-                                        ? "bg-blue-500 text-white border-blue-600"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
-                                    )}
-                                  >
-                                    {d}
-                                  </button>
-                                );
-                              },
-                            )}
+                            {/* -1 is the month's last day, whatever its length */}
+                            {[
+                              ...Array.from({ length: 31 }, (_, i) => i + 1),
+                              LAST_DAY_OF_MONTH,
+                            ].map((d) => {
+                              const isSelected =
+                                recurrenceState.byMonthDay.includes(d);
+                              return (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  onClick={() => {
+                                    const prev = recurrenceState.byMonthDay;
+                                    updateRecurrence({
+                                      byMonthDay: prev.includes(d)
+                                        ? prev.filter((x) => x !== d)
+                                        : [...prev, d],
+                                    });
+                                  }}
+                                  className={cn(
+                                    "w-full flex items-center justify-center text-[15px] rounded border transition-colors",
+                                    d === LAST_DAY_OF_MONTH
+                                      ? "col-span-4 text-xs"
+                                      : "aspect-square",
+                                    isSelected
+                                      ? "bg-blue-500 text-white border-blue-600"
+                                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
+                                  )}
+                                >
+                                  {d === LAST_DAY_OF_MONTH ? "Last day" : d}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -662,45 +678,7 @@ const EditForm: React.FC<EditFormProps> = ({
                     </div>
 
                     <div className="text-[10px] text-slate-400 italic bg-white/50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-700 text-center">
-                      {(() => {
-                        try {
-                          const {
-                              freq,
-                              interval,
-                              byWeekDay,
-                              byMonth,
-                              byMonthDay,
-                              start,
-                              end,
-                            } = recurrenceState,
-                            rule = new RRule({
-                              freq,
-                              interval,
-                              byweekday:
-                                freq === RRule.WEEKLY ? byWeekDay : null,
-                              bymonth:
-                                freq === RRule.YEARLY && byMonth.length > 0
-                                  ? byMonth
-                                  : null,
-                              bymonthday:
-                                (freq === RRule.MONTHLY ||
-                                  freq === RRule.YEARLY) &&
-                                byMonthDay.length > 0
-                                  ? byMonthDay
-                                  : null,
-                              dtstart: start
-                                ? DateTime.fromISO(start).toJSDate()
-                                : undefined,
-                              until: end
-                                ? DateTime.fromISO(end).endOf("day").toJSDate()
-                                : undefined,
-                            });
-                          return rule.toText();
-                        } catch (e) {
-                          console.error(`invalid recurrence rule: ${e}`);
-                          return "Invalid Rule";
-                        }
-                      })()}
+                      {recurrencePreview}
                     </div>
                   </div>
                 </motion.div>
@@ -717,11 +695,17 @@ const EditForm: React.FC<EditFormProps> = ({
         >
           Cancel
         </button>
+        {saveError && (
+          <p role="alert" className="mr-auto self-center text-xs text-rose-600">
+            {saveError}
+          </p>
+        )}
         <button
-          onClick={handleSave}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-200 transition-colors"
+          onClick={() => void handleSave()}
+          disabled={isSaving}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-200 transition-colors disabled:opacity-60"
         >
-          Save Changes
+          {isSaving ? "Saving…" : "Save Changes"}
         </button>
       </div>
     </div>
@@ -734,6 +718,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   task,
   onSave,
   availableCategories,
+  recurrenceFormat = "auto",
 }) => (
   <AnimatePresence>
     {isOpen && task && (
@@ -757,6 +742,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             onSave={onSave}
             onClose={onClose}
             availableCategories={availableCategories}
+            recurrenceFormat={recurrenceFormat}
           />
         </motion.div>
       </>

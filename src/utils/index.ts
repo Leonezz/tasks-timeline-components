@@ -14,6 +14,7 @@ export {
   isWorkflowStatus,
   taskMatchesStatus,
   removeTagAt,
+  isTaskRecurring,
   groupTasksByYearAndDate,
   computeDateValidation,
   type DateValidationState,

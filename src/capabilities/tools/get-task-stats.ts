@@ -1,6 +1,6 @@
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
-import { deriveTaskRenderState } from "../../utils/task";
+import { deriveTaskRenderState, isTaskRecurring } from "../../utils/task";
 
 export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -61,7 +61,7 @@ export function createGetTaskStatsTool(ctx: CapabilityContext): ToolSpec {
         }
 
         // Count recurring tasks
-        if (task.isRecurring) {
+        if (isTaskRecurring(task)) {
           stats.recurring += 1;
         }
       }

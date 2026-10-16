@@ -50,7 +50,8 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
 
   const handleDayClick = (day: Date) => {
     if (disabled?.(day)) return;
-    onSelect?.(day);
+    // Like react-day-picker's single mode: clicking the selected day clears it
+    onSelect?.(selected && isSameDay(day, selected) ? undefined : day);
   };
 
   return (
@@ -66,6 +67,7 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
           className="h-8 w-8 hover:bg-accent rounded-full"
           onClick={handlePrevMonth}
           type="button"
+          aria-label="Previous month"
         >
           <ChevronLeftIcon className="h-4 w-4" />
         </Button>
@@ -78,6 +80,7 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
           className="h-8 w-8 hover:bg-accent rounded-full"
           onClick={handleNextMonth}
           type="button"
+          aria-label="Next month"
         >
           <ChevronRightIcon className="h-4 w-4" />
         </Button>
@@ -99,7 +102,7 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
       <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, idx) => {
           const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isSelected = selected && isSameDay(day, selected);
+          const isSelected = !!selected && isSameDay(day, selected);
           const isDayToday = isToday(day);
           const isDisabled = disabled?.(day);
 
@@ -109,6 +112,9 @@ function Calendar({ className, selected, onSelect, disabled }: CalendarProps) {
               type="button"
               onClick={() => handleDayClick(day)}
               disabled={isDisabled}
+              // Each day toggles: clicking the selected day deselects it
+              aria-pressed={isSelected}
+              aria-label={format(day, "EEEE, MMMM d, yyyy")}
               className={cn(
                 "h-8 w-8 mx-auto rounded-full text-sm font-normal transition-all duration-150",
                 "hover:bg-accent hover:text-accent-foreground",
