@@ -105,6 +105,7 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
       const recurrenceArgument = readRecurrenceArgument(
         update.recurrence,
         getTodayISO(),
+        ctx.recurrenceFormat,
       );
       if (!recurrenceArgument.ok) {
         return {

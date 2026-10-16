@@ -190,6 +190,24 @@ describe("update_task tool", () => {
     expect(ctx.updateTask).not.toHaveBeenCalled();
   });
 
+  it("rejects a start date for a host that stores Obsidian Tasks text", async () => {
+    const result = await createUpdateTaskTool({
+      ...ctx,
+      recurrenceFormat: "text",
+    }).execute({
+      id: "task-1",
+      recurrence: "FREQ=WEEKLY;DTSTART=20261016T000000Z",
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "remove DTSTART; set the task's startAt instead",
+      ),
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
   it("rejects a recurrence that is not a string", async () => {
     const result = await createUpdateTaskTool(ctx).execute({
       id: "task-1",

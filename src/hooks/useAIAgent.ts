@@ -43,6 +43,11 @@ export interface UseAIAgentOptions {
   updateSettings?: (settings: AppSettings) => void | Promise<void>;
   onAgentEvent?: (event: AgentEvent) => void;
   shouldNotifyAgentResponse?: () => boolean;
+  /**
+   * How the host stores recurrence rules, for the built-in capability
+   * context (a host's own `capabilityContext` sets it itself).
+   */
+  recurrenceFormat?: CapabilityContext["recurrenceFormat"];
 }
 
 export interface AICommandOptions {
@@ -174,6 +179,7 @@ export const useAIAgent = (
         onConfirm,
         onSelect,
         onPrompt,
+        recurrenceFormat: options?.recurrenceFormat,
       });
 
       const capabilities =

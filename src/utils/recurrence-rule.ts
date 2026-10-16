@@ -256,8 +256,27 @@ export function parseRecurrenceRule(rule: string): ParsedRecurrenceRule | null {
 export const isReadableRecurrenceRule = (rule: string): boolean =>
   parseRecurrenceRule(rule) !== null;
 
+/**
+ * A start date and nothing else: what is left on an Obsidian Tasks line of a
+ * rule v0.8.0 wrote as "DTSTART:…" and "RRULE:…" on two lines.
+ */
+const START_ONLY = /^DTSTART[;:=][^\n]*$/i;
+const isStartOnlyRule = (rule: string): boolean =>
+  START_ONLY.test(rule.trim()) && !/\bFREQ=/i.test(rule);
+
+/**
+ * Why a rule can't be read. A start date alone gets the manual repair for
+ * lines v0.8.0 split in two, which can't be joined back automatically.
+ */
+export const unreadableRuleError = (rule: string): string =>
+  isStartOnlyRule(rule)
+    ? `Cannot read the recurrence rule "${rule}": it is only a start date. ` +
+      'Rules with a start date were written by v0.8.0 on two lines, so the rest of this rule ("RRULE:FREQ=…") is on the line below the task in the note. ' +
+      'To repair the task, edit the note: delete the "RRULE:" line below the task, and replace ' +
+      `"🔁 ${rule.trim()}" with the rule as Obsidian Tasks text, such as "🔁 every week" ` +
+      "(set the task's start date with 🛫 instead)."
+    : `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`;
+
 /** The error for a rule that can't be stored, or null when it is readable. */
 export const recurrenceRuleError = (rule: string): string | null =>
-  isReadableRecurrenceRule(rule)
-    ? null
-    : `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`;
+  isReadableRecurrenceRule(rule) ? null : unreadableRuleError(rule);

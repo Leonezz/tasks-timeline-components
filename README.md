@@ -349,7 +349,23 @@ interface TasksTimelineAppProps {
   Tasks text (`every 2 weeks on Monday until December 31, 2026`). Set it when you
   store tasks as Obsidian Tasks lines, which can't hold RRULE syntax or a start
   date. `"auto"` writes text for text rules and tasks from the Obsidian Tasks
-  parser, and RRULE syntax otherwise.
+  parser, and RRULE syntax otherwise. The built-in agent's task tools follow it
+  too (see `recurrenceFormat` under AI Capabilities).
+- **Repairing lines written by v0.8.0.** v0.8.0 wrote a rule with a start
+  date on two lines, which splits the task line in the note:
+
+  ```markdown
+  - [ ] Report 📅 2026-10-16 🔁 DTSTART:20261016T000000Z
+  RRULE:FREQ=WEEKLY
+  ```
+
+  Only `DTSTART:…` stays in the task, which can't be read as a rule, so saving
+  or completing the task fails with an error that explains the fix. Repair it
+  by hand: delete the `RRULE:` line below the task and replace
+  `🔁 DTSTART:…` with the rule as Obsidian Tasks text, such as
+  `🔁 every week`. Put the start date in `🛫` if the task needs one. Lines
+  v0.8.0 wrote without a start date (`🔁 RRULE:FREQ=WEEKLY;BYDAY=MO`) are
+  repaired automatically on the next save.
 - When saving from the task editor, a rejected `onTaskUpdated` keeps the editor
   open with the error and the user's changes. The editor refuses to save when
   the task now at that id is not the one it opened (ids that are line positions
@@ -423,6 +439,8 @@ const ctx: CapabilityContext = {
   confirm: (title, description) => askUser(title, description),
   // What destructive tools do when `confirm` is absent (default "require")
   confirmPolicy: "require",
+  // "text" when you store tasks as Obsidian Tasks lines (default "auto")
+  recurrenceFormat: "auto",
 };
 
 const options: CreateCapabilitiesOptions = {
@@ -461,6 +479,13 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
   (February 30) or an end date that has passed is rejected. Abbreviations
   ("Mon", "Sept"), ordinals ("the first Monday", "the last day"), "weekdays",
   and any letter case or spacing are accepted.
+- **Hosts that store Obsidian Tasks text** set `recurrenceFormat: "text"` on
+  the context (`TasksTimelineApp` sets it on the built-in agent's context from
+  its `recurrenceFormat` prop). The three tools then store RRULE syntax as
+  Obsidian Tasks text (`FREQ=WEEKLY;BYDAY=MO` → `every week on Monday`,
+  returned as `understoodAs`) and reject rules a Tasks line can't hold before
+  saving anything or asking for confirmation, with a message the model can act
+  on (for `DTSTART`: "remove DTSTART; set the task's startAt instead").
 - **`notify_user` without `showToast`.** The tool falls back to
   `ctx.notify(variant, "title: description")` and returns
   `{ success: true, degraded: true, warning }`. With neither callback it

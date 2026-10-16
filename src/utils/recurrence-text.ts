@@ -6,6 +6,7 @@ import {
   parseRecurrenceRule,
   RECURRENCE_RULE_HELP,
   type ParsedRecurrenceRule,
+  unreadableRuleError,
 } from "./recurrence-rule";
 
 /**
@@ -281,9 +282,7 @@ export function toTasksRecurrenceText(rule: string): string {
   }
   const parsed = parseRecurrenceRule(rule);
   if (!parsed) {
-    throw new Error(
-      `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`,
-    );
+    throw new Error(unreadableRuleError(rule));
   }
   return recurrenceRuleToText(parsed);
 }

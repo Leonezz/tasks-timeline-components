@@ -1,6 +1,68 @@
 import { describe, expect, it } from "vitest";
 import { readRecurrenceArgument } from "./recurrence-argument";
 
+describe("readRecurrenceArgument for hosts that store Obsidian Tasks text", () => {
+  const readAsText = (value: string) =>
+    readRecurrenceArgument(value, "2026-01-01", "text");
+
+  it("stores RRULE syntax as the text the host writes", () => {
+    expect(readAsText("FREQ=WEEKLY;BYDAY=MO;UNTIL=20261231")).toEqual({
+      ok: true,
+      rule: "every week on Monday until December 31, 2026",
+      understoodAs: "every week on Monday until December 31, 2026",
+    });
+  });
+
+  it.each([
+    "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+    "FREQ=WEEKLY;DTSTART=20261016T000000Z",
+    "DTSTART;VALUE=DATE:20261016\nRRULE:FREQ=DAILY",
+  ])("rejects %j, whose start date a line can't hold", (value) => {
+    expect(readAsText(value)).toEqual({
+      ok: false,
+      error: expect.stringContaining(
+        "remove DTSTART; set the task's startAt instead",
+      ),
+    });
+  });
+
+  it("rejects RRULE syntax with no Obsidian Tasks text form", () => {
+    expect(readAsText("FREQ=MONTHLY;BYDAY=MO;BYSETPOS=2")).toEqual({
+      ok: false,
+      error: expect.stringContaining(
+        "this host stores tasks as Obsidian Tasks text",
+      ),
+    });
+  });
+
+  it("keeps such rules as RRULE syntax for other hosts", () => {
+    expect(
+      readRecurrenceArgument(
+        "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+        "2026-01-01",
+      ),
+    ).toEqual({
+      ok: true,
+      rule: "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+    });
+    expect(
+      readRecurrenceArgument("FREQ=WEEKLY;BYDAY=MO", "2026-01-01", "auto"),
+    ).toEqual({
+      ok: true,
+      rule: "FREQ=WEEKLY;BYDAY=MO",
+      understoodAs: "every week on Monday",
+    });
+  });
+
+  it("reads text as for other hosts", () => {
+    expect(readAsText("every week on Mon when done")).toEqual({
+      ok: true,
+      rule: "every week on Monday when done",
+      understoodAs: "every week on Monday when done",
+    });
+  });
+});
+
 /** The earliest end date the tool accepts in these tests. */
 const NOT_BEFORE = "2026-01-01";
 

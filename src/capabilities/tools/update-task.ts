@@ -89,6 +89,7 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
             (args.startAt as string | undefined) ??
             existingTask.startAt,
         ),
+        ctx.recurrenceFormat,
       );
       if (!recurrenceArgument.ok) {
         return {

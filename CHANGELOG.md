@@ -160,6 +160,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`🔁 every week on Monday`). The rule stops at the next field (🏁, ❌, 🆔,
   ⛔, ⏰, dates, priorities, `[[links]]`, `#tags`), and `🔁` followed by
   U+FE0F is read.
+  - A rule v0.8.0 wrote with a start date was split over two lines
+    (`🔁 DTSTART:…` and `RRULE:…` on the next line), which can't be joined
+    back automatically. Saving or completing such a task now fails with the
+    manual fix: delete the `RRULE:` line and replace `🔁 DTSTART:…` with the
+    rule as text (`🔁 every week`). The README documents it (#47).
 - `complete_task` reports when it marked the task done but could not add the
   next occurrence, with the occurrence's details so it can be created with
   `create_task` (all its fields, including the description).
@@ -218,6 +223,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completion.
 - Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
   Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+
+### Added
+
+- **`CapabilityContext.recurrenceFormat`** (`"auto" | "text"`, #47). A host
+  that stores tasks as Obsidian Tasks lines sets `"text"`, as it sets
+  `recurrenceFormat="text"` on the editor; `TasksTimelineApp` passes its
+  `recurrenceFormat` prop to the built-in agent's context. `create_task`,
+  `update_task` and `batch_update_tasks` then store RRULE syntax as Obsidian
+  Tasks text and reject rules a line can't hold before saving anything or
+  asking for confirmation, with a message for the model ("remove DTSTART; set
+  the task's startAt instead"). Before, the rule was stored and the host's
+  write failed afterwards, after `batch_update_tasks` had asked to confirm.
 
 ## [0.8.0] - 2026-10-14
 

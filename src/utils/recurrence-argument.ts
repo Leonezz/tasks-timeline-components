@@ -126,10 +126,40 @@ function readTextArgument(
   return { ok: true, rule: understoodAs, understoodAs };
 }
 
-/** RRULE syntax: stored as given when readable and not already ended. */
+/** How the host stores rules; see CapabilityContext.recurrenceFormat. */
+export type RecurrenceStorage = "auto" | "text";
+
+const TEXT_HOST =
+  "this host stores tasks as Obsidian Tasks text, which can't hold";
+
+/** The rule as Obsidian Tasks text, or why a Tasks line can't hold it. */
+function asTasksText(
+  value: string,
+  parsed: ParsedRecurrenceRule,
+): RecurrenceArgument {
+  if (parsed.start) {
+    return reject(
+      value,
+      `${TEXT_HOST} a start date in the rule: remove DTSTART; set the task's startAt instead.`,
+    );
+  }
+  try {
+    const text = recurrenceRuleToText(parsed);
+    return { ok: true, rule: text, understoodAs: text };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return reject(value, `${TEXT_HOST} this rule. ${reason}`);
+  }
+}
+
+/**
+ * RRULE syntax, when readable and not already ended: stored as given, or as
+ * Obsidian Tasks text for a host that stores that.
+ */
 function readRRuleArgument(
   value: string,
   notBefore: string,
+  storage: RecurrenceStorage,
 ): RecurrenceArgument {
   const parsed = parseRecurrenceRule(value);
   if (!parsed) {
@@ -137,6 +167,9 @@ function readRRuleArgument(
   }
   if (endsTooEarly(parsed, notBefore)) {
     return reject(value, `it ends on ${parsed.end}, before ${notBefore}.`);
+  }
+  if (storage === "text") {
+    return asTasksText(value, parsed);
   }
   try {
     return {
@@ -152,13 +185,15 @@ function readRRuleArgument(
 
 /**
  * Checks a tool's `recurrence` argument and returns the rule to store: null
- * for missing, null or "" (no rule, or clear it), RRULE syntax as given, and
- * text in the library's own words. `notBefore` (YYYY-MM-DD) is the earliest
- * acceptable end date: the later of today and the task's own date.
+ * for missing, null or "" (no rule, or clear it), RRULE syntax as given (as
+ * Obsidian Tasks text when `storage` is "text"), and text in the library's
+ * own words. `notBefore` (YYYY-MM-DD) is the earliest acceptable end date:
+ * the later of today and the task's own date.
  */
 export function readRecurrenceArgument(
   value: unknown,
   notBefore: string,
+  storage: RecurrenceStorage = "auto",
 ): RecurrenceArgument {
   if (value === undefined || value === null || value === "") {
     return { ok: true, rule: null };
@@ -170,7 +205,7 @@ export function readRecurrenceArgument(
     };
   }
   return isRRuleSyntax(value)
-    ? readRRuleArgument(value, notBefore)
+    ? readRRuleArgument(value, notBefore, storage)
     : readTextArgument(value, notBefore);
 }
 

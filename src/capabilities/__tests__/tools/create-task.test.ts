@@ -261,6 +261,24 @@ describe("create_task tool", () => {
     });
   });
 
+  it("rejects a start date for a host that stores Obsidian Tasks text", async () => {
+    const result = await createCreateTaskTool({
+      ...ctx,
+      recurrenceFormat: "text",
+    }).execute({
+      title: "Report",
+      recurrence: "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "remove DTSTART; set the task's startAt instead",
+      ),
+    });
+    expect(ctx.addTask).not.toHaveBeenCalled();
+  });
+
   it("stores natural wordings rrule reads in full", async () => {
     const result = await createCreateTaskTool(ctx).execute({
       title: "Report",

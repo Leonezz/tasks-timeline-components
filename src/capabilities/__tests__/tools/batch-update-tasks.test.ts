@@ -504,6 +504,42 @@ describe("batch_update_tasks tool", () => {
     expect(ctx.updateTask).not.toHaveBeenCalled();
   });
 
+  it("rejects a rule an Obsidian Tasks line can't hold before asking", async () => {
+    const textHost = { ...ctx, recurrenceFormat: "text" as const };
+
+    const result = await createBatchUpdateTasksTool(textHost).execute({
+      filter: { category: "work" },
+      update: { recurrence: "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY" },
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "remove DTSTART; set the task's startAt instead",
+      ),
+      updated: 0,
+    });
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
+  it("stores RRULE syntax as text for a host that stores Obsidian Tasks text", async () => {
+    const textHost = { ...ctx, recurrenceFormat: "text" as const };
+
+    const result = await createBatchUpdateTasksTool(textHost).execute({
+      filter: { category: "work" },
+      update: { recurrence: "FREQ=WEEKLY;BYDAY=FR" },
+    });
+
+    expect(result.result).toMatchObject({
+      success: true,
+      understoodAs: "every week on Friday",
+    });
+    expect(vi.mocked(ctx.updateTask).mock.calls[0][0].recurringInterval).toBe(
+      "every week on Friday",
+    );
+  });
+
   it("rejects a recurrence that is not a string", async () => {
     const result = await createBatchUpdateTasksTool(ctx).execute({
       filter: { category: "work" },

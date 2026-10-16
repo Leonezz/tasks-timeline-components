@@ -86,6 +86,12 @@ describe("nextOccurrence: unreadable rules", () => {
     );
   });
 
+  it("explains the manual fix for a start date left by v0.8.0", () => {
+    expect(() => nextDue("2026-10-16", "DTSTART:20261016T000000Z")).toThrow(
+      /written by v0\.8\.0 on two lines/,
+    );
+  });
+
   it("accepts the dashed UNTIL form", () => {
     expect(nextDue("2026-10-16", "FREQ=WEEKLY;UNTIL=2026-12-31")).toBe(
       "2026-10-23",

@@ -20,6 +20,8 @@ export interface AgentCapabilityContextDeps {
     options: { label: string; value: string }[],
   ) => Promise<string | null>;
   onPrompt?: (question: string) => Promise<string | null>;
+  /** How the host stores recurrence rules (the app's `recurrenceFormat`). */
+  recurrenceFormat?: CapabilityContext["recurrenceFormat"];
 }
 
 function findTaskOrThrow(tasks: Task[], id: string): Task {
@@ -70,5 +72,6 @@ export function createAgentCapabilityContext(
     confirm: deps.onConfirm,
     select: deps.onSelect,
     prompt: deps.onPrompt,
+    recurrenceFormat: deps.recurrenceFormat,
   };
 }
