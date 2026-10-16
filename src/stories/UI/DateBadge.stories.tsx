@@ -261,8 +261,16 @@ export const ChangeDueDate: Story = {
     });
 
     await step("Pick a new date", async () => {
-      await userEvent.click(canvas.getByRole("button", { name: "20" }));
+      const current = canvas.getByRole("button", {
+          name: "Tuesday, March 10, 2026",
+        }),
+        next = canvas.getByRole("button", { name: "Friday, March 20, 2026" });
+      expect(current).toHaveAttribute("aria-pressed", "true");
+      expect(next).toHaveAttribute("aria-pressed", "false");
+      await userEvent.click(next);
       await delay(100);
+      expect(next).toHaveAttribute("aria-pressed", "true");
+      expect(current).toHaveAttribute("aria-pressed", "false");
     });
 
     await step("Save new date", async () => {
@@ -293,8 +301,11 @@ export const ChangeStartDate: Story = {
     });
 
     await step("Pick a new date and time", async () => {
-      await userEvent.click(canvas.getByRole("button", { name: "20" }));
-      const timeInput = canvas.getByDisplayValue("09:30");
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Friday, March 20, 2026" }),
+      );
+      const timeInput = canvas.getByLabelText("Time");
+      expect(timeInput).toHaveValue("09:30");
       await userEvent.clear(timeInput);
       await userEvent.type(timeInput, "10:00");
       await delay(100);
@@ -332,8 +343,13 @@ export const ClearDate: Story = {
     await step("Deselect the current date", async () => {
       // Calendar's onSelect takes Date | undefined, like react-day-picker's
       // single mode: clicking the selected day again clears the selection
-      await userEvent.click(canvas.getByRole("button", { name: "10" }));
+      const day = canvas.getByRole("button", {
+        name: "Tuesday, March 10, 2026",
+      });
+      expect(day).toHaveAttribute("aria-pressed", "true");
+      await userEvent.click(day);
       await delay(100);
+      expect(day).toHaveAttribute("aria-pressed", "false");
     });
 
     await step("Save empty date (removes date)", async () => {
@@ -422,9 +438,57 @@ export const AriaLabels: Story = {
   play: async ({ canvasElement, step }) => {
     const canvas = withinShadow(canvasElement);
 
-    await step("Verify button has accessible title", async () => {
-      const button = canvas.getByRole("button", { name: "Today" });
+    await step("Verify button names the field, task and date", async () => {
+      // Same pattern as the category and priority badges
+      const button = canvas.getByRole("button", {
+        name: "Change due date for Sample Task. Current due date: Today",
+      });
       expect(button).toHaveAttribute("title", "Change due date");
+    });
+  },
+};
+
+export const PrefixNotInAriaLabel: Story = {
+  args: {
+    ...WithPrefix.args,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Prefix is shown but not repeated in the name", async () => {
+      const button = canvas.getByRole("button", {
+        name: "Change due date for Sample Task. Current due date: Today",
+      });
+      expect(button).toHaveTextContent("DUE: Today");
+    });
+  },
+};
+
+export const MonthNavigation: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open date picker on the selected month", async () => {
+      await userEvent.click(canvas.getByTitle("Change due date"));
+      await delay(200);
+      expect(canvas.getByText("March 2026")).toBeInTheDocument();
+    });
+
+    await step("Go to the next month", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Next month" }));
+      expect(canvas.getByText("April 2026")).toBeInTheDocument();
+    });
+
+    await step("Go back two months", async () => {
+      const previous = canvas.getByRole("button", { name: "Previous month" });
+      await userEvent.click(previous);
+      await userEvent.click(previous);
+      expect(canvas.getByText("February 2026")).toBeInTheDocument();
     });
   },
 };

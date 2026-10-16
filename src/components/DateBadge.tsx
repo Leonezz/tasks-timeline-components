@@ -1,7 +1,7 @@
 import type { Task } from "@/types";
 import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Icon } from "./Icon";
 import { MotionDiv } from "./Motion";
 import {
@@ -45,6 +45,8 @@ export const DateBadge = ({
     const dt = DateTime.fromISO(date);
     return dt.isValid ? dt.toFormat("HH:mm") : "00:00";
   });
+
+  const timeInputId = useId();
 
   const showTime =
     type === "startAt" || type === "createdAt" || type === "completedAt";
@@ -91,7 +93,14 @@ export const DateBadge = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" className={className} title={titleMap[type]}>
+        <button
+          type="button"
+          className={className}
+          title={titleMap[type]}
+          aria-label={`Change ${dateLabel} date for ${task.title}. Current ${dateLabel} date: ${
+            label || "none"
+          }`}
+        >
           <Icon name={icon} size={10} className="shrink-0 opacity-80" />
           <span className="truncate">
             {prefix}
@@ -125,10 +134,14 @@ export const DateBadge = ({
 
           {showTime && (
             <div className="border-t border-slate-100 px-3 py-2">
-              <label className="mb-1 block text-xs font-medium text-slate-500">
+              <label
+                htmlFor={timeInputId}
+                className="mb-1 block text-xs font-medium text-slate-500"
+              >
                 Time
               </label>
               <input
+                id={timeInputId}
                 type="time"
                 value={timeValue}
                 onChange={handleTimeChange}

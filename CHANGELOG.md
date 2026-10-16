@@ -48,6 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   again now deselects it (`onSelect(undefined)`, as in react-day-picker's
   single mode); saving then writes `""`. The edit modal's Created field still
   keeps its date when cleared, as before.
+- **Calendar picker accessibility.** Day buttons were announced by their
+  number alone and didn't expose which day was selected. They are now named
+  by the full date (for example "Tuesday, March 10, 2026") and set
+  `aria-pressed`, since clicking the selected day clears it. The month
+  buttons are named "Previous month" and "Next month". The **Time** label in
+  the task badges' date popovers and in `DatePicker` is now associated with
+  its input.
+- Task date badges are named like the category and priority badges, for
+  example "Change due date for Write report. Current due date: Today", instead
+  of by their visible label alone ("Due: Today").
 
 ### Changed
 

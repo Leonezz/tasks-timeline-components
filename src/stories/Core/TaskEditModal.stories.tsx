@@ -514,17 +514,16 @@ export const ClearDates: Story = {
       // DatePicker trigger text for a value, in the same format and locale
       pickerLabel = (iso: string) =>
         DateTime.fromISO(iso).toFormat("MMM dd, yyyy HH:mm"),
-      clearDate = async (iso: string, placeholder: string) => {
+      clearDate = async (iso: string, dayName: string, placeholder: string) => {
         await userEvent.click(
           canvas.getByRole("button", { name: pickerLabel(iso) }),
         );
         await delay(200);
         // Clicking the selected day again deselects it
-        await userEvent.click(
-          page.getByRole("button", {
-            name: String(DateTime.fromISO(iso).day),
-          }),
-        );
+        const day = page.getByRole("button", { name: dayName });
+        expect(day).toHaveAttribute("aria-pressed", "true");
+        await userEvent.click(day);
+        expect(day).toHaveAttribute("aria-pressed", "false");
         await userEvent.keyboard("{Escape}");
         await delay(200);
         expect(
@@ -533,15 +532,27 @@ export const ClearDates: Story = {
       };
 
     await step("Clear the due date", async () => {
-      await clearDate(clearDatesTask.dueAt!, "Select due date");
+      await clearDate(
+        clearDatesTask.dueAt!,
+        "Tuesday, March 10, 2026",
+        "Select due date",
+      );
     });
 
     await step("Clear the start date", async () => {
-      await clearDate(clearDatesTask.startAt!, "Select start date");
+      await clearDate(
+        clearDatesTask.startAt!,
+        "Thursday, March 5, 2026",
+        "Select start date",
+      );
     });
 
     await step("Clear the completed date", async () => {
-      await clearDate(clearDatesTask.completedAt!, "Select completed date");
+      await clearDate(
+        clearDatesTask.completedAt!,
+        "Thursday, March 12, 2026",
+        "Select completed date",
+      );
     });
 
     await step("Save writes empty dates", async () => {
