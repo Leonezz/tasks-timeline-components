@@ -1,7 +1,15 @@
 import type { Task, Tag } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
-import { generateTimestampId, getNowISO } from "../../utils/date-helpers";
+import {
+  generateTimestampId,
+  getNowISO,
+  getTodayISO,
+} from "../../utils/date-helpers";
 import { deriveWorkflowStatus } from "../../utils/task";
+import {
+  earliestEndDate,
+  readRecurrenceArgument,
+} from "../../utils/recurrence-argument";
 
 export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -50,7 +58,7 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
         recurrence: {
           type: "string",
           description:
-            "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO)",
+            "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO; end date as UNTIL=20261231; no DTSTART) or Obsidian Tasks text (e.g. every week, every week until December 31, 2026)",
         },
       },
       required: ["title"],
@@ -66,7 +74,17 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
       const startAt = args.startAt as string | undefined;
       const category = args.category as string | undefined;
       const rawTags = (args.tags as string[] | undefined) ?? [];
-      const recurrence = args.recurrence as string | undefined;
+      const recurrenceArgument = readRecurrenceArgument(
+        args.recurrence,
+        earliestEndDate(getTodayISO(), dueAt ?? startAt),
+      );
+      if (!recurrenceArgument.ok) {
+        return {
+          name: "create_task",
+          result: { success: false, error: recurrenceArgument.error },
+        };
+      }
+      const recurrence = recurrenceArgument.rule;
 
       const id = generateTimestampId("ai");
       const createdAt = getNowISO();
@@ -87,7 +105,7 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
         ...(startAt !== undefined ? { startAt } : {}),
         ...(category !== undefined ? { category } : {}),
         tags,
-        ...(recurrence !== undefined
+        ...(recurrence
           ? { isRecurring: true, recurringInterval: recurrence }
           : {}),
       };
@@ -100,7 +118,17 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
       return {
         name: "create_task",
         // The host may store the task under its own id; report that one.
-        result: { success: true, id: stored?.id ?? id, title },
+        result: {
+          success: true,
+          id: stored?.id ?? id,
+          title,
+          ...(recurrenceArgument.understoodAs
+            ? {
+                recurrence: recurrence,
+                understoodAs: recurrenceArgument.understoodAs,
+              }
+            : {}),
+        },
       };
     },
   };

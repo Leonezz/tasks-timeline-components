@@ -1,7 +1,7 @@
 import type { Priority, Task, DetailBlock } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getTodayISO } from "../../utils/date-helpers";
-import { deriveTaskRenderState } from "../../utils/task";
+import { deriveTaskRenderState, isTaskRecurring } from "../../utils/task";
 
 interface TaskSummary {
   id: string;
@@ -11,7 +11,7 @@ interface TaskSummary {
   displayStatus: string;
   category?: string;
   tags: string[];
-  isRecurring?: boolean;
+  isRecurring: boolean;
 }
 
 interface TodayPlan {
@@ -62,9 +62,7 @@ export function createGetTodayPlanTool(ctx: CapabilityContext): ToolSpec {
           displayStatus: renderState.primaryStatus,
           ...(task.category ? { category: task.category } : {}),
           tags: task.tags.map((t) => t.name),
-          ...(task.isRecurring !== undefined
-            ? { isRecurring: task.isRecurring }
-            : {}),
+          isRecurring: isTaskRecurring(task),
         };
 
         // Today's tasks: dueAt === today, not done/cancelled

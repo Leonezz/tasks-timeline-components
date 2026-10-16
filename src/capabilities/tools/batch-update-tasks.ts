@@ -1,7 +1,13 @@
 import type { Task, Priority } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
-import { deriveWorkflowStatus, taskMatchesStatus } from "../../utils/task";
+import {
+  deriveWorkflowStatus,
+  isTaskRecurring,
+  taskMatchesStatus,
+} from "../../utils/task";
 import { confirmDestructiveAction } from "./confirm";
+import { readRecurrenceArgument } from "../../utils/recurrence-argument";
+import { getTodayISO } from "../../utils/date-helpers";
 
 function matchesTag(task: Task, tag: string): boolean {
   const lowerTag = tag.toLowerCase();
@@ -77,7 +83,7 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
             recurrence: {
               type: "string",
               description:
-                "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO). Use empty string to clear recurrence.",
+                "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO; end date as UNTIL=20261231; no DTSTART) or Obsidian Tasks text (e.g. every week, every week until December 31, 2026). Use empty string to clear recurrence.",
             },
           },
         },
@@ -96,6 +102,21 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
         };
       }
 
+      const recurrenceArgument = readRecurrenceArgument(
+        update.recurrence,
+        getTodayISO(),
+      );
+      if (!recurrenceArgument.ok) {
+        return {
+          name: "batch_update_tasks",
+          result: {
+            success: false,
+            error: recurrenceArgument.error,
+            updated: 0,
+          },
+        };
+      }
+
       const status = filter.status as string | undefined;
       const category = filter.category as string | undefined;
       const tag = filter.tag as string | undefined;
@@ -109,9 +130,8 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
           return false;
         if (category !== undefined && task.category !== category) return false;
         if (tag !== undefined && !matchesTag(task, tag)) return false;
-        if (recurring !== undefined) {
-          if (recurring && task.isRecurring !== true) return false;
-          if (!recurring && task.isRecurring === true) return false;
+        if (recurring !== undefined && isTaskRecurring(task) !== recurring) {
+          return false;
         }
         return true;
       });
@@ -162,8 +182,8 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
 
         // Handle recurrence
         if (update.recurrence !== undefined) {
-          const recurrence = update.recurrence as string;
-          if (recurrence === "") {
+          const recurrence = recurrenceArgument.rule;
+          if (!recurrence) {
             fieldUpdates.isRecurring = undefined;
             fieldUpdates.recurringInterval = undefined;
           } else {
@@ -203,6 +223,9 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
           success: true,
           updatedCount: filtered.length,
           taskIds: updatedIds,
+          ...(recurrenceArgument.understoodAs
+            ? { understoodAs: recurrenceArgument.understoodAs }
+            : {}),
         },
       };
     },

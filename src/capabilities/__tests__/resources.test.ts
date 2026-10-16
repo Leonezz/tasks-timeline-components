@@ -346,4 +346,24 @@ describe("stats resource", () => {
     expect(data.completionRate).toBe(0);
     expect(data.recurring).toBe(0);
   });
+
+  it("tasks://stats counts tasks that have a rule but no isRecurring flag", async () => {
+    const ctx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([
+        {
+          id: "rule-only",
+          title: "Water plants",
+          status: "todo",
+          priority: "low",
+          tags: [],
+          // Shape of a task parsed by an older parser: a rule, no flag
+          recurringInterval: "every week",
+        },
+      ]),
+    });
+
+    const result = await createStatsResource(ctx).read();
+
+    expect(JSON.parse(result.contents[0].text).recurring).toBe(1);
+  });
 });

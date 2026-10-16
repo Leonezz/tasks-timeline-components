@@ -37,15 +37,24 @@ Recurring tasks use RRULE format (RFC 5545):
 - FREQ=WEEKLY;BYDAY=MO,WE,FR — repeats on specific days
 - FREQ=MONTHLY;BYMONTHDAY=1 — repeats on specific day of month
 - FREQ=YEARLY — repeats annually
-- Add COUNT=X to limit repetitions, or UNTIL=YYYY-MM-DD to set an end date
+- Add UNTIL=YYYYMMDD (e.g. FREQ=WEEKLY;UNTIL=20261231) to end the series on that date
+- Do not use COUNT (or "for N times" in text): without a start date (DTSTART) each completion starts counting again, so the series never ends; use UNTIL ("until <date>" in text). Text with a count is rejected
+- Do not use DTSTART: tasks stored in Obsidian notes can't keep a start date in the rule; set the task's startAt instead
 
 When creating or updating tasks:
 - Set recurrence field to the RRULE string to make a recurring task
 - Set recurrence to empty string to clear recurrence
+- Text rules are stored in the library's own wording and returned as understoodAs; check it says what the user asked for
+- These are rejected and nothing is saved: rules the parser can't read, text with words the parser would skip (such as "except", "of December" or "weekend"), an "until" without a month, day and year, "when done" anywhere but the end, and an end date before today or the task's own date
+
+Tasks from Obsidian notes may store recurrence as text instead, such as "every week", "every week when done" or "every week until December 31, 2026". Treat these as recurring and leave the text unchanged unless the user asks to change the recurrence. Text rules may only use letters, digits, spaces, commas and "!" (an Obsidian Tasks line can't hold anything else); write end dates as "until December 31, 2026".
 
 When completing a recurring task with complete_task:
 - The current instance is marked done
-- The next occurrence is automatically created
+- The next occurrence is automatically created, with its due date moved to the rule's next date (from the completion date for "when done" rules) and its other dates moved by the same number of days
+- If the rule can't be read, or it has no end date and no later date (e.g. February 30th), complete_task returns an error and changes nothing
+- If the series has passed its end date (UNTIL, or "until" in text), the task is completed and no next occurrence is created
+- A task that is already done is left unchanged (alreadyCompleted: true)
 - For non-recurring tasks, only the single task is marked done
 
 ## Available Tools

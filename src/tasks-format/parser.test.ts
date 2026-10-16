@@ -142,5 +142,23 @@ describe("parseTasksFormatItem", () => {
 
       expect(result.recurringInterval).toBe("every week");
     });
+
+    it("marks tasks with a recurrence rule as recurring", () => {
+      const result = parseTasksFormatItem(
+        makeTask({ title: "Water plants 🔁 every week when done" }),
+      );
+
+      expect(result.isRecurring).toBe(true);
+      expect(result.recurringInterval).toBe("every week when done");
+    });
+
+    it("marks tasks without a recurrence rule as not recurring", () => {
+      const result = parseTasksFormatItem(
+        makeTask({ title: "Buy milk 📅 2026-02-27", isRecurring: true }),
+      );
+
+      expect(result.isRecurring).toBe(false);
+      expect(result.recurringInterval).toBeUndefined();
+    });
   });
 });

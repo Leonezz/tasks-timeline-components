@@ -176,4 +176,38 @@ describe("update_task tool", () => {
       expect.stringContaining("task-1"),
     );
   });
+
+  it("rejects an unreadable recurrence rule without updating the task", async () => {
+    const result = await createUpdateTaskTool(ctx).execute({
+      id: "task-1",
+      recurrence: "FREQ=WEEKLY;INTERVAL=0",
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("Cannot use the recurrence rule"),
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
+  it("rejects a recurrence that is not a string", async () => {
+    const result = await createUpdateTaskTool(ctx).execute({
+      id: "task-1",
+      recurrence: 7,
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("recurrence must be a string"),
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+  });
+
+  it("clears recurrence when recurrence is null", async () => {
+    await createUpdateTaskTool(ctx).execute({ id: "task-1", recurrence: null });
+
+    const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+    expect(updated.isRecurring).toBeUndefined();
+    expect(updated.recurringInterval).toBeUndefined();
+  });
 });

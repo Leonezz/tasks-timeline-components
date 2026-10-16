@@ -3,6 +3,7 @@ import type { Task } from "../types";
 import {
   deriveTaskRenderState,
   deriveWorkflowStatus,
+  isTaskRecurring,
   removeTagAt,
   taskMatchesStatus,
 } from "./task";
@@ -102,5 +103,22 @@ describe("removeTagAt", () => {
     const tags = [{ id: "a", name: "a" }];
 
     expect(removeTagAt(tags, 5)).toEqual(tags);
+  });
+});
+
+describe("isTaskRecurring", () => {
+  it("treats a rule without an isRecurring flag as recurring", () => {
+    expect(isTaskRecurring({ recurringInterval: "every week" })).toBe(true);
+  });
+
+  it("respects an explicit flag", () => {
+    expect(
+      isTaskRecurring({ isRecurring: false, recurringInterval: "every week" }),
+    ).toBe(false);
+    expect(isTaskRecurring({ isRecurring: true })).toBe(true);
+  });
+
+  it("is false without a flag or a rule", () => {
+    expect(isTaskRecurring({})).toBe(false);
   });
 });

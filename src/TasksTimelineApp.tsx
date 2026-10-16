@@ -12,7 +12,10 @@ import { ErrorBoundary } from "react-error-boundary";
 import { TodoList } from "./components/TodoList";
 import { InputBar } from "./components/InputBar";
 import { SettingsModal } from "./components/settings/SettingsModal";
-import { TaskEditModal } from "./components/TaskEditModal";
+import {
+  TaskEditModal,
+  type RecurrenceFormat,
+} from "./components/TaskEditModal";
 import { Toast } from "./components/Toast";
 import { AgentConversationPanel } from "./components/AgentConversationPanel";
 import type {
@@ -57,6 +60,8 @@ import {
   createToastId,
   createToastInteractionController,
 } from "./hooks/toastInteractions";
+import { useEditorSaveSession } from "./hooks/editorSaveSession";
+import { persistTaskUpdate as saveTaskUpdate } from "./utils/task-update";
 
 interface AgentPanelState {
   isOpen: boolean;
@@ -139,10 +144,26 @@ export interface TasksTimelineAppProps {
   renderSecretField?: SecretFieldRenderer;
   /** Custom renderer for task titles. When provided, replaces the default plain-text display. */
   renderTitle?: (title: string) => React.ReactNode;
+  /**
+   * How the task editor writes edited recurrence rules. "text" writes
+   * Obsidian Tasks text ("every 2 weeks on Monday") for hosts that store tasks
+   * as Obsidian Tasks lines. "auto" (default) writes text for tasks whose rule
+   * is text or that came from the Obsidian Tasks parser, and RRULE otherwise.
+   */
+  recurrenceFormat?: RecurrenceFormat;
   /** Additional system prompt injected by the host application */
   aiSystemPrompt?: string;
-  /** Host-provided AI provider factory. Defaults to the built-in provider adapters. */
+  /**
+   * Host-provided AI provider factory. Defaults to the built-in provider
+   * adapters. Also used by the Settings "Test Connection" button.
+   */
   aiProviderFactory?: AIProviderFactory;
+  /**
+   * Fetch for the built-in AI providers (agent and Settings "Test Connection").
+   * Lets hosts route provider requests around browser CORS, e.g. through
+   * Obsidian's `requestUrl`. Cannot be combined with `aiProviderFactory` (throws).
+   */
+  aiFetch?: typeof fetch;
   /** Host-provided capability context for the built-in AI agent. */
   aiCapabilityContext?: CapabilityContext;
   /** Fully constructed host capabilities for the built-in AI agent. */
@@ -173,8 +194,10 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
   customSettingsTabs,
   renderSecretField,
   renderTitle,
+  recurrenceFormat,
   aiSystemPrompt,
   aiProviderFactory,
+  aiFetch,
   aiCapabilityContext,
   aiCapabilities,
   aiExtraTools,
@@ -188,6 +211,11 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       DEFAULT_AGENT_PANEL_STATE,
     ),
     [editingTask, setEditingTask] = useState<Task | null>(null),
+    {
+      open: openEditor,
+      close: closeEditor,
+      save: saveFromEditor,
+    } = useEditorSaveSession(setEditingTask),
     // Use state for the container ref to ensure re-render when it's attached,
     // Allowing the Provider to pass the correct element to children.
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
@@ -525,28 +553,23 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       sort,
     ),
     stats = useTaskStats(tasks),
+    /** Saves an update through the host; rejects when it can't be saved. */
+    /**
+     * Saves through the host; rejects when it can't be saved. `opened` is the
+     * task as the editor opened it, so a stale editor can't overwrite another.
+     */
+    persistTaskUpdate = async (updatedTask: Task, opened?: Task) => {
+      const saved = await saveTaskUpdate(
+        tasks,
+        updatedTask,
+        onTaskUpdated,
+        opened,
+      );
+      logger.info("Task", "Updated task", { id: saved.id, title: saved.title });
+    },
     handleUpdateTask = async (updatedTask: Task) => {
-      const original = tasks.find((t) => t.id === updatedTask.id);
-
-      if (!original) {
-        console.warn(`Task ${updatedTask.id} not found`);
-        return;
-      }
-
-      // Persist only the explicit workflow status; dates drive render state.
-      const processed = {
-        ...updatedTask,
-        status: deriveWorkflowStatus(updatedTask),
-      };
-
-      logger.info("Task", "Updated task", {
-        id: processed.id,
-        title: processed.title,
-      });
-
-      // Call parent callback to update task
       try {
-        await onTaskUpdated(processed, original);
+        await persistTaskUpdate(updatedTask);
       } catch (error) {
         logger.error("Task", "Failed to update task", { error });
         addNotification("error", "Update Failed", "Could not save changes");
@@ -571,10 +594,18 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         addNotification("error", "Delete Failed", "Could not remove task");
       }
     },
-    handleEditTaskSave = (updatedTask: Task) => {
-      handleUpdateTask(updatedTask);
-      setEditingTask(null);
-    },
+    // Rejects while the editor is open so it keeps the user's edits and
+    // shows the error; a failure after it closed becomes a notification
+    handleEditTaskSave = (updatedTask: Task) =>
+      saveFromEditor(
+        () => persistTaskUpdate(updatedTask, editingTask ?? undefined),
+        (error) =>
+          addNotification(
+            "error",
+            "Update Failed",
+            error instanceof Error ? error.message : String(error),
+          ),
+      ),
     handleAddTask = async (
       dateOrTask: string | Partial<Task>,
       title?: string,
@@ -636,6 +667,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       promptToast,
       {
         providerFactory: aiProviderFactory,
+        fetch: aiFetch,
         capabilityContext: aiCapabilityContext,
         capabilities: aiCapabilities,
         extraTools: aiExtraTools,
@@ -692,7 +724,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
             onUpdateTask: handleUpdateTask,
             onDeleteTask: handleDeleteTask,
             onAddTask: handleAddTask,
-            onEditTask: setEditingTask,
+            onEditTask: openEditor,
             onAICommand: handleTopInputAICommand,
             onItemClick,
             renderTitle,
@@ -936,6 +968,8 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 availableCategories={uniqueCategories}
                 customTabs={customSettingsTabs}
                 renderSecretField={renderSecretField}
+                aiProviderFactory={aiProviderFactory}
+                aiFetch={aiFetch}
               />
 
               <ErrorBoundary
@@ -952,15 +986,16 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   );
                 }}
                 onReset={() => {
-                  setEditingTask(null); // Close modal on error
+                  closeEditor(); // Close modal on error
                 }}
               >
                 <TaskEditModal
                   isOpen={Boolean(editingTask)}
-                  onClose={() => setEditingTask(null)}
+                  onClose={closeEditor}
                   task={editingTask}
                   onSave={handleEditTaskSave}
                   availableCategories={uniqueCategories}
+                  recurrenceFormat={recurrenceFormat}
                 />
               </ErrorBoundary>
             </div>
