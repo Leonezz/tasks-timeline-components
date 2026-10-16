@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Frequency, RRule } from "rrule";
 import { DateTime } from "luxon";
 import type { Priority, Task } from "../types";
@@ -12,7 +12,11 @@ import {
   recurrenceSaveFormat,
   resolveRecurrenceOnSave,
 } from "../utils/recurrence";
-import { keepTabInShadowRoot } from "../utils/focus-loop";
+import {
+  keepTabInShadowRoot,
+  trapFocusInShadowRoot,
+} from "../utils/focus-loop";
+import { captureFocusReturn, restoreFocus } from "../utils/focus-return";
 import { DatePicker } from "./ui/date-picker";
 import { Dialog, DialogPortal } from "./ui/dialog";
 
@@ -727,6 +731,59 @@ const EditForm: React.FC<EditFormProps> = ({
   );
 };
 
+/** The open editor: its backdrop and dialog. */
+const EditorDialog: React.FC<EditFormProps> = (props) => {
+  // Radix returns focus to a Dialog.Trigger, and the editor has none. Read
+  // the opener while rendering, before this commit closes a popup holding it
+  const [focusReturn] = useState(captureFocusReturn);
+  const [dialog, setDialog] = useState<HTMLElement | null>(null);
+  // Like Radix's own trap, only while open, not during the exit animation
+  const isOpen = useIsPresent();
+  useEffect(
+    () => (dialog && isOpen ? trapFocusInShadowRoot(dialog) : undefined),
+    [dialog, isOpen],
+  );
+
+  return (
+    <DialogPortal forceMount>
+      {/* Not Radix's Overlay: its scroll lock checks a document listener's
+          event.target, which in a shadow root is the shadow host, so it
+          cancelled wheel and touch scrolling inside the editor too. Clicks
+          here still close the editor (Content's pointer-down-outside). */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+        // Radix disables pointer events outside the dialog; take them here
+        style={{ pointerEvents: "auto" }}
+      />
+      <DialogPrimitive.Content
+        ref={setDialog}
+        asChild
+        forceMount
+        aria-modal="true"
+        // Named by its title; it has no description
+        aria-describedby={undefined}
+        onKeyDown={keepTabInShadowRoot}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus(focusReturn);
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+          exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 overflow-hidden text-slate-900"
+        >
+          <EditForm key={props.task.id} {...props} />
+        </motion.div>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+};
+
 export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   isOpen,
   onClose,
@@ -748,45 +805,13 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   >
     <AnimatePresence>
       {isOpen && task && (
-        <DialogPortal forceMount>
-          {/* Not Radix's Overlay: its scroll lock checks a document
-              listener's event.target, which in a shadow root is the shadow
-              host, so it cancelled wheel and touch scrolling inside the
-              editor too. Clicks here still close the editor (Content's
-              pointer-down-outside). */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
-            // Radix disables pointer events outside the dialog; take them here
-            style={{ pointerEvents: "auto" }}
-          />
-          <DialogPrimitive.Content
-            asChild
-            forceMount
-            aria-modal="true"
-            // Named by its title; it has no description
-            aria-describedby={undefined}
-            onKeyDown={keepTabInShadowRoot}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-              animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-              exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-              className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
-            >
-              <EditForm
-                key={task.id}
-                task={task}
-                onSave={onSave}
-                onClose={onClose}
-                availableCategories={availableCategories}
-                recurrenceFormat={recurrenceFormat}
-              />
-            </motion.div>
-          </DialogPrimitive.Content>
-        </DialogPortal>
+        <EditorDialog
+          task={task}
+          onSave={onSave}
+          onClose={onClose}
+          availableCategories={availableCategories}
+          recurrenceFormat={recurrenceFormat}
+        />
       )}
     </AnimatePresence>
   </Dialog>

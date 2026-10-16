@@ -21,6 +21,41 @@ function loopScope(dialog: HTMLElement, focused: Element | null): HTMLElement {
 }
 
 /**
+ * Keeps focus inside a dialog rendered in a shadow root, and in popovers open
+ * over it, until the returned cleanup runs. Radix's trap listens on the
+ * document, which does not see focus move within a shadow root, so a popover
+ * closing as the dialog opens (a task row's status menu) focused its trigger
+ * behind the dialog. Outside a shadow root Radix's trap works and this does
+ * nothing.
+ */
+export function trapFocusInShadowRoot(dialog: HTMLElement): () => void {
+  const root = dialog.getRootNode();
+  if (!(root instanceof ShadowRoot)) {
+    return () => undefined;
+  }
+  let lastFocused: HTMLElement = dialog;
+  const handleFocusIn = (event: Event) => {
+    // The focused element itself, not the shadow host it is retargeted to
+    const [target] = event.composedPath();
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    if (dialog.contains(target) || root.contains(target.closest(POPOVER))) {
+      lastFocused = target;
+    } else {
+      (lastFocused.isConnected ? lastFocused : dialog).focus();
+    }
+  };
+  // The root sees focus move inside it; the document sees it leave the root
+  root.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusin", handleFocusIn);
+  return () => {
+    root.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusin", handleFocusIn);
+  };
+}
+
+/**
  * Keeps Tab and Shift+Tab inside a dialog rendered in a shadow root, as the
  * Obsidian plugin renders the app, and inside a popover open over it. Radix's
  * focus loops read `document.activeElement`, which is the shadow host there,

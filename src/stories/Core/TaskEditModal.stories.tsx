@@ -4,6 +4,12 @@ import { createPortal } from "react-dom";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { AppProvider } from "../../components/AppContext";
 import { TaskEditModal } from "../../components/TaskEditModal";
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
@@ -724,6 +730,113 @@ export const DatePickerKeepsTabInShadowRoot: Story = {
       await userEvent.tab({ shift: true });
       expect(focusedElement(picker)).toBe(last);
     });
+  },
+};
+
+/**
+ * Opens the editor from a button, and from a popover button that closes the
+ * popover as it opens the editor, as a task row's "Edit details" does.
+ */
+const EditorOpeners: React.FC<React.ComponentProps<typeof TaskEditModal>> = (
+  props,
+) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const open = () => setIsOpen(true);
+  const close = () => setIsOpen(false);
+  return (
+    <div className="flex gap-2">
+      <button type="button" onClick={open}>
+        Open editor
+      </button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button">Task actions</button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <PopoverClose asChild>
+            <button type="button" onClick={open}>
+              Edit details
+            </button>
+          </PopoverClose>
+        </PopoverContent>
+      </Popover>
+      <TaskEditModal
+        {...props}
+        isOpen={isOpen}
+        onClose={close}
+        onSave={close}
+      />
+    </div>
+  );
+};
+
+/** Closing the editor returns focus to what opened it. */
+const expectFocusReturned: Story["play"] = async ({ canvasElement, step }) => {
+  const content = await waitFor(() => storyContent(canvasElement));
+  const canvas = within(content);
+  /** Opens the editor with Enter on `opener`, then closes it with `close`. */
+  const openAndClose = async (
+    opener: HTMLElement,
+    close: (dialog: HTMLElement) => Promise<unknown>,
+  ) => {
+    opener.focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = await findEditor(content);
+    await waitFor(() =>
+      expect(dialog.contains(focusedElement(dialog))).toBe(true),
+    );
+    // A popup closing as the editor opens returns focus to its trigger a
+    // moment later; in a shadow root that left the editor without focus
+    await delay(100);
+    expect(dialog.contains(focusedElement(dialog))).toBe(true);
+    await close(dialog);
+    await waitFor(() => expect(dialog.isConnected).toBe(false));
+  };
+
+  await step("Escape returns focus to the button that opened it", async () => {
+    const opener = canvas.getByRole("button", { name: "Open editor" });
+    await openAndClose(opener, () => userEvent.keyboard("{Escape}"));
+    await waitFor(() => expect(focusedElement(content)).toBe(opener));
+  });
+
+  await step("Saving returns focus there too", async () => {
+    const opener = canvas.getByRole("button", { name: "Open editor" });
+    await openAndClose(opener, (dialog) =>
+      userEvent.click(within(dialog).getByRole("button", { name: /save/i })),
+    );
+    await waitFor(() => expect(focusedElement(content)).toBe(opener));
+  });
+
+  await step(
+    "When the opener has gone, focus returns to its popover's trigger",
+    async () => {
+      const trigger = canvas.getByRole("button", { name: "Task actions" });
+      trigger.focus();
+      await userEvent.keyboard("{Enter}");
+      const edit = await canvas.findByRole("button", { name: "Edit details" });
+      await openAndClose(edit, (dialog) =>
+        userEvent.click(within(dialog).getByRole("button", { name: "Cancel" })),
+      );
+      expect(edit.isConnected).toBe(false);
+      await waitFor(() => expect(focusedElement(content)).toBe(trigger));
+    },
+  );
+};
+
+// Radix returns focus to a Dialog.Trigger, and the editor has none, so focus
+// fell to <body> and keyboard users restarted from the top of the page
+export const ReturnsFocusToOpener: Story = {
+  args: {
+    ...Default.args,
+  },
+  render: (args) => <EditorOpeners {...args} />,
+  play: expectFocusReturned,
+};
+
+export const ReturnsFocusToOpenerInShadowRoot: Story = {
+  ...ReturnsFocusToOpener,
+  parameters: {
+    shadowRoot: true,
   },
 };
 
