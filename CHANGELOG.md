@@ -9,6 +9,149 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Obsidian recurring tasks were not treated as recurring.** The Obsidian
+  Tasks parser set `recurringInterval` (`🔁 every week`) but not
+  `isRecurring`, so `complete_task` created no next occurrence, the
+  **Recurring** badge was hidden, stats did not count them, and the
+  `recurring` filters of `query_tasks` and `batch_update_tasks` missed them.
+  The parser now sets `isRecurring: !!recurringInterval`, and all of these use
+  `isTaskRecurring()` (`isRecurring ?? !!recurringInterval`) so tasks from
+  hosts that never set the flag work too.
+- **`complete_task` copied the completed task's dates to the next
+  occurrence.** It now moves them: the due date (else scheduled, else start
+  date) advances to the rule's next date, "when done" rules advance from the
+  completion date, and the other dates keep their offset. It reads RRULE and
+  Obsidian Tasks text rules and keeps the rule text verbatim. A rule it cannot
+  read returns an error and completes nothing; a rule that has ended completes
+  the task without a next occurrence.
+  - A task that is already done is left alone and reported with
+    `alreadyCompleted: true`, so completing a finished Obsidian line again, or
+    retrying after a failed write, no longer adds another occurrence.
+  - Plain monthly and yearly text rules follow Obsidian Tasks at month ends:
+    `every month` from Jan 31 gives Feb 28 (not Mar 31), `every year` from
+    Feb 29 gives Feb 28. RRULE-syntax rules keep RFC 5545 behaviour.
+  - Start and end dates are calendar dates in every time zone, and the next
+    date is always at least a day later. Before, a rule with a start date
+    could return the same day (repeat completions piled up copies) or skip a
+    week depending on the time zone, `BYHOUR`/timed `DTSTART` rules returned
+    the same day, and an end date could allow one extra occurrence.
+- **Malformed recurrence rules were accepted.** Rules without `FREQ`
+  (`INTERVAL=2` was read as yearly), with `INTERVAL` below 1 (a negative
+  interval never finished) or with a fractional interval are now unreadable.
+  `create_task`, `update_task` and `batch_update_tasks` reject unreadable
+  rules before saving. `UNTIL=2026-12-31` and `DTSTART:2026-01-05` are
+  accepted as well as the RFC form `UNTIL=20261231`. `create_task` with an
+  empty `recurrence` creates a non-recurring task.
+- **Edited Obsidian rules were written as RRULE syntax.** `🔁 RRULE:FREQ=…`
+  read back as the rule "RRULE" with the rest in the title, and a start date
+  split the task line. The task editor now saves Obsidian rules as text
+  (`every 2 weeks on Monday until December 31, 2026`, keeping `when done`)
+  and shows an error instead of saving a start date, which those rules can't
+  hold. `formatTasksMetadata` writes RRULE-syntax rules (for example from
+  `create_task`) as text, including `UNTIL` as "until <date>", and throws for
+  rules with a start date rather than writing a broken line.
+  - Text conversion compares days, months and month days as sets, so rules
+    with days out of order (`BYDAY=FR,MO`, or adding Wednesday to "every week
+    on Monday, Friday") are saved, and `FREQ=DAILY;BYDAY=…` is written as a
+    weekly rule ("every weekday").
+  - The editor writes text for every task the Obsidian Tasks parser read
+    (`extra.isTasksTask` set), not only lines that already had Tasks dates,
+    and for all tasks when the new `recurrenceFormat="text"` prop is set on
+    `TasksTimelineApp` (or `TaskEditModal`). Hosts that store tasks as
+    Obsidian Tasks lines should set it.
+- **A failed save closed the task editor and lost the edits.** The editor now
+  waits for the host's `onTaskUpdated`; if it rejects, the editor stays open
+  with the error and the user's changes. `TaskEditModal`'s `onSave` may
+  return a promise.
+- **Recurrence dates from other writers were read a day off.** Rules saved by
+  earlier versions of the editor (local midnight start, local end of day) are
+  read in local time again, rules with `TZID` keep their own days instead of
+  being moved by the machine's zone, `DTSTART;VALUE=DATE:` start dates are
+  read, and impossible dates (`UNTIL=20270229`, month 13) make the rule
+  unreadable instead of rolling over.
+- **Rules that can never match ended the series.** A rule without `UNTIL` or
+  `COUNT` that has no later date (`FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30`) now
+  makes `complete_task` fail and change nothing, instead of completing the
+  task and reporting that the recurrence ended. The search is bounded, and
+  hourly, minutely and secondly rules are computed as daily, since tasks are
+  day-based.
+- **Recurrence text with punctuation corrupted Obsidian Tasks lines.** A line
+  only holds letters, digits, spaces, commas and "!" after 🔁, so
+  `every month until 2026-12-31` was read back as "every month until 2026"
+  with "-12-31" in the title. Numeric end dates are now written out
+  (`until December 31, 2026`, always in English); other text a line can't
+  hold (`Monday-Friday`, `Monday & Friday`, a trailing ".") is rejected by
+  `create_task`, `update_task` and `batch_update_tasks` and by
+  `formatTasksMetadata`, and is unreadable rather than misread.
+- **Far-off next dates and slow rules.** The next date is no longer searched
+  only 10 years ahead, so rules such as February 29th every 3 years or
+  Christmas on a Sunday complete again, and an `UNTIL` beyond that window no
+  longer ends the series early. Daily and weekly rules limited by month or
+  day of month are checked a year at a time, so one that never matches fails
+  in milliseconds instead of seconds. Hourly rules step by their interval
+  ("every 48 hours" moves two days).
+- **Editing a rule dropped parts the editor can't show.** The editor shows
+  which parts it can't show (ordinal weekdays such as the 2nd Monday, COUNT,
+  months on a weekly rule, BYSETPOS, a week start, hourly frequencies) and
+  keeps such a rule as written unless its settings change, which it says
+  replaces the rule. A daily rule on weekdays is shown as a weekly rule.
+- Text conversion handles duplicate days and all seven days ("every day";
+  listed out when the rule skips weeks), and refuses rules whose `WKST` or
+  `BYEASTER` text can't hold.
+- A save that finishes after its editor closed no longer closes an editor
+  opened since, and its failure shows as a notification.
+- Start and end dates: floating times without `Z` are read as written, a
+  date-only `UNTIL` with `TZID` is read as written, a `TZID` rule whose UTC
+  `UNTIL` falls before the start's time that day ends a day earlier, an
+  unknown `TZID` makes the rule unreadable instead of failing to open the
+  editor, `DTSTART=` is read, and hour 24 is rejected.
+- **A save from an editor opened before a reload could overwrite another
+  task.** Hosts that use line positions as ids (the Obsidian plugin) can give
+  a task's id to a different task after reloading. The task editor now keeps
+  the task as it opened it and refuses to save when the task now at that id is
+  a different one or changed elsewhere ("This task changed since you opened
+  it — close and reopen it"), comparing `extra.rawText` when both have it and
+  the title and dates otherwise. Editor saves pass that opened version to
+  `onTaskUpdated` as `previous`.
+- **Recurrence text the parser only partly understood was saved with a
+  different meaning.** rrule's text parser skips words it doesn't know
+  ("every day except Sunday" read as "every day", "every year on December 25"
+  as every December). The task tools now store text in the library's own
+  words, return it as `understoodAs`, and reject text with skipped words, an
+  "until" without a month, day and year, "when done" anywhere but the end,
+  and an end date before today or the task's date. Lines already in a vault
+  are written back unchanged.
+- **Next dates for weekly rules with month days, and slow rules.** A weekly
+  rule with a day of the month, day of the year, week number or Easter
+  repeats on any weekday, as rrule computes it, not only its start's
+  weekday; ordinal weekdays in daily and weekly rules count as plain ones;
+  `COUNT` no longer limits the quick existence check of rules that skip
+  periods; hourly rules with day filters keep whole-day intervals; and daily
+  rules with `BYSETPOS` other than 1 or -1 fail fast instead of taking
+  seconds.
+- **"Last day of the month" in the task editor.** The day buttons now include
+  "Last day", so "every month on the last" can be shown and edited; other
+  days counted from the month's end are flagged as parts the editor can't
+  show.
+- Yearly rules that skip years and name months ("every 2 years on the 1st in
+  June") can be written as Obsidian Tasks text.
+- **Lines written by v0.8.0 were split by the parser.** The recurrence after
+  🔁 is now read up to the next metadata emoji, `#tag` or `^block-id`, so
+  `🔁 RRULE:FREQ=WEEKLY;BYDAY=MO` or `🔁 every month until 2026-12-31` no
+  longer leave part of the rule in the title, and writing such a line repairs
+  it to text (`🔁 every week on Monday`).
+- `complete_task` reports when it marked the task done but could not add the
+  next occurrence, with the occurrence's details so it can be created with
+  `create_task` (all its fields, including the description).
+  `create_task`, `update_task` and `batch_update_tasks` reject a `recurrence`
+  that isn't a string; `null` clears it like `""`.
+- **Saving a task in the edit modal dropped its recurrence.** Tasks parsed
+  from Obsidian Tasks lines (`🔁 every week`) have a rule but no `isRecurring`
+  flag, and the modal only read RRULE syntax, so it showed them as
+  non-recurring and saved `recurringInterval: undefined`. The modal now treats
+  a missing flag as `!!recurringInterval`, reads both RRULE and rrule text
+  rules, and keeps the stored rule verbatim unless the recurrence controls are
+  changed. A rule the controls cannot show is displayed as text and kept.
 - **`ask_user` confirm answers were swapped (#33).** In the built-in app,
   clicking **No** reported `dismissed: true` and closing the question with
   **X** reported `answer: "no"`. **No** now resolves `false` (`answer: "no"`)
@@ -50,6 +193,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   returns `{ success: false, error }` instead of `{ success: true }`.
 - The system prompt no longer says `notify_user` can show detail blocks; it
   never accepted them.
+- The system prompt documents end dates as `UNTIL=YYYYMMDD` and tells the
+  model not to use `COUNT`, which never ends a series that restarts on each
+  completion.
 - Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
   Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
 

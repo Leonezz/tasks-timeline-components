@@ -324,6 +324,9 @@ interface TasksTimelineAppProps {
   onTaskUpdated?: (task: Task, previous: Task) => void | Promise<void>;
   onTaskDeleted?: (taskId: string, previous: Task) => void | Promise<void>;
 
+  // How the task editor writes edited recurrence rules (default "auto")
+  recurrenceFormat?: "auto" | "text";
+
   // AI agent (see "AI Capabilities" below)
   aiSystemPrompt?: string;
   aiProviderFactory?: AIProviderFactory;
@@ -342,6 +345,16 @@ interface TasksTimelineAppProps {
 - `aiMaxToolRounds` bounds the number of tool-call rounds per agent turn. When the
   limit is reached the agent stops calling the provider and reports
   `Stopped after N tool rounds without a final answer` as an agent error.
+- `recurrenceFormat="text"` makes the task editor write recurrence as Obsidian
+  Tasks text (`every 2 weeks on Monday until December 31, 2026`). Set it when you
+  store tasks as Obsidian Tasks lines, which can't hold RRULE syntax or a start
+  date. `"auto"` writes text for text rules and tasks from the Obsidian Tasks
+  parser, and RRULE syntax otherwise.
+- When saving from the task editor, a rejected `onTaskUpdated` keeps the editor
+  open with the error and the user's changes. The editor refuses to save when
+  the task now at that id is not the one it opened (ids that are line positions
+  can move to another task after a reload), and passes the opened version as
+  `previous`.
 - `DEFAULT_SETTINGS` (the built-in default `AppSettings`) is exported from the main
   entry.
 - If `settingsRepository.loadSettings()` rejects, the app runs with in-memory
@@ -438,6 +451,11 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
   host can no longer ask (the built-in app after unmount), the callback should
   reject: `ask_user` then returns `{ question, answer: null, error }` and
   destructive tools return an error instead of waiting forever.
+- **Recurrence arguments.** `create_task`, `update_task` and
+  `batch_update_tasks` accept RRULE syntax or Obsidian Tasks text. Text is
+  stored in the library's own words and returned as `understoodAs`; text with
+  words the parser would skip, an incomplete "until" date or an end date that
+  has passed is rejected.
 - **`notify_user` without `showToast`.** The tool falls back to
   `ctx.notify(variant, "title: description")` and returns
   `{ success: true, degraded: true, warning }`. With neither callback it
