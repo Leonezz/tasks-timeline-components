@@ -1,7 +1,11 @@
 import type { Tag } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
-import { generateTimestampId } from "../../utils/date-helpers";
+import { generateTimestampId, getTodayISO } from "../../utils/date-helpers";
 import { deriveWorkflowStatus } from "../../utils/task";
+import {
+  earliestEndDate,
+  readRecurrenceArgument,
+} from "../../utils/recurrence-argument";
 
 export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -58,7 +62,7 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
         recurrence: {
           type: "string",
           description:
-            "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO). Use empty string to clear recurrence.",
+            "Recurrence rule in RRULE RFC 5545 format (e.g. FREQ=WEEKLY;BYDAY=MO; end date as UNTIL=20261231; no DTSTART) or Obsidian Tasks text (e.g. every week, every week until December 31, 2026). Use empty string to clear recurrence.",
         },
       },
       required: ["id"],
@@ -72,6 +76,24 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
         return {
           name: "update_task",
           result: { success: false, error: `Task not found: ${id}` },
+        };
+      }
+
+      const recurrenceArgument = readRecurrenceArgument(
+        args.recurrence,
+        earliestEndDate(
+          getTodayISO(),
+          (args.dueAt as string | undefined) ??
+            existingTask.dueAt ??
+            existingTask.extra?.scheduledAt ??
+            (args.startAt as string | undefined) ??
+            existingTask.startAt,
+        ),
+      );
+      if (!recurrenceArgument.ok) {
+        return {
+          name: "update_task",
+          result: { success: false, error: recurrenceArgument.error },
         };
       }
 
@@ -115,8 +137,8 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
 
       // Handle recurrence
       if (args.recurrence !== undefined) {
-        const recurrence = args.recurrence as string;
-        if (recurrence === "") {
+        const recurrence = recurrenceArgument.rule;
+        if (!recurrence) {
           fieldUpdates.isRecurring = undefined;
           fieldUpdates.recurringInterval = undefined;
         } else {
@@ -135,7 +157,13 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
 
       return {
         name: "update_task",
-        result: { success: true, id },
+        result: {
+          success: true,
+          id,
+          ...(recurrenceArgument.understoodAs
+            ? { understoodAs: recurrenceArgument.understoodAs }
+            : {}),
+        },
       };
     },
   };

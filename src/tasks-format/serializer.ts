@@ -14,6 +14,7 @@ import {
   recurrenceSymbol,
 } from "./symbols";
 import { TaskRegularExpressions } from "./regex";
+import { toTasksRecurrenceText } from "../utils/recurrence-text";
 
 const createdDateSymbol = "➕";
 
@@ -51,7 +52,9 @@ const dateOnly = (iso: string): string => iso.slice(0, 10);
 /**
  * Formats the Tasks-plugin metadata tokens of a task: priority symbol (unless
  * "medium"), then due / start / scheduled (`extra.scheduledAt`) / created /
- * completed dates (truncated to YYYY-MM-DD), then recurrence.
+ * completed dates (truncated to YYYY-MM-DD), then recurrence. RRULE-syntax
+ * rules are written as Obsidian Tasks text ("every week on Monday"); one that
+ * can't be (for example with a start date) throws instead of breaking the line.
  *
  * Tokens are joined by single spaces with no leading or trailing whitespace.
  * Returns an empty string when the task has no metadata. Never includes the
@@ -76,7 +79,9 @@ export const formatTasksMetadata = (task: Task): string => {
     tokens.push(`${doneDateSymbol} ${dateOnly(task.completedAt)}`);
 
   if (task.recurringInterval) {
-    tokens.push(`${recurrenceSymbol} ${task.recurringInterval}`);
+    tokens.push(
+      `${recurrenceSymbol} ${toTasksRecurrenceText(task.recurringInterval)}`,
+    );
   }
 
   return tokens.join(" ");
