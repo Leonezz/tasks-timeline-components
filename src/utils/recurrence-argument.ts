@@ -41,6 +41,11 @@ const words = (text: string): string[] =>
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 0);
 
+/** Whether words[i] comes right after "every" or "every N". */
+const followsEvery = (given: string[], i: number): boolean =>
+  given[i - 1] === "every" ||
+  (/^\d+$/.test(given[i - 1] ?? "") && given[i - 2] === "every");
+
 const reject = (value: string, reason: string): RecurrenceArgument => ({
   ok: false,
   error: `Cannot use the recurrence rule "${value}": ${reason} ${RECURRENCE_RULE_HELP}`,
@@ -85,12 +90,23 @@ function readTextArgument(
       error instanceof Error ? error.message : String(error),
     );
   }
-  const known = new Set([
-    ...words(understoodAs),
-    ...FILLER,
-    ...(PERIOD_WORDS[parsed.options.freq ?? RRule.YEARLY] ?? []),
-  ]);
-  const skipped = words(normalizedBody).filter((word) => !known.has(word));
+  if (parsed.options.count) {
+    return reject(
+      value,
+      'a number of repetitions ("for 3 times") never ends here, because each completion counts again; use "until <date>".',
+    );
+  }
+  const known = new Set([...words(understoodAs), ...FILLER]);
+  const periodWords = new Set(
+    PERIOD_WORDS[parsed.options.freq ?? RRule.YEARLY] ?? [],
+  );
+  const given = words(normalizedBody);
+  const skipped = given.filter(
+    (word, i) =>
+      !known.has(word) &&
+      // "year" in "every year in December", which reads as "every December"
+      !(periodWords.has(word) && followsEvery(given, i)),
+  );
   if (skipped.length > 0) {
     return reject(
       value,

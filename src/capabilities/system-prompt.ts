@@ -38,7 +38,7 @@ Recurring tasks use RRULE format (RFC 5545):
 - FREQ=MONTHLY;BYMONTHDAY=1 — repeats on specific day of month
 - FREQ=YEARLY — repeats annually
 - Add UNTIL=YYYYMMDD (e.g. FREQ=WEEKLY;UNTIL=20261231) to end the series on that date
-- Do not use COUNT: without a start date (DTSTART) each completion starts counting again, so the series never ends; use UNTIL
+- Do not use COUNT (or "for N times" in text): without a start date (DTSTART) each completion starts counting again, so the series never ends; use UNTIL ("until <date>" in text). Text with a count is rejected
 - Do not use DTSTART: tasks stored in Obsidian notes can't keep a start date in the rule; set the task's startAt instead
 
 When creating or updating tasks:

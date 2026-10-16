@@ -276,4 +276,24 @@ describe("create_task tool", () => {
       "every December until December 31, 2099",
     );
   });
+
+  it.each([
+    "every week for 3 weeks",
+    "every week for 3 times",
+    "every day for 2 months",
+  ])(
+    "rejects %j, a repetition count that would never end",
+    async (recurrence) => {
+      const result = await createCreateTaskTool(ctx).execute({
+        title: "Report",
+        recurrence,
+      });
+
+      expect(result.result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("until <date>"),
+      });
+      expect(ctx.addTask).not.toHaveBeenCalled();
+    },
+  );
 });
