@@ -175,7 +175,7 @@ const EditForm: React.FC<EditFormProps> = ({
           }
         })()}
         {unsupportedParts !== "" && (
-          <span className="block not-italic text-amber-600">
+          <span className="block not-italic text-amber-800">
             Saving replaces the stored rule and drops the parts these settings
             can&apos;t show: {unsupportedParts}.
           </span>
@@ -185,7 +185,7 @@ const EditForm: React.FC<EditFormProps> = ({
 
   return (
     <div className="flex flex-col max-h-[85vh]">
-      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 sticky top-0 backdrop-blur-md z-10 shrink-0">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-paper/50 sticky top-0 backdrop-blur-md z-10 shrink-0">
         {/* Names the dialog (aria-labelledby) */}
         <DialogPrimitive.Title className="font-bold text-slate-800">
           Edit Task
@@ -193,7 +193,7 @@ const EditForm: React.FC<EditFormProps> = ({
         <button
           onClick={onClose}
           aria-label="Close edit task modal"
-          className="p-2 text-slate-500 hover:text-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="p-2 text-slate-500 hover:text-slate-600 rounded-full hover:bg-slate-100"
         >
           <Icon name="X" size={20} />
         </button>
@@ -214,7 +214,7 @@ const EditForm: React.FC<EditFormProps> = ({
             onChange={(e) =>
               setEditedTask({ ...editedTask, title: e.target.value })
             }
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900"
           />
         </div>
 
@@ -232,7 +232,7 @@ const EditForm: React.FC<EditFormProps> = ({
             onChange={(e) =>
               setEditedTask({ ...editedTask, description: e.target.value })
             }
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-20 resize-none text-slate-900"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-20 resize-none text-slate-900"
             placeholder="Add details..."
           />
         </div>
@@ -257,7 +257,7 @@ const EditForm: React.FC<EditFormProps> = ({
                 onFocus={() => setIsCategoryOpen(true)}
                 onBlur={() => setTimeout(() => setIsCategoryOpen(false), 200)} // Delay to allow click
                 placeholder="Work, Personal..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none pl-9 text-slate-900"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none pl-9 text-slate-900"
               />
               <div className="absolute left-3 top-2.5 text-slate-500 pointer-events-none">
                 <Icon name="Folder" size={14} />
@@ -323,7 +323,7 @@ const EditForm: React.FC<EditFormProps> = ({
             <div
               role="radiogroup"
               aria-labelledby="priority-label"
-              className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700 h-9.5"
+              className="flex bg-slate-50 p-1 rounded-lg border border-slate-200 h-9.5"
             >
               {(["low", "medium", "high"] as Priority[]).map((p) => (
                 <button
@@ -334,8 +334,8 @@ const EditForm: React.FC<EditFormProps> = ({
                   className={cn(
                     "flex-1 text-xs font-medium rounded-md capitalize transition-all flex items-center justify-center",
                     editedTask.priority === p
-                      ? "bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-500"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+                      ? "bg-white shadow-sm text-slate-800 border border-slate-100"
+                      : "text-slate-500 hover:text-slate-700",
                   )}
                 >
                   {p}
@@ -345,7 +345,7 @@ const EditForm: React.FC<EditFormProps> = ({
           </div>
         </div>
 
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+        <div className="border-t border-slate-100 pt-4">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">
             Task Dates
           </label>
@@ -424,7 +424,7 @@ const EditForm: React.FC<EditFormProps> = ({
           </div>
 
           {/* Recurrence Control */}
-          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg p-3 border border-slate-200/60 dark:border-slate-700 transition-colors">
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
@@ -438,7 +438,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   <Icon name="Repeat" size={16} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <span className="text-sm font-medium text-slate-700">
                     Recurrence
                   </span>
                   <span className="text-[10px] text-slate-500">
@@ -453,9 +453,7 @@ const EditForm: React.FC<EditFormProps> = ({
                 aria-label="Toggle task recurrence"
                 className={cn(
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                  editedTask.isRecurring
-                    ? "bg-blue-500"
-                    : "bg-slate-200 dark:bg-slate-700",
+                  editedTask.isRecurring ? "bg-blue-500" : "bg-slate-200",
                 )}
               >
                 <motion.div
@@ -475,7 +473,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   exit={{ height: 0, opacity: 0, marginTop: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700 space-y-3">
+                  <div className="pt-3 border-t border-slate-200/60 space-y-3">
                     <div className="flex items-center gap-2">
                       <label
                         htmlFor="recurrence-interval"
@@ -495,7 +493,7 @@ const EditForm: React.FC<EditFormProps> = ({
                             interval: parseInt(e.target.value) || 1,
                           })
                         }
-                        className="w-12 px-1.5 py-1 text-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-xs focus:border-blue-500 outline-none text-slate-700 dark:text-slate-200"
+                        className="w-12 px-1.5 py-1 text-center bg-white border border-slate-300 rounded-md text-xs focus:border-blue-500 outline-none text-slate-700"
                       />
                       <select
                         aria-label="Recurrence frequency"
@@ -505,7 +503,7 @@ const EditForm: React.FC<EditFormProps> = ({
                             freq: parseInt(e.target.value) as Frequency,
                           })
                         }
-                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 block p-1 outline-none"
+                        className="flex-1 bg-white border border-slate-300 text-slate-700 text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 block p-1 outline-none"
                       >
                         {FREQUENCY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -562,8 +560,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                 className={cn(
                                   "w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-all border",
                                   isSelected
-                                    ? "bg-blue-500 text-white border-blue-600 shadow-sm"
-                                    : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-blue-300 hover:text-blue-500",
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                    : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-500",
                                 )}
                               >
                                 {day.label}
@@ -603,8 +601,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                     className={cn(
                                       "py-1 text-[15px] rounded border transition-colors",
                                       isSelected
-                                        ? "bg-blue-500 text-white border-blue-600"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white border-slate-200 text-slate-500 hover:border-blue-300",
                                     )}
                                   >
                                     {m}
@@ -646,8 +644,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                       ? "col-span-4 text-xs"
                                       : "aspect-square",
                                     isSelected
-                                      ? "bg-blue-500 text-white border-blue-600"
-                                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
+                                      ? "bg-blue-600 text-white border-blue-600"
+                                      : "bg-white border-slate-200 text-slate-500 hover:border-blue-300",
                                   )}
                                 >
                                   {d === LAST_DAY_OF_MONTH ? "Last day" : d}
@@ -659,7 +657,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50">
                       <div className="space-y-1">
                         <label className="text-[10px] font-semibold text-slate-500 uppercase">
                           Start Recurrence
@@ -696,7 +694,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-500 italic bg-white/50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-700 text-center">
+                    <div className="text-[10px] text-slate-500 italic bg-white/50 p-2 rounded border border-slate-100 text-center">
                       {recurrencePreview}
                     </div>
                   </div>
@@ -707,15 +705,15 @@ const EditForm: React.FC<EditFormProps> = ({
         </div>
       </div>
 
-      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 sticky bottom-0 z-10 shrink-0">
+      <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 z-10 shrink-0">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
         >
           Cancel
         </button>
         {saveError && (
-          <p role="alert" className="mr-auto self-center text-xs text-rose-600">
+          <p role="alert" className="mr-auto self-center text-xs text-rose-700">
             {saveError}
           </p>
         )}

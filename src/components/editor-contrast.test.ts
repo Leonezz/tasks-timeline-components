@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
- * WCAG AA contrast of the task editor's secondary text (labels, the
- * recurrence summary) in every theme, computed from the theme tokens in
- * index.css. Body-size text needs 4.5:1.
+ * WCAG AA contrast of the task editor's text (labels, the recurrence summary,
+ * selected toggles, the warning and the save error) in every theme, computed
+ * from the theme tokens in index.css. Body-size text needs 4.5:1.
  */
 
 const css = readFileSync(new URL("../index.css", import.meta.url), "utf8");
@@ -95,7 +95,7 @@ const SURFACES: Record<string, (tokens: Record<string, string>) => Rgb> = {
 
 const AA = 4.5;
 
-describe("task editor secondary text contrast", () => {
+describe("task editor text contrast", () => {
   const cases = Object.entries(THEMES).flatMap(([theme, tokens]) =>
     Object.entries(SURFACES).map(
       ([surface, background]) => [theme, surface, tokens, background] as const,
@@ -123,6 +123,51 @@ describe("task editor secondary text contrast", () => {
       ).toBeGreaterThanOrEqual(AA);
     },
   );
+
+  // Selected weekday, month and day toggles: text-white on bg-blue-600.
+  // white is --background, so it is dark where the dark themes make blue light
+  it.each(Object.entries(THEMES))(
+    "selected toggles meet AA in the %s theme",
+    (_theme, tokens) => {
+      expect(
+        contrast(
+          colorOf(tokens, "--background"),
+          colorOf(tokens, "--blue-600"),
+        ),
+      ).toBeGreaterThanOrEqual(AA);
+    },
+  );
+
+  // The save error (text-rose-700) on the footer (bg-slate-50)
+  it.each(Object.entries(THEMES))(
+    "the save error meets AA in the %s theme",
+    (_theme, tokens) => {
+      expect(
+        contrast(colorOf(tokens, "--rose-700"), colorOf(tokens, "--slate-50")),
+      ).toBeGreaterThanOrEqual(AA);
+    },
+  );
+
+  // "Saving replaces the stored rule…" (text-amber-800) in the summary
+  it.each(Object.entries(THEMES))(
+    "the warning about dropped rule parts meets AA in the %s theme",
+    (_theme, tokens) => {
+      expect(
+        contrast(
+          colorOf(tokens, "--amber-800"),
+          SURFACES["recurrence summary"](tokens),
+        ),
+      ).toBeGreaterThanOrEqual(AA);
+    },
+  );
+
+  it("blue-500, which selected toggles no longer use, fails AA with white in the light theme", () => {
+    const light = THEMES.light;
+
+    expect(
+      contrast(colorOf(light, "--background"), colorOf(light, "--blue-500")),
+    ).toBeLessThan(AA);
+  });
 
   it("slate-400, which the editor no longer uses for text, fails AA on the light dialog", () => {
     const light = THEMES.light;

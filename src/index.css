@@ -102,6 +102,8 @@
   --amber-200: 48 96.6% 76.7%; /* #fde68a */
   --amber-500: 43 96.4% 56.3%; /* #f59e0b */
   --amber-700: 37.7 92.1% 38%; /* #b45309 */
+  /* #92400e: warning text, at least 4.5:1 (WCAG AA) on light surfaces */
+  --amber-800: 22.7 82.5% 31.4%;
 
   /* Purple (for unplanned, focus mode) */
   --purple-50: 270 100% 98%; /* #faf5ff */
@@ -192,6 +194,7 @@
   --amber-200: 29 93% 22%;
   --amber-500: 47 92% 68%;
   --amber-700: 48 96.6% 76.7%;
+  --amber-800: 48 96.5% 88.8%; /* #fef3c7 */
 
   /* Purple adjustments */
   --purple-50: 273 100% 10%;
@@ -278,6 +281,7 @@
   --amber-200: 29 93% 22%;
   --amber-500: 47 92% 68%;
   --amber-700: 48 96.6% 76.7%;
+  --amber-800: 48 96.5% 88.8%; /* #fef3c7 */
 
   --purple-50: 273 100% 10%;
   --purple-100: 273 94% 18%;
@@ -547,6 +551,7 @@
   --color-amber-200: hsl(var(--amber-200));
   --color-amber-500: hsl(var(--amber-500));
   --color-amber-700: hsl(var(--amber-700));
+  --color-amber-800: hsl(var(--amber-800));
 
   --color-purple-50: hsl(var(--purple-50));
   --color-purple-100: hsl(var(--purple-100));

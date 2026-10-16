@@ -91,6 +91,18 @@ const defaultTask = taskBuilder.base({
   handleSave = (task: Task) => console.log("Save task:", task),
   handleClose = () => console.log("Close modal");
 
+/**
+ * Waits for the editor's open animation: until then its opacity blends every
+ * colour, and the accessibility checks after the play function misread them.
+ */
+const waitForEditorToOpen = async (canvasElement: HTMLElement) => {
+  const dialog = await within(canvasElement).findByRole("dialog", {
+    name: "Edit Task",
+  });
+  await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe("1"));
+  return dialog;
+};
+
 // ========================================
 // Core Stories
 // ========================================
@@ -366,6 +378,8 @@ export const SaveFailureKeepsEdits: Story = {
     onClose: fn(),
     availableCategories: ["Work"],
   },
+  // Fail on any axe violation, the error text's contrast included
+  parameters: { a11y: { test: "error" } },
   play: async ({ args, canvasElement, step }) => {
     const canvas = within(canvasElement);
 
@@ -383,6 +397,7 @@ export const SaveFailureKeepsEdits: Story = {
       expect(canvas.getByDisplayValue("Renamed task")).toBeInTheDocument();
       expect(args.onClose).not.toHaveBeenCalled();
     });
+    await waitForEditorToOpen(canvasElement);
   },
 };
 
@@ -438,6 +453,8 @@ export const WarnsWhichRulePartsSavingDrops: Story = {
     onClose: handleClose,
     availableCategories: ["Work"],
   },
+  // Fail on any axe violation, the warning's contrast included
+  parameters: { a11y: { test: "error" } },
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
@@ -453,12 +470,14 @@ export const WarnsWhichRulePartsSavingDrops: Story = {
       const interval = canvas.getByLabelText("Recurrence interval");
       await userEvent.tripleClick(interval);
       await userEvent.keyboard("2");
-      expect(
-        canvas.getByText(
-          "Saving replaces the stored rule and drops the parts these settings can't show: repetition count (COUNT).",
-        ),
-      ).toBeInTheDocument();
+      const warning = canvas.getByText(
+        "Saving replaces the stored rule and drops the parts these settings can't show: repetition count (COUNT).",
+      );
+      expect(warning).toBeInTheDocument();
+      // axe, which runs next, skips text scrolled out of view
+      warning.scrollIntoView({ block: "nearest" });
     });
+    await waitForEditorToOpen(canvasElement);
   },
 };
 
@@ -924,38 +943,72 @@ export const MonthTogglesExposeState: Story = {
   },
 };
 
-/** "rgb(r, g, b)" as channels; fails loudly on anything else. */
-const rgbOf = (color: string): [number, number, number] => {
-  const match = /^rgb\((\d+), (\d+), (\d+)\)$/.exec(color);
-  if (!match) {
-    throw new Error(`Expected an opaque rgb() colour, got "${color}"`);
+type Rgba = readonly [number, number, number, number];
+
+/** A CSS colour, in any syntax, as sRGB channels (0-255) and alpha (0-1). */
+const rgbaOf = (color: string): Rgba => {
+  if (!CSS.supports("color", color)) {
+    throw new Error(`Not a CSS colour: "${color}"`);
   }
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
+  const context = document.createElement("canvas").getContext("2d");
+  if (!context) {
+    throw new Error("No 2D canvas to read the colour with");
+  }
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+  return [r, g, b, a / 255];
 };
 
-const contrastRatio = (text: string, background: string): number => {
-  const luminance = (color: string) => {
-    const [r, g, b] = rgbOf(color).map((value) => {
-      const c = value / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  };
+/** `top`, at its alpha, over the opaque `bottom`. */
+const over = (top: Rgba, bottom: Rgba): Rgba => [
+  top[0] * top[3] + bottom[0] * (1 - top[3]),
+  top[1] * top[3] + bottom[1] * (1 - top[3]),
+  top[2] * top[3] + bottom[2] * (1 - top[3]),
+  1,
+];
+
+/**
+ * The colour behind an element: its own and its ancestors' backgrounds,
+ * blended down to the first opaque one (bg-white/50 is translucent).
+ */
+const backgroundBehind = (element: Element): Rgba => {
+  const layers: Rgba[] = [];
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const layer = rgbaOf(getComputedStyle(node).backgroundColor);
+    if (layer[3] > 0) {
+      layers.push(layer);
+    }
+    if (layer[3] === 1) {
+      return layers.reduceRight((below, above) => over(above, below));
+    }
+  }
+  throw new Error("No opaque background behind the element");
+};
+
+const luminance = ([r, g, b]: Rgba): number => {
+  const [lr, lg, lb] = [r, g, b].map((value) => {
+    const c = value / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+};
+
+/** The contrast of an element's text with the colour behind it. */
+const contrastRatio = (element: Element): number => {
+  const background = backgroundBehind(element);
+  const text = over(rgbaOf(getComputedStyle(element).color), background);
   const [light, dark] = [luminance(text), luminance(background)].sort(
     (a, b) => b - a,
   );
   return (light + 0.05) / (dark + 0.05);
 };
 
-/** The colour behind an element: its nearest ancestor with a background. */
-const backgroundBehind = (element: Element): string => {
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const { backgroundColor } = getComputedStyle(node);
-    if (backgroundColor !== "rgba(0, 0, 0, 0)") {
-      return backgroundColor;
-    }
-  }
-  throw new Error("No background behind the element");
+/** The element's text meets WCAG AA (4.5:1), once its colours settle. */
+const expectReadable = async (element: Element) => {
+  // Colours transition when a toggle is pressed
+  await Promise.all(element.getAnimations().map(({ finished }) => finished));
+  expect(contrastRatio(element)).toBeGreaterThanOrEqual(4.5);
 };
 
 const themedEditorStory = (theme: string): Story => ({
@@ -964,9 +1017,12 @@ const themedEditorStory = (theme: string): Story => ({
     task: taskBuilder.withRecurrence({
       title: `Editor in the ${theme} theme`,
       isRecurring: true,
-      recurringInterval: "FREQ=WEEKLY;INTERVAL=2",
+      // Selected weekdays, and a part these settings can't show (COUNT)
+      recurringInterval: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=5",
     }),
-    onSave: handleSave,
+    onSave: fn(async () => {
+      throw new Error("The vault is read-only");
+    }),
     onClose: handleClose,
     availableCategories: ["Work"],
   },
@@ -974,22 +1030,47 @@ const themedEditorStory = (theme: string): Story => ({
   parameters: { theme, a11y: { test: "error" } },
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
-    const dialog = await canvas.findByRole("dialog", { name: "Edit Task" });
-    // The accessibility checks run after this; mid-animation, the dialog's
-    // opacity blends every colour
-    await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe("1"));
+    await waitForEditorToOpen(canvasElement);
 
     await step("Secondary text meets WCAG AA (4.5:1)", async () => {
       for (const text of ["Task Dates", "Repeats automatically", "On days"]) {
-        const element = canvas.getByText(text);
-        expect(
-          contrastRatio(
-            getComputedStyle(element).color,
-            backgroundBehind(element),
-          ),
-        ).toBeGreaterThanOrEqual(4.5);
+        await expectReadable(canvas.getByText(text));
       }
     });
+
+    await step("Selected weekdays meet AA", async () => {
+      await expectReadable(
+        canvas.getByRole("button", { name: "Monday", pressed: true }),
+      );
+    });
+
+    await step("Selected months and days meet AA", async () => {
+      await userEvent.selectOptions(
+        canvas.getByLabelText("Recurrence frequency"),
+        String(RRule.YEARLY),
+      );
+      await userEvent.click(canvas.getByRole("button", { name: "Jun" }));
+      await userEvent.click(canvas.getByRole("button", { name: "15" }));
+      await expectReadable(
+        canvas.getByRole("button", { name: "Jun", pressed: true }),
+      );
+      await expectReadable(
+        canvas.getByRole("button", { name: "15", pressed: true }),
+      );
+    });
+
+    const warning = canvas.getByText(/^Saving replaces the stored rule/);
+    await step("The warning about dropped rule parts meets AA", async () => {
+      await expectReadable(warning);
+    });
+
+    await step("The save error meets AA", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await expectReadable(await canvas.findByRole("alert"));
+    });
+
+    // axe, which runs next, skips text scrolled out of view
+    warning.scrollIntoView({ block: "nearest" });
   },
 });
 

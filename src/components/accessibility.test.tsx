@@ -193,6 +193,10 @@ describe("task editor accessibility", () => {
     isRecurring: true,
     recurringInterval: "FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=31",
   };
+  const weeklyTask = {
+    isRecurring: true,
+    recurringInterval: "FREQ=WEEKLY;BYDAY=MO,WE",
+  };
   const renderEditor = (overrides: Partial<Task> = {}) =>
     renderToStaticMarkup(
       <TaskEditModal
@@ -254,5 +258,16 @@ describe("task editor accessibility", () => {
 
     expect(classes).toContain("text-slate-500");
     expect(classes).not.toContain("text-slate-400");
+  });
+
+  // Tailwind's dark: variant follows the OS colour scheme, but the theme
+  // tokens already switch with data-theme: with a dark OS, dark: classes
+  // invert the editor's colours a second time in every theme
+  it("does not use dark: variants", () => {
+    const classes = [yearlyTask, weeklyTask, {}]
+      .flatMap((task) => [...renderEditor(task).matchAll(/class="([^"]*)"/g)])
+      .flatMap(([, list]) => list.split(/\s+/));
+
+    expect(classes.filter((name) => name.startsWith("dark:"))).toEqual([]);
   });
 });
