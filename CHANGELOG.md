@@ -428,9 +428,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     else the 1st, until a key or a click moves it. Arrow keys move by a day
     or a week, Home and End to the start and end of the week, Page Up and
     Page Down by a month, and with Shift by a year. Moving past the month's
-    edge shows the new month and keeps focus on the new day. Enter and Space
-    pick the focused day, or clear it when it is the selected day, as a
-    click does.
+    edge, or clicking a day outside the month, shows that day's month and
+    keeps focus on the day.
+  - Enter and Space pick the focused day and, unlike a click, never clear
+    it, so Enter on the day a picker opens on keeps the date. Delete and
+    Backspace on the selected day clear it, the keyboard's way to remove a
+    date.
   - The task badges' date popovers and the task editor's date fields open
     with focus on that day, in a shadow root too. Radix focused the
     popover's first control ("Previous month"), or in a shadow root the

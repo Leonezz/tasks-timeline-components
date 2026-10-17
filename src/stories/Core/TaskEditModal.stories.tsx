@@ -1510,6 +1510,55 @@ export const SaveTask: Story = {
   },
 };
 
+// A date field's calendar opens on its date: Enter there keeps the date, and
+// Delete clears it, as no other control in the editor can
+export const KeyboardKeepsAndClearsADate: Story = {
+  args: {
+    ...Default.args,
+    task: taskBuilder.base({
+      id: "keyboard-dates",
+      title: "Task with a due date",
+      dueAt: DateTime.local(2026, 3, 10, 9, 30).toISO()!,
+    }),
+    onSave: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const label = DateTime.local(2026, 3, 10, 9, 30).toFormat(
+      "MMM dd, yyyy HH:mm",
+    );
+    const dueDate = await canvas.findByRole("button", { name: label });
+
+    await step("Enter twice keeps the due date", async () => {
+      dueDate.focus();
+      await userEvent.keyboard("{Enter}");
+      const day = await canvas.findByRole("gridcell", {
+        name: "Tuesday, March 10, 2026",
+      });
+      await waitFor(() => expect(day).toHaveFocus());
+      await userEvent.keyboard("{Enter}");
+      expect(day).toHaveAttribute("aria-selected", "true");
+      expect(dueDate).toHaveTextContent(label);
+    });
+
+    await step("Delete on the selected day clears it", async () => {
+      await userEvent.keyboard("{Delete}");
+      expect(dueDate).toHaveTextContent("Select due date");
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(canvas.queryByRole("grid")).toBeNull());
+    });
+
+    await step("Saving writes the empty date", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await waitFor(() =>
+        expect(args.onSave).toHaveBeenCalledWith(
+          expect.objectContaining({ dueAt: "" }),
+        ),
+      );
+    });
+  },
+};
+
 // Fixed March 2026 dates keep calendar day names unique
 const clearDatesTask = taskBuilder.completed({
   id: "clear-dates",

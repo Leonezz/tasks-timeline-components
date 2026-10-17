@@ -162,6 +162,93 @@ export const KeyboardNavigation: Story = {
   },
 };
 
+// As in the APG pattern, Enter and Space select the focused day and never
+// clear it, so confirming the day a picker opens on keeps it. Delete and
+// Backspace clear the selected day, and a click on it still clears it too.
+export const KeyboardKeepsAndClearsTheSelection: Story = {
+  render: (args) => <SelectingCalendar {...args} />,
+  args: {
+    mode: "single",
+    selected: new Date(2026, 2, 10),
+    initialFocus: true,
+    onSelect: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const day = canvas.getByRole("gridcell", {
+      name: "Tuesday, March 10, 2026",
+    });
+
+    await step("Enter on the selected day keeps it", async () => {
+      await waitFor(() => expect(day).toHaveFocus());
+      await userEvent.keyboard("{Enter}");
+      expect(args.onSelect).toHaveBeenLastCalledWith(new Date(2026, 2, 10));
+      expect(day).toHaveAttribute("aria-selected", "true");
+    });
+
+    await step("So does Space", async () => {
+      await userEvent.keyboard(" ");
+      expect(args.onSelect).toHaveBeenLastCalledWith(new Date(2026, 2, 10));
+      expect(day).toHaveAttribute("aria-selected", "true");
+    });
+
+    await step("Delete on another day clears nothing", async () => {
+      await userEvent.keyboard("{ArrowRight}{Delete}{ArrowLeft}");
+      expect(day).toHaveFocus();
+      expect(args.onSelect).toHaveBeenLastCalledWith(new Date(2026, 2, 10));
+      expect(day).toHaveAttribute("aria-selected", "true");
+    });
+
+    await step("Delete on the selected day clears it", async () => {
+      await userEvent.keyboard("{Delete}");
+      expect(args.onSelect).toHaveBeenLastCalledWith(undefined);
+      expect(day).not.toHaveAttribute("aria-selected");
+    });
+
+    await step("So does Backspace", async () => {
+      await userEvent.keyboard("{Enter}");
+      expect(day).toHaveAttribute("aria-selected", "true");
+      await userEvent.keyboard("{Backspace}");
+      expect(args.onSelect).toHaveBeenLastCalledWith(undefined);
+      expect(day).not.toHaveAttribute("aria-selected");
+    });
+
+    await step("A click on the selected day still clears it", async () => {
+      await userEvent.click(day);
+      expect(day).toHaveAttribute("aria-selected", "true");
+      await userEvent.click(day);
+      expect(args.onSelect).toHaveBeenLastCalledWith(undefined);
+      expect(day).not.toHaveAttribute("aria-selected");
+    });
+  },
+};
+
+// Clicking a day outside the month shows its month, so the clicked day stays
+// the one Tab stop and arrow keys move on from it
+export const ClickADayOutsideTheMonth: Story = {
+  render: (args) => <SelectingCalendar {...args} />,
+  args: {
+    mode: "single",
+    selected: new Date(2026, 2, 31),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dayNamed = (name: string) => canvas.getByRole("gridcell", { name });
+
+    await userEvent.click(dayNamed("Wednesday, April 1, 2026"));
+    expect(
+      canvas.getByRole("grid", { name: "April 2026" }),
+    ).toBeInTheDocument();
+    const clicked = dayNamed("Wednesday, April 1, 2026");
+    expect(clicked).toHaveAttribute("aria-selected", "true");
+    expect(tabStops(canvasElement)).toEqual([clicked]);
+    await waitFor(() => expect(clicked).toHaveFocus());
+
+    await userEvent.keyboard("{ArrowRight}");
+    expect(dayNamed("Thursday, April 2, 2026")).toHaveFocus();
+  },
+};
+
 // Without a selected day in the month, Tab reaches today, or else the 1st
 export const TabStopWithoutSelection: Story = {
   render: (args) => <SelectingCalendar {...args} />,

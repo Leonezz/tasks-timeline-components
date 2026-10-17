@@ -126,9 +126,21 @@ function Calendar({
     setCurrentMonth(addMonths(currentMonth, 1));
   };
 
+  /**
+   * Makes `day` the tab stop and focuses it once rendered. Past the month's
+   * edge it shows the day's month, where its button is.
+   */
+  const moveTabStop = (day: Date) => {
+    setFocusedDay(day);
+    if (!isSameMonth(day, currentMonth)) {
+      setCurrentMonth(startOfMonth(day));
+    }
+    focusTabStop.current = true;
+  };
+
   const handleDayClick = (day: Date) => {
     if (disabled?.(day)) return;
-    setFocusedDay(day);
+    moveTabStop(day);
     // Like react-day-picker's single mode: clicking the selected day clears it
     onSelect?.(selected && isSameDay(day, selected) ? undefined : day);
   };
@@ -138,14 +150,28 @@ function Calendar({
     day: Date,
   ) => {
     const next = dayForKey(day, event);
-    if (!next) return;
-    event.preventDefault();
-    setFocusedDay(next);
-    // Past the month's edge, show the new day's month
-    if (!isSameMonth(next, currentMonth)) {
-      setCurrentMonth(startOfMonth(next));
+    if (next) {
+      event.preventDefault();
+      moveTabStop(next);
+      return;
     }
-    focusTabStop.current = true;
+    if (event.altKey || event.ctrlKey || event.metaKey || disabled?.(day)) {
+      return;
+    }
+    // As in the WAI-ARIA pattern, Enter and Space pick the day and, unlike a
+    // click, never clear it: the calendar opens on the selected day. Delete
+    // and Backspace clear it instead.
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect?.(day);
+    } else if (
+      (event.key === "Delete" || event.key === "Backspace") &&
+      selected &&
+      isSameDay(day, selected)
+    ) {
+      event.preventDefault();
+      onSelect?.(undefined);
+    }
   };
 
   return (
@@ -223,6 +249,11 @@ function Calendar({
                     tabIndex={isTabStop ? 0 : -1}
                     onClick={() => handleDayClick(day)}
                     onKeyDown={(event) => handleDayKeyDown(event, day)}
+                    // Space clicks a button on keyup, after its keydown
+                    // picked the day: that click would clear it
+                    onKeyUp={(event) => {
+                      if (event.key === " ") event.preventDefault();
+                    }}
                     aria-selected={isSelected || undefined}
                     // Still focusable, so arrow keys can pass over it
                     aria-disabled={isDisabled || undefined}

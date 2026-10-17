@@ -197,6 +197,82 @@ export const KeyboardPicksADay: Story = {
 };
 
 /**
+ * Confirming the selected day keeps it
+ *
+ * The calendar opens on the selected day, so Enter or Space right away picks
+ * it again instead of clearing it, as a click on it would.
+ */
+export const EnterKeepsTheSelectedDay: Story = {
+  render: () => <DatePickerDemo showTime={false} initialValue="2026-03-10" />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body),
+      trigger = canvas.getByRole("button", {
+        name: DateTime.fromISO("2026-03-10").toFormat("MMM dd, yyyy"),
+      });
+    const confirmWith = async (key: string) => {
+      trigger.focus();
+      await userEvent.keyboard("{Enter}");
+      const selected = await page.findByRole("gridcell", {
+        name: "Tuesday, March 10, 2026",
+      });
+      await waitFor(() => expect(selected).toHaveFocus());
+      await userEvent.keyboard(key);
+      await waitFor(() => expect(page.queryByRole("grid")).toBeNull());
+      expect(canvas.getByText("2026-03-10")).toBeInTheDocument();
+      await waitFor(() => expect(trigger).toHaveFocus());
+    };
+
+    await step("Enter twice keeps the date and closes the calendar", () =>
+      confirmWith("{Enter}"),
+    );
+    await step("Enter and Space keep it too", () => confirmWith(" "));
+  },
+};
+
+/**
+ * Keyboard use with a time
+ *
+ * Enter on the selected day keeps the date and time, and the calendar stays
+ * open to set the time. Delete (or Backspace) on the selected day clears it.
+ */
+export const KeyboardKeepsAndClearsTheDateAndTime: Story = {
+  render: () => (
+    <DatePickerDemo
+      showTime={true}
+      initialValue={DateTime.local(2026, 3, 10, 9, 30).toISO()!}
+    />
+  ),
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body),
+      label = DateTime.local(2026, 3, 10, 9, 30).toFormat("MMM dd, yyyy HH:mm"),
+      trigger = canvas.getByRole("button", { name: label });
+
+    await step("Enter twice keeps the date and time", async () => {
+      trigger.focus();
+      await userEvent.keyboard("{Enter}");
+      const selected = await page.findByRole("gridcell", {
+        name: "Tuesday, March 10, 2026",
+      });
+      await waitFor(() => expect(selected).toHaveFocus());
+      await userEvent.keyboard("{Enter}");
+      expect(trigger).toHaveTextContent(label);
+      expect(selected).toHaveAttribute("aria-selected", "true");
+      expect(selected).toHaveFocus();
+    });
+
+    await step("Delete on the selected day clears it", async () => {
+      await userEvent.keyboard("{Delete}");
+      expect(trigger).toHaveTextContent("Pick date and time");
+      expect(canvas.getByText("(none)")).toBeInTheDocument();
+    });
+  },
+};
+
+/**
  * Pre-populated datetime value
  *
  * Test that existing datetime values are displayed correctly.

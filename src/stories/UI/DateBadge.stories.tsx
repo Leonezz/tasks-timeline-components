@@ -474,6 +474,65 @@ export const KeyboardPicksADay: Story = {
   },
 };
 
+// The calendar opens on the selected day, and Enter there keeps it, so
+// Enter, Enter, Tab, Tab, Enter (on Save) changes nothing
+export const EnterTwiceKeepsTheDate: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = withinShadow(canvasElement);
+
+    canvas.getByTitle("Change due date").focus();
+    await userEvent.keyboard("{Enter}");
+    const selected = await canvas.findByRole("gridcell", {
+      name: "Tuesday, March 10, 2026",
+    });
+    await waitFor(() => expect(selected).toHaveFocus());
+    await userEvent.keyboard("{Enter}");
+    expect(selected).toHaveAttribute("aria-selected", "true");
+    // Past Today to Save
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(canvas.getByRole("button", { name: "Save due date" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(args.onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ dueAt: "2026-03-10" }),
+    );
+  },
+};
+
+// Delete on the selected day clears it from the keyboard
+export const DeleteClearsTheDate: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = withinShadow(canvasElement);
+
+    canvas.getByTitle("Change due date").focus();
+    await userEvent.keyboard("{Enter}");
+    const selected = await canvas.findByRole("gridcell", {
+      name: "Tuesday, March 10, 2026",
+    });
+    await waitFor(() => expect(selected).toHaveFocus());
+    await userEvent.keyboard("{Delete}");
+    expect(selected).not.toHaveAttribute("aria-selected");
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Save due date" }),
+    );
+    expect(args.onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ dueAt: "" }),
+    );
+  },
+};
+
 export const AriaLabels: Story = {
   args: {
     ...DueDate.args,
