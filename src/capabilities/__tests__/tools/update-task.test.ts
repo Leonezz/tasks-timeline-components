@@ -228,4 +228,83 @@ describe("update_task tool", () => {
     expect(updated.isRecurring).toBeUndefined();
     expect(updated.recurringInterval).toBeUndefined();
   });
+
+  describe("done and cancelled dates on a status change", () => {
+    const withTask = (task: Partial<Task>) =>
+      makeContext({
+        getTask: vi.fn().mockResolvedValue({ ...EXISTING_TASK, ...task }),
+      });
+
+    it("clears the cancelled date of a reopened task", async () => {
+      ctx = withTask({
+        status: "cancelled",
+        cancelledAt: "2026-10-17T09:00:00.000+08:00",
+      });
+
+      await createUpdateTaskTool(ctx).execute({ id: "task-1", status: "todo" });
+
+      const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+      expect(updated.status).toBe("todo");
+      expect(updated.cancelledAt).toBeUndefined();
+    });
+
+    it("clears the done date of a reopened task", async () => {
+      ctx = withTask({
+        status: "done",
+        completedAt: "2026-10-17T09:00:00.000+08:00",
+      });
+
+      await createUpdateTaskTool(ctx).execute({
+        id: "task-1",
+        status: "doing",
+      });
+
+      const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+      expect(updated.status).toBe("doing");
+      expect(updated.completedAt).toBeUndefined();
+    });
+
+    it("clears the done date of a done task that is cancelled", async () => {
+      ctx = withTask({
+        status: "done",
+        completedAt: "2026-10-16T09:00:00.000+08:00",
+      });
+
+      await createUpdateTaskTool(ctx).execute({
+        id: "task-1",
+        status: "cancelled",
+      });
+
+      const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+      expect(updated.status).toBe("cancelled");
+      expect(updated.completedAt).toBeUndefined();
+    });
+
+    it("keeps the dates when the status does not change", async () => {
+      ctx = withTask({
+        status: "done",
+        completedAt: "2026-10-16T09:00:00.000+08:00",
+      });
+
+      await createUpdateTaskTool(ctx).execute({
+        id: "task-1",
+        status: "done",
+        title: "Renamed",
+      });
+
+      const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+      expect(updated.completedAt).toBe("2026-10-16T09:00:00.000+08:00");
+    });
+
+    it("keeps a done date given with the done status", async () => {
+      await createUpdateTaskTool(ctx).execute({
+        id: "task-1",
+        status: "done",
+        completedAt: "2026-10-16",
+      });
+
+      const updated = vi.mocked(ctx.updateTask).mock.calls[0][0];
+      expect(updated.completedAt).toBe("2026-10-16");
+    });
+  });
 });

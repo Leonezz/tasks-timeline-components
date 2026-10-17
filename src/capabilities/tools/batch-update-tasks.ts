@@ -4,6 +4,7 @@ import {
   deriveWorkflowStatus,
   isTaskRecurring,
   taskMatchesStatus,
+  withStatusDates,
 } from "../../utils/task";
 import { confirmDestructiveAction } from "./confirm";
 import { readRecurrenceArgument } from "../../utils/recurrence-argument";
@@ -194,7 +195,7 @@ export function createBatchUpdateTasksTool(ctx: CapabilityContext): ToolSpec {
         }
 
         // Apply updates immutably
-        const merged = { ...task, ...fieldUpdates };
+        const merged = withStatusDates(task, { ...task, ...fieldUpdates });
 
         const finalTask = { ...merged, status: deriveWorkflowStatus(merged) };
 

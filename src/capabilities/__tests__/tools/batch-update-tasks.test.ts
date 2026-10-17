@@ -552,4 +552,26 @@ describe("batch_update_tasks tool", () => {
     });
     expect(ctx.updateTask).not.toHaveBeenCalled();
   });
+
+  it("clears the cancelled date of the tasks it reopens", async () => {
+    const cancelledTask: Task = {
+      ...SAMPLE_TASKS[0],
+      id: "task-cancelled",
+      status: "cancelled",
+      cancelledAt: "2026-02-20T09:00:00.000+08:00",
+    };
+    ctx = makeContext({
+      getTasks: vi.fn().mockResolvedValue([cancelledTask]),
+      confirmPolicy: "skip",
+    });
+
+    await createBatchUpdateTasksTool(ctx).execute({
+      filter: { status: "cancelled" },
+      update: { status: "todo" },
+    });
+
+    const reopened = vi.mocked(ctx.updateTask).mock.calls[0][0];
+    expect(reopened.status).toBe("todo");
+    expect(reopened.cancelledAt).toBeUndefined();
+  });
 });

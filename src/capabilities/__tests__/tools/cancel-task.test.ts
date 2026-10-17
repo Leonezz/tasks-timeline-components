@@ -92,4 +92,21 @@ describe("cancel_task tool", () => {
     expect(ctxNotFound.updateTask).not.toHaveBeenCalled();
     expect(ctxNotFound.notify).not.toHaveBeenCalled();
   });
+
+  it("clears the done date of a done task it cancels", async () => {
+    const ctxDone = makeContext({
+      getTask: vi.fn().mockResolvedValue({
+        ...EXISTING_TASK,
+        status: "done",
+        completedAt: "2026-10-16T09:00:00.000+08:00",
+      }),
+    });
+
+    await createCancelTaskTool(ctxDone).execute({ id: "task-1" });
+
+    const cancelled = vi.mocked(ctxDone.updateTask).mock.calls[0][0];
+    expect(cancelled.status).toBe("cancelled");
+    expect(cancelled.cancelledAt).toBeDefined();
+    expect(cancelled.completedAt).toBeUndefined();
+  });
 });

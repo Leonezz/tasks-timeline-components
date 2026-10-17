@@ -52,6 +52,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editing a task line split the word after a 🔁 rule.** The rule
+  characters can stop inside a word, and the first part of that word was read
+  into the rule: `🔁 every month https://billing.example.com` had the rule
+  `every month https` and the notes `://billing.example.com`. Completing the
+  task wrote `🔁 every month https ✅ 2026-10-18 ://billing.example.com`,
+  un-completing it left `https ://…`, a rule change dropped `https`, and the
+  next occurrence got the broken notes. The same happened to `9:30` and
+  `don't`. A rule now ends before a word it stops inside, so that word stays
+  whole in the notes (`every month`, then `https://billing.example.com`). A
+  rule followed by `.`, a `[[link]]` or CJK text is read as before.
+  - A rule whose only word is cut off this way (`🔁 https://…`) is title
+    text, not a rule.
+  - `🔁 every day at 9:30` now has the rule `every day at`, which can't be
+    read, so `complete_task` reports it instead of repeating the task daily
+    at 9:00. Obsidian Tasks rules can't hold a time, and Obsidian Tasks does
+    not read that line as recurring.
+  - `taskToMarkdown` never adds a field between a field and text written
+    right after it (`📅 2026-10-16, then lunch`); the field goes before
+    another field or at the end instead.
+- **Reopening a task left its ❌ or ✅ date on the line.** A task cancelled
+  and then set back to todo was written as `- [ ] Task ❌ 2026-10-17`, and a
+  done task reopened kept its `✅` date. Status changes in the timeline and in
+  `update_task`, `batch_update_tasks`, `complete_task` and `cancel_task` now
+  keep `completedAt` only while a task is done and `cancelledAt` only while it
+  is cancelled, as Obsidian Tasks does. A done task that is cancelled loses
+  its done date, and the reverse. A change that keeps the status keeps both
+  dates.
 - **Obsidian recurring tasks were not treated as recurring.** The Obsidian
   Tasks parser set `recurringInterval` (`🔁 every week`) but not
   `isRecurring`, so `complete_task` created no next occurrence, the

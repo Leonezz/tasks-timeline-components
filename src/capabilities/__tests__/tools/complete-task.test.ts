@@ -91,6 +91,23 @@ describe("complete_task tool", () => {
     );
   });
 
+  it("clears the cancelled date of a cancelled task it completes", async () => {
+    ctx = makeContext({
+      getTask: vi.fn().mockResolvedValue({
+        ...NON_RECURRING_TASK,
+        status: "cancelled",
+        cancelledAt: "2026-02-19T09:00:00.000+08:00",
+      }),
+    });
+
+    await createCompleteTaskTool(ctx).execute({ id: "task-1" });
+
+    const completedTask = vi.mocked(ctx.updateTask).mock.calls[0][0];
+    expect(completedTask.status).toBe("done");
+    expect(completedTask.completedAt).toBeDefined();
+    expect(completedTask.cancelledAt).toBeUndefined();
+  });
+
   it("creates next occurrence for recurring task", async () => {
     ctx = makeContext({
       getTask: vi.fn().mockResolvedValue({ ...RECURRING_TASK }),

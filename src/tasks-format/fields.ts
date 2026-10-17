@@ -123,8 +123,29 @@ const isDate = (value: string): boolean => {
  */
 const THROUGH_WHEN_DONE = /^.*?\bwhen done\b/i;
 
-const ruleValue = (value: string): string => {
-  const rule = value.trimEnd();
+/**
+ * Text that carries on the word before it: a letter, digit or mark, or one
+ * after punctuation inside a word (the "://" of "https://…", the ":" of
+ * "9:30", the "'" of "don't"). Spaces, brackets, symbols such as the next
+ * field's, and CJK characters, which need no space before them, end it.
+ */
+const WORD_GOES_ON =
+  /[\p{Pc}\p{Pd}\p{Po}\p{Pi}\p{Pf}]*(?![\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}])[\p{L}\p{N}\p{M}]/uy;
+
+const LAST_WORD = /\S+$/u;
+
+/**
+ * The rule written at `start` of `text`, from what the rule characters
+ * matched there. They can stop inside a word ("🔁 every month https://…"),
+ * whose start is then not part of the rule, so the word stays whole in the
+ * text after it.
+ */
+const ruleValue = (matched: string, text: string, start: number): string => {
+  WORD_GOES_ON.lastIndex = start + matched.length;
+  const words = WORD_GOES_ON.test(text)
+    ? matched.replace(LAST_WORD, "")
+    : matched;
+  const rule = words.trimEnd();
   return THROUGH_WHEN_DONE.exec(rule)?.[0] ?? rule;
 };
 
@@ -140,7 +161,10 @@ export function matchFieldAt(
       continue;
     }
     const [, symbol, gap, raw] = match;
-    const value = key === "recurrence" ? ruleValue(raw) : raw;
+    const value =
+      key === "recurrence"
+        ? ruleValue(raw, text, index + symbol.length + gap.length)
+        : raw;
     if (
       (key === "recurrence" && value === "") ||
       (isDateField(key as TasksFieldKey) && !isDate(value))

@@ -17,6 +17,7 @@ import {
   removeTagAt,
   type DateValidationState,
 } from "../utils";
+import { withStatusDates } from "../utils/task";
 import { Icon } from "./Icon";
 import { MotionButton, MotionDiv } from "./Motion";
 import { DateBadge } from "./DateBadge";
@@ -125,7 +126,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           updates.cancelledAt = now || undefined;
         }
 
-        onUpdateTask({ ...task, ...updates });
+        // Leaving done or cancelled clears its ✅/❌ date, as Obsidian Tasks does
+        onUpdateTask(withStatusDates(task, { ...task, ...updates }));
       },
       handleSaveEdit = () => {
         if (editTitle.trim()) {

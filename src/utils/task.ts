@@ -93,6 +93,25 @@ export const isWorkflowStatus = (
 export const deriveWorkflowStatus = (task: Task): WorkflowStatus =>
   isWorkflowStatus(task.status) ? task.status : "todo";
 
+/**
+ * `next` with the done and cancelled dates its status keeps, as Obsidian
+ * Tasks sets them on a status change: `completedAt` (✅) only while the task
+ * is done, `cancelledAt` (❌) only while it is cancelled. A reopened task
+ * loses both, and a done task that is cancelled loses its done date. When
+ * the status stays the same, `next` is returned as it is.
+ */
+export function withStatusDates(previous: Task, next: Task): Task {
+  const status = deriveWorkflowStatus(next);
+  if (status === deriveWorkflowStatus(previous)) {
+    return next;
+  }
+  return {
+    ...next,
+    completedAt: status === "done" ? next.completedAt : undefined,
+    cancelledAt: status === "cancelled" ? next.cancelledAt : undefined,
+  };
+}
+
 export const deriveTaskRenderState = (task: Task): TaskRenderState => {
   const workflowStatus = deriveWorkflowStatus(task),
     isActive = workflowStatus !== "done" && workflowStatus !== "cancelled";

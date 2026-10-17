@@ -9,6 +9,7 @@ import { parseTasksFormatItem } from "./parser";
 import { taskToMarkdown } from "./serializer";
 import { TaskRegularExpressions } from "./regex";
 import { getTaskStatusFromMarker } from "./symbols";
+import { withStatusDates } from "../utils/task";
 
 /** The task a host reads from a line: the text after the checkbox, and its status. */
 const parseLine = (line: string): Task => {
@@ -220,6 +221,123 @@ describe("Obsidian Tasks fields and notes after 🔁 (#43)", () => {
       }),
     ).toBe("- [-] Old idea 📅 2026-10-16 ❌ 2026-10-17");
   });
+
+  it.each([
+    ["- [-] Old idea 📅 2026-10-16 ❌ 2026-10-17", "todo"],
+    ["- [x] Old idea 📅 2026-10-16 ✅ 2026-10-17", "todo"],
+    ["- [x] Old idea 📅 2026-10-16 ✅ 2026-10-17", "doing"],
+  ] as const)("removes the stale date when %j is set to %s", (line, status) => {
+    const task = parseLine(line);
+
+    expect(
+      taskToMarkdown(withStatusDates(task, { ...task, status }), line),
+    ).toBe(`- [${status === "todo" ? " " : "/"}] Old idea 📅 2026-10-16`);
+  });
+
+  it("swaps ✅ for ❌ when a done task is cancelled", () => {
+    const line = "- [x] Old idea 📅 2026-10-16 ✅ 2026-10-17";
+    const task = parseLine(line);
+
+    expect(
+      taskToMarkdown(
+        withStatusDates(task, {
+          ...task,
+          status: "cancelled",
+          cancelledAt: "2026-10-18",
+        }),
+        line,
+      ),
+    ).toBe("- [-] Old idea 📅 2026-10-16 ❌ 2026-10-18");
+  });
+});
+
+describe("a 🔁 rule the rule characters stop inside a word", () => {
+  it.each([
+    [
+      "- [ ] Pay bill 🔁 every month https://billing.example.com",
+      "every month",
+      "https://billing.example.com",
+    ],
+    ["- [ ] Standup 🔁 every day at 9:30", "every day at", "9:30"],
+    [
+      "- [ ] Water plants 🔁 every week don't forget",
+      "every week",
+      "don't forget",
+    ],
+    ["- [ ] Call 🔁 every week Müller", "every week", "Müller"],
+  ])("reads %j with the rule %j and the word whole", (line, rule, notes) => {
+    const task = parseLine(line);
+
+    expect(task.recurringInterval).toBe(rule);
+    expect(task.extra?.lineNotes).toBe(notes);
+    expect(rewrite(line)).toBe(line);
+  });
+
+  it.each([
+    ["- [ ] Water plants 🔁 every week.", "every week", "."],
+    ["- [ ] Water plants 🔁 every week[[Garden]]", "every week", "[[Garden]]"],
+    ["- [ ] 浇水 🔁 every week记得", "every week", "记得"],
+  ])(
+    "keeps the rule of %j whole when the text after it starts a word",
+    (line, rule, notes) => {
+      const task = parseLine(line);
+
+      expect(task.recurringInterval).toBe(rule);
+      expect(task.extra?.lineNotes).toBe(notes);
+    },
+  );
+
+  it("does not read a 🔁 followed by only part of a word as a rule", () => {
+    const task = parseLine("- [ ] See 🔁 https://example.com 📅 2026-10-16");
+
+    expect(task.recurringInterval).toBeUndefined();
+    expect(task.title).toBe("See 🔁 https://example.com");
+  });
+
+  it.each([
+    [
+      "- [ ] Pay bill 🔁 every month https://billing.example.com",
+      "- [x] Pay bill 🔁 every month ✅ 2026-10-18 https://billing.example.com",
+    ],
+    [
+      "- [ ] Standup 🔁 every day at 9:30",
+      "- [x] Standup 🔁 every day at ✅ 2026-10-18 9:30",
+    ],
+    [
+      "- [ ] Water plants 🔁 every week don't forget",
+      "- [x] Water plants 🔁 every week ✅ 2026-10-18 don't forget",
+    ],
+    [
+      "- [ ] Water plants 🔁 every week.",
+      "- [x] Water plants ✅ 2026-10-18 🔁 every week.",
+    ],
+  ])(
+    "completes %j without splitting a word, and reopens it as it was",
+    (line, completed) => {
+      const done = rewrite(line, {
+        status: "done",
+        completedAt: "2026-10-18",
+      });
+
+      expect(done).toBe(completed);
+      expect(rewrite(done, { status: "todo", completedAt: undefined })).toBe(
+        line,
+      );
+    },
+  );
+
+  it("changes the rule in place and keeps the word after it", () => {
+    expect(
+      rewrite("- [ ] Pay bill 🔁 every month https://billing.example.com", {
+        recurringInterval: "every 2 months",
+      }),
+    ).toBe("- [ ] Pay bill 🔁 every 2 months https://billing.example.com");
+    expect(
+      rewrite("- [ ] Water plants 🔁 every week don't forget", {
+        recurringInterval: "every 2 weeks",
+      }),
+    ).toBe("- [ ] Water plants 🔁 every 2 weeks don't forget");
+  });
 });
 
 /** Real Obsidian Tasks lines, written back as they are when nothing changed. */
@@ -269,6 +387,10 @@ const REAL_LINES = [
   "-  [ ]  Extra spaces around the checkbox 📅 2026-10-16",
   "- [ ] Pay rent 🔁 every month until December 31, 2026 📅 2026-10-01",
   "- [ ] Pay rent 🔁 every week 🔺",
+  "- [ ] Pay bill 🔁 every month https://billing.example.com",
+  "- [ ] Standup 🔁 every day at 9:30",
+  "- [ ] Water plants 🔁 every week don't forget",
+  "- [ ] Call Bob 📅 2026-10-16, then lunch",
 ];
 
 describe("an unchanged line round-trips byte for byte", () => {

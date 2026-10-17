@@ -6,6 +6,7 @@ import {
   isTaskRecurring,
   removeTagAt,
   taskMatchesStatus,
+  withStatusDates,
 } from "./task";
 
 const makeTask = (overrides: Partial<Task>): Task => ({
@@ -120,5 +121,47 @@ describe("isTaskRecurring", () => {
 
   it("is false without a flag or a rule", () => {
     expect(isTaskRecurring({})).toBe(false);
+  });
+});
+
+describe("withStatusDates", () => {
+  const DONE = "2026-10-16T09:00:00.000+08:00";
+  const CANCELLED = "2026-10-17T09:00:00.000+08:00";
+
+  it.each([
+    ["cancelled", "todo", { cancelledAt: CANCELLED }],
+    ["cancelled", "doing", { cancelledAt: CANCELLED }],
+    ["done", "todo", { completedAt: DONE }],
+    ["done", "cancelled", { completedAt: DONE, cancelledAt: CANCELLED }],
+    ["cancelled", "done", { completedAt: DONE, cancelledAt: CANCELLED }],
+  ] as const)(
+    "keeps only the date of the new status when %s becomes %s",
+    (from, to, dates) => {
+      const previous = makeTask({ status: from, ...dates });
+
+      const next = withStatusDates(previous, { ...previous, status: to });
+
+      expect(next.status).toBe(to);
+      expect(next.completedAt).toBe(to === "done" ? DONE : undefined);
+      expect(next.cancelledAt).toBe(to === "cancelled" ? CANCELLED : undefined);
+    },
+  );
+
+  it("changes nothing when the status stays the same", () => {
+    const previous = makeTask({
+      status: "todo",
+      completedAt: DONE,
+      cancelledAt: CANCELLED,
+    });
+    const next = { ...previous, title: "Renamed" };
+
+    expect(withStatusDates(previous, next)).toBe(next);
+  });
+
+  it("compares statuses as they are saved (a display status is todo)", () => {
+    const previous = makeTask({ status: "due", cancelledAt: CANCELLED });
+    const next = { ...previous, status: "todo" as const };
+
+    expect(withStatusDates(previous, next)).toBe(next);
   });
 });
