@@ -11,18 +11,35 @@ const css = readFileSync(new URL("../index.css", import.meta.url), "utf8");
 
 type Rgb = readonly [number, number, number];
 
-/** The `--name: h s% l%` tokens declared in the first block matching `selector`. */
-function tokensOf(selector: string): Record<string, string> {
-  const start = css.indexOf(selector);
+/**
+ * The `--name: value` tokens declared in the first block matching `selector`.
+ * Comments are skipped, since they can name tokens ("as --slate-500: …"), and
+ * a statement that isn't one `--name: value` declaration throws.
+ */
+function tokensOf(selector: string, source = css): Record<string, string> {
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, "");
+  const start = text.indexOf(selector);
   if (start === -1) {
-    throw new Error(`No "${selector}" block in index.css`);
+    throw new Error(`No "${selector}" block`);
   }
-  const body = css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
+  const body = text.slice(
+    text.indexOf("{", start) + 1,
+    text.indexOf("}", start),
+  );
+  const declarations = body
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean);
   return Object.fromEntries(
-    [...body.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [
-      name,
-      value.trim(),
-    ]),
+    declarations.map((declaration) => {
+      const match = /^(--[\w-]+):\s*([^:]+)$/.exec(declaration);
+      if (!match) {
+        throw new Error(
+          `Unreadable declaration in "${selector}": ${declaration}`,
+        );
+      }
+      return [match[1], match[2].trim()];
+    }),
   );
 }
 
@@ -183,6 +200,15 @@ describe("task editor text contrast", () => {
     expect(THEMES.dark["--slate-500"]).not.toBe(lightTokens["--slate-500"]);
     expect(THEMES.midnight["--background"]).not.toBe(
       lightTokens["--background"],
+    );
+    // Declared under a comment that names another token
+    expect(THEMES.coffee["--muted-foreground"]).toBe("30 10% 40%");
+  });
+
+  it("fails on a declaration it can't read instead of dropping it", () => {
+    // Without the semicolon, --b would become part of --a's value
+    expect(() => tokensOf("a {", "a { --a: 0 0% 0% --b: 0 0% 100%; }")).toThrow(
+      /--b/,
     );
   });
 });
