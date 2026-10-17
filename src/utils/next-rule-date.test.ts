@@ -51,6 +51,9 @@ describe("nextRuleDay matches rrule", () => {
     ],
     ["FREQ=HOURLY;INTERVAL=48;BYDAY=MO", "2026-10-12"],
     ["FREQ=DAILY;BYSETPOS=1;BYDAY=MO", "2026-10-12"],
+    // The last of each week's days in November, not its first
+    ["FREQ=WEEKLY;BYDAY=MO,TU,WE;BYSETPOS=-1;BYMONTH=11", "2026-10-17"],
+    ["FREQ=WEEKLY;BYDAY=MO,TU,WE;BYSETPOS=-1;BYMONTH=11", "2026-11-04"],
   ])("%j from %s", (rule, from) => {
     expect(nextRuleDay(parse(rule), from, rule)).toBe(groundTruth(rule, from));
   });
@@ -90,6 +93,11 @@ describe("nextRuleDay matches rrule for rules with times of day (#46)", () => {
       "DTSTART:20261016T000000\nRRULE:FREQ=DAILY;BYHOUR=9,17;BYSETPOS=2",
       "2026-10-16",
       "2026-10-17",
+    ],
+    [
+      "DTSTART:20261016T000000\nRRULE:FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=28",
+      "2026-10-17",
+      "2027-02-28",
     ],
     // COUNT counts each time of day
     [
@@ -460,3 +468,223 @@ describe("nextRuleDay with BYSETPOS on daily rules", () => {
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });
+
+describe("nextRuleDay with BYSETPOS and day filters that never match", () => {
+  // rrule alone scans these to the year 9999, past any UNTIL: about a
+  // second for a plain weekly rule, several with times of day
+  const EVERY_HOUR = Array.from({ length: 24 }, (_, hour) => hour).join(",");
+  const EVERY_POSITION = Array.from({ length: 24 }, (_, i) => i + 1).join(",");
+
+  it.each([
+    // A position among each day's or week's dates, on February 30th
+    "FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30",
+    "FREQ=WEEKLY;BYSETPOS=1;BYMONTH=2;BYMONTHDAY=30",
+    // Week 53 is at the end of December or the start of January
+    "FREQ=WEEKLY;BYWEEKNO=53;BYMONTH=6",
+    "FREQ=WEEKLY;BYWEEKNO=53;BYMONTH=6;BYSETPOS=1",
+    `FREQ=WEEKLY;BYHOUR=${EVERY_HOUR};BYSETPOS=${EVERY_POSITION};BYMONTH=2;BYMONTHDAY=30`,
+  ])("rules out %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(() => nextRuleDay(parse(rule), "2026-10-17", rule)).toThrow(
+      "has no date after 2026-10-17",
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it("ends a rule with an UNTIL quickly", () => {
+    const rule = `FREQ=DAILY;BYHOUR=${EVERY_HOUR};BYSETPOS=${EVERY_POSITION};BYMONTH=2;BYMONTHDAY=30;UNTIL=20271231`;
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe("nextRuleDay's quick check with many times of day", () => {
+  const list = (first: number, last: number) =>
+    Array.from({ length: last - first + 1 }, (_, i) => first + i).join(",");
+  const EVERY_SECOND_OF_DAY = `BYHOUR=${list(0, 23)};BYMINUTE=${list(0, 59)};BYSECOND=${list(0, 59)}`;
+
+  // The check only needs days: with the times of day, rrule makes each
+  // day's every time from the start, which takes seconds
+  it.each([
+    [
+      `FREQ=DAILY;${EVERY_SECOND_OF_DAY};BYSETPOS=1;BYMONTH=${list(1, 12)}`,
+      "2026-10-18",
+    ],
+    [
+      `DTSTART:20200101T000000\nRRULE:FREQ=DAILY;BYHOUR=${list(0, 23)};BYMINUTE=${list(0, 59)};BYSECOND=0,15,30,45;BYSETPOS=-1;BYMONTH=${list(1, 12)}`,
+      "2026-10-18",
+    ],
+  ])("finds the next date of %j quickly", (rule, expected) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBe(expected);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+/**
+ * rrule numbers a weekly rule's weeks by the year each week starts in, and a
+ * daily or yearly rule's days by their own year, so January 1 2022 is in
+ * week 52 of a weekly rule and not of a daily one.
+ */
+describe("nextRuleDay with BYWEEKNO around the new year", () => {
+  it.each([
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYSETPOS=-1;UNTIL=20220105",
+      "2021-12-31",
+      "2022-01-02",
+    ],
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU;BYSETPOS=1;UNTIL=20220109",
+      "2021-12-28",
+      "2022-01-01",
+    ],
+    ["FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU", "2021-12-28", "2022-01-01"],
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU;UNTIL=20220109",
+      "2021-12-28",
+      "2022-01-01",
+    ],
+  ])("%j from %s", (rule, from, expected) => {
+    expect(wholeRuleTruth(rule, from)).toBe(expected);
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(expected);
+  });
+
+  // 2020 and 2026 have 53 weeks
+  const WEEK_NUMBER_SWEEP = ["WEEKLY", "DAILY"]
+    .flatMap((freq) =>
+      ["52", "53", "1", "2", "-1", "-52"].map(
+        (week) => `FREQ=${freq};BYWEEKNO=${week}`,
+      ),
+    )
+    .flatMap((rule) =>
+      ["", ";BYDAY=SA,SU", ";BYDAY=MO"].map((days) => `${rule}${days}`),
+    )
+    .flatMap((rule) =>
+      ["", ";BYSETPOS=1", ";BYSETPOS=-1"].map((pick) => `${rule}${pick}`),
+    )
+    .flatMap((rule) =>
+      ["", ";UNTIL=20210103", ";UNTIL=20220109", ";UNTIL=20270103"].map(
+        (end) => `${rule}${end}`,
+      ),
+    )
+    .flatMap((rule) => [rule, `DTSTART:20201221T000000\nRRULE:${rule}`])
+    .flatMap((rule) =>
+      [
+        "2020-12-24",
+        "2020-12-31",
+        "2021-12-28",
+        "2021-12-31",
+        "2026-12-24",
+        "2026-12-31",
+      ].map((from) => [rule, from] as const),
+    );
+
+  it.each(WEEK_NUMBER_SWEEP)("matches rrule for %j from %s", (rule, from) => {
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(
+      wholeRuleTruth(rule, from),
+    );
+  });
+});
+
+/**
+ * Hourly and minutely rules with a UTC start, which rrule steps in UTC: their
+ * BYHOUR and day filters are UTC hours and days, and 24 hours is a UTC day
+ * whatever the clocks do (October 25 in Europe, November 1 in America).
+ */
+const UTC_SUB_DAILY_RULES = [
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=HOURLY;INTERVAL=6;BYHOUR=22;BYDAY=SA",
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=HOURLY;INTERVAL=36;BYDAY=MO",
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=HOURLY;BYHOUR=23;BYDAY=SU;COUNT=3",
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=HOURLY;INTERVAL=2;BYHOUR=0,22;BYMONTHDAY=18,25,31",
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=MINUTELY;INTERVAL=1500;BYDAY=SA,SU;COUNT=6",
+  "DTSTART:20261016T223000Z\nRRULE:FREQ=HOURLY;INTERVAL=24;COUNT=12",
+  "DTSTART:20261016T220000Z\nRRULE:FREQ=HOURLY;INTERVAL=12;UNTIL=20261025T230000Z",
+  "DTSTART:20261016T080000Z\nRRULE:FREQ=HOURLY;INTERVAL=48;BYHOUR=8;UNTIL=20261101T070000Z",
+].flatMap((rule) =>
+  [
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-18",
+    "2026-10-24",
+    "2026-10-25",
+    "2026-10-27",
+    "2026-10-29",
+    "2026-10-31",
+    "2026-11-01",
+  ].map((from) => [rule, from] as const),
+);
+
+describe.each([
+  "Europe/Berlin",
+  "America/Los_Angeles",
+  "Asia/Kolkata",
+  "Asia/Shanghai",
+  "UTC",
+])(
+  "nextRuleDay matches rrule for UTC hourly and minutely rules, in %s",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it.each(UTC_SUB_DAILY_RULES)("%j from %s", (rule, from) => {
+      expect(nextRuleDay(parse(rule), from, rule)).toBe(localTruth(rule, from));
+    });
+  },
+);
+
+/**
+ * Hourly rules with minutes (and minutely ones with seconds) within each
+ * step, and a UTC start: an hour's dates can fall on another local day than
+ * the hour's start where the offset isn't whole hours (18:00 UTC is 23:30
+ * in India and 18:45 UTC is 00:15 the next day).
+ */
+const UTC_RULES_WITHIN_STEPS = [
+  "DTSTART:20261016T180000Z\nRRULE:FREQ=HOURLY;INTERVAL=24;BYMINUTE=45",
+  "DTSTART:20261016T180000Z\nRRULE:FREQ=HOURLY;INTERVAL=24;BYMINUTE=15,45",
+  "DTSTART:20261016T010000Z\nRRULE:FREQ=HOURLY;BYHOUR=18;BYMINUTE=45",
+  "DTSTART:20261016T180000Z\nRRULE:FREQ=HOURLY;INTERVAL=6;BYMINUTE=45;BYDAY=SA",
+  // 18:00 on the start day comes before the 18:30 start
+  "DTSTART:20261016T183000Z\nRRULE:FREQ=HOURLY;INTERVAL=6;BYMINUTE=0,45;BYDAY=FR,SA",
+  "DTSTART:20261016T181500Z\nRRULE:FREQ=MINUTELY;INTERVAL=1440;BYSECOND=0,30",
+].flatMap((rule) =>
+  [
+    "2026-10-10",
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-18",
+    "2026-10-23",
+    "2026-10-24",
+  ].map((from) => [rule, from] as const),
+);
+
+describe.each([
+  "Asia/Kolkata",
+  "Asia/Kathmandu",
+  "America/St_Johns",
+  "Australia/Adelaide",
+  "UTC",
+])(
+  "nextRuleDay matches rrule for UTC rules with dates within each step, in %s",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it.each(UTC_RULES_WITHIN_STEPS)("%j from %s", (rule, from) => {
+      expect(nextRuleDay(parse(rule), from, rule)).toBe(localTruth(rule, from));
+    });
+  },
+);

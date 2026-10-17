@@ -12,7 +12,7 @@ import {
 } from "../../components/ui/popover";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, expectReadable } from "../test-utils";
 import { RRule } from "rrule";
 import { DateTime } from "luxon";
 
@@ -518,6 +518,56 @@ const findEditor = (container: HTMLElement): Promise<HTMLElement> =>
     return dialog;
   });
 
+/** A calendar day's name: the calendar names days with date-fns, in English. */
+const calendarDayName = (date: DateTime) =>
+  date.setLocale("en-US").toFormat("cccc, LLLL d, yyyy");
+
+/**
+ * Moves through an open date picker's calendar with arrow keys, from today
+ * (its field has no date) into next month and back, then picks a day in next
+ * month with Enter. The calendar moves focus itself, so this works in a
+ * shadow root too, where user-event's Tab can't.
+ */
+const expectArrowKeysPickADay = async (
+  picker: HTMLElement,
+  field: HTMLElement,
+) => {
+  const expectFocusOn = async (date: DateTime) => {
+    await waitFor(() =>
+      expect(focusedElement(picker)).toBe(
+        within(picker).getByRole("gridcell", { name: calendarDayName(date) }),
+      ),
+    );
+    expect(
+      within(picker).getByRole("grid", {
+        name: date.setLocale("en-US").toFormat("LLLL yyyy"),
+      }),
+    ).toBeInTheDocument();
+  };
+  const today = DateTime.now().startOf("day");
+  // Enough weeks down to leave this month, and one less to stay in it
+  const weeks = Math.ceil((today.daysInMonth! - today.day + 1) / 7);
+  const nextMonth = today.plus({ weeks });
+  const picked = nextMonth.plus({ days: 1 });
+
+  // The calendar opens on today, as the field has no date
+  await expectFocusOn(today);
+  await userEvent.keyboard("{ArrowDown}".repeat(weeks));
+  await expectFocusOn(nextMonth);
+  await userEvent.keyboard("{ArrowUp}");
+  await expectFocusOn(nextMonth.minus({ weeks: 1 }));
+  await userEvent.keyboard("{ArrowDown}{ArrowRight}");
+  await expectFocusOn(picked);
+  await userEvent.keyboard("{Enter}");
+  // The editor's date fields keep their calendar open to set the time
+  await waitFor(() =>
+    expect(field).toHaveTextContent(picked.toFormat("MMM dd, yyyy HH:mm")),
+  );
+  expect(
+    within(picker).getByRole("gridcell", { name: calendarDayName(picked) }),
+  ).toHaveAttribute("aria-selected", "true");
+};
+
 /** Tab and Shift+Tab wrap around inside the dialog. */
 const expectFocusTrapped = async (dialog: HTMLElement) => {
   const firstButton = within(dialog).getByRole("button", {
@@ -615,6 +665,22 @@ export const DatePickerInsideDialog: Story = {
   },
   play: async ({ args, canvasElement, step }) => {
     const canvas = within(canvasElement);
+
+    await step("Its calendar opens with focus on today", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Select due date/ }),
+      );
+      const today = await canvas.findByRole("gridcell", {
+        name: calendarDayName(DateTime.now()),
+      });
+      await waitFor(() => expect(today).toHaveFocus());
+      // The editor's focus trap sends focus back to the date field if the
+      // calendar takes it before its popover's focus scope starts
+      await delay(100);
+      expect(today).toHaveFocus();
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(canvas.queryByRole("grid")).toBeNull());
+    });
 
     await step("Escape closes the open calendar only", async () => {
       await userEvent.click(
@@ -720,9 +786,10 @@ export const DatePickerKeepsTabInShadowRoot: Story = {
   play: async ({ canvasElement, step }) => {
     const content = await waitFor(() => storyContent(canvasElement));
     const dialog = await findEditor(content);
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: /Select due date/ }),
-    );
+    const dueDate = within(dialog).getByRole("button", {
+      name: /Select due date/,
+    });
+    await userEvent.click(dueDate);
     const picker = await waitFor(() => {
       const found = content.querySelector<HTMLElement>(
         "[data-radix-popper-content-wrapper]",
@@ -738,6 +805,13 @@ export const DatePickerKeepsTabInShadowRoot: Story = {
     const first = fields[0];
     const last = fields[fields.length - 1];
 
+    await step(
+      "Arrow keys move through days and months, and Enter picks one",
+      async () => {
+        await expectArrowKeysPickADay(picker, dueDate);
+      },
+    );
+
     await step("Tab from its last field wraps to its first", async () => {
       last.focus();
       await userEvent.tab();
@@ -749,7 +823,8 @@ export const DatePickerKeepsTabInShadowRoot: Story = {
       expect(focusedElement(picker)).toBe(last);
     });
 
-    // In a shadow root Radix focuses the picker itself when it opens
+    // In a shadow root Radix focuses a popover itself as it opens (date
+    // pickers focus their calendar's day instead)
     await step("Shift+Tab from the picker itself stays in it", async () => {
       const popover = picker.querySelector<HTMLElement>('[role="dialog"]');
       if (!popover) {
@@ -978,24 +1053,34 @@ export const RendersInPlaceInConsumerShadowRoot: Story = {
       expect(dialog.contains(picker)).toBe(false);
     });
 
+    await step(
+      "Arrow keys move through days and months, and Enter picks one",
+      async () => {
+        const picker = focusedDatePicker();
+        if (!picker) {
+          throw new Error("Focus has left the date picker");
+        }
+        await expectArrowKeysPickADay(picker, dueDate);
+      },
+    );
+
     await step("The keyboard reaches the calendar's controls", async () => {
       const picker = focusedDatePicker();
-      if (!picker) {
+      const time = picker?.querySelector<HTMLElement>('input[type="time"]');
+      if (!picker || !time) {
         throw new Error("Focus has left the date picker");
       }
-      // Wraps to the time field, the last control, and on to the first
-      await userEvent.tab({ shift: true });
+      // Wraps from the time field, the last control, to the first
+      time.focus();
       await userEvent.tab();
       expect(deepFocusedElement()).toBe(
         within(picker).getByRole("button", { name: "Previous month" }),
       );
+      // Back from next month, where the picked day is
       await userEvent.keyboard("{Enter}");
       expect(
         within(picker).getByText(
-          DateTime.now()
-            .setLocale("en-US")
-            .minus({ months: 1 })
-            .toFormat("LLLL yyyy"),
+          DateTime.now().setLocale("en-US").toFormat("LLLL yyyy"),
         ),
       ).toBeInTheDocument();
     });
@@ -1034,74 +1119,6 @@ export const MonthTogglesExposeState: Story = {
       );
     });
   },
-};
-
-type Rgba = readonly [number, number, number, number];
-
-/** A CSS colour, in any syntax, as sRGB channels (0-255) and alpha (0-1). */
-const rgbaOf = (color: string): Rgba => {
-  if (!CSS.supports("color", color)) {
-    throw new Error(`Not a CSS colour: "${color}"`);
-  }
-  const context = document.createElement("canvas").getContext("2d");
-  if (!context) {
-    throw new Error("No 2D canvas to read the colour with");
-  }
-  context.fillStyle = color;
-  context.fillRect(0, 0, 1, 1);
-  const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
-  return [r, g, b, a / 255];
-};
-
-/** `top`, at its alpha, over the opaque `bottom`. */
-const over = (top: Rgba, bottom: Rgba): Rgba => [
-  top[0] * top[3] + bottom[0] * (1 - top[3]),
-  top[1] * top[3] + bottom[1] * (1 - top[3]),
-  top[2] * top[3] + bottom[2] * (1 - top[3]),
-  1,
-];
-
-/**
- * The colour behind an element: its own and its ancestors' backgrounds,
- * blended down to the first opaque one (bg-white/50 is translucent).
- */
-const backgroundBehind = (element: Element): Rgba => {
-  const layers: Rgba[] = [];
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const layer = rgbaOf(getComputedStyle(node).backgroundColor);
-    if (layer[3] > 0) {
-      layers.push(layer);
-    }
-    if (layer[3] === 1) {
-      return layers.reduceRight((below, above) => over(above, below));
-    }
-  }
-  throw new Error("No opaque background behind the element");
-};
-
-const luminance = ([r, g, b]: Rgba): number => {
-  const [lr, lg, lb] = [r, g, b].map((value) => {
-    const c = value / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-};
-
-/** The contrast of an element's text with the colour behind it. */
-const contrastRatio = (element: Element): number => {
-  const background = backgroundBehind(element);
-  const text = over(rgbaOf(getComputedStyle(element).color), background);
-  const [light, dark] = [luminance(text), luminance(background)].sort(
-    (a, b) => b - a,
-  );
-  return (light + 0.05) / (dark + 0.05);
-};
-
-/** The element's text meets WCAG AA (4.5:1), once its colours settle. */
-const expectReadable = async (element: Element) => {
-  // Colours transition when a toggle is pressed
-  await Promise.all(element.getAnimations().map(({ finished }) => finished));
-  expect(contrastRatio(element)).toBeGreaterThanOrEqual(4.5);
 };
 
 const themedEditorStory = (theme: string): Story => ({
@@ -1425,7 +1442,56 @@ export const SaveTask: Story = {
   },
 };
 
-// Fixed March 2026 dates keep calendar day buttons unique
+// A date field's calendar opens on its date: Enter there keeps the date, and
+// Delete clears it, as no other control in the editor can
+export const KeyboardKeepsAndClearsADate: Story = {
+  args: {
+    ...Default.args,
+    task: taskBuilder.base({
+      id: "keyboard-dates",
+      title: "Task with a due date",
+      dueAt: DateTime.local(2026, 3, 10, 9, 30).toISO()!,
+    }),
+    onSave: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const label = DateTime.local(2026, 3, 10, 9, 30).toFormat(
+      "MMM dd, yyyy HH:mm",
+    );
+    const dueDate = await canvas.findByRole("button", { name: label });
+
+    await step("Enter twice keeps the due date", async () => {
+      dueDate.focus();
+      await userEvent.keyboard("{Enter}");
+      const day = await canvas.findByRole("gridcell", {
+        name: "Tuesday, March 10, 2026",
+      });
+      await waitFor(() => expect(day).toHaveFocus());
+      await userEvent.keyboard("{Enter}");
+      expect(day).toHaveAttribute("aria-selected", "true");
+      expect(dueDate).toHaveTextContent(label);
+    });
+
+    await step("Delete on the selected day clears it", async () => {
+      await userEvent.keyboard("{Delete}");
+      expect(dueDate).toHaveTextContent("Select due date");
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(canvas.queryByRole("grid")).toBeNull());
+    });
+
+    await step("Saving writes the empty date", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await waitFor(() =>
+        expect(args.onSave).toHaveBeenCalledWith(
+          expect.objectContaining({ dueAt: "" }),
+        ),
+      );
+    });
+  },
+};
+
+// Fixed March 2026 dates keep calendar day names unique
 const clearDatesTask = taskBuilder.completed({
   id: "clear-dates",
   title: "Task with dates to clear",
@@ -1453,10 +1519,10 @@ export const ClearDates: Story = {
         );
         await delay(200);
         // Clicking the selected day again deselects it
-        const day = page.getByRole("button", { name: dayName });
-        expect(day).toHaveAttribute("aria-pressed", "true");
+        const day = page.getByRole("gridcell", { name: dayName });
+        expect(day).toHaveAttribute("aria-selected", "true");
         await userEvent.click(day);
-        expect(day).toHaveAttribute("aria-pressed", "false");
+        expect(day).not.toHaveAttribute("aria-selected");
         await userEvent.keyboard("{Escape}");
         await delay(200);
         expect(

@@ -28,7 +28,9 @@
   --popover-foreground: 222.2 47.4% 11.2%;
 
   /* Primary (Blue) */
-  --primary: 217.2 91.2% 59.8%; /* #3b82f6 - blue-500 */
+  /* #1d4ed8: blue-700, at least 4.5:1 (WCAG AA) on light surfaces and under
+     primary-foreground, also under hover:bg-primary/90 */
+  --primary: 224.3 76.3% 48%;
   --primary-foreground: 0 0% 100%; /* #ffffff */
 
   /* Secondary (Slate) */
@@ -41,7 +43,8 @@
 
   /* Accent */
   --accent: 214.3 100% 97.1%; /* #eff6ff - blue-50 */
-  --accent-foreground: 217.2 91.2% 59.8%;
+  /* #1d4ed8: blue-700, at least 4.5:1 (WCAG AA) on accent */
+  --accent-foreground: 224.3 76.3% 48%;
 
   /* Destructive (Rose) */
   --destructive: 346.8 77.2% 49.8%; /* #e11d48 - rose-600 */
@@ -50,7 +53,7 @@
   /* Border & Input */
   --border: 214.3 31.8% 91.4%; /* #e2e8f0 - slate-200 */
   --input: 214.3 31.8% 91.4%;
-  --ring: 217.2 91.2% 59.8%; /* blue-500 */
+  --ring: 224.3 76.3% 48%; /* #1d4ed8: blue-700, as primary */
 
   /* Radius */
   --radius: 0.5rem;
@@ -86,6 +89,8 @@
   --emerald-400: 160.1 84.1% 52.5%; /* #34d399 */
   --emerald-500: 160.1 84.1% 39.4%; /* #10b981 */
   --emerald-600: 161.4 93.5% 30.4%; /* #059669 */
+  /* #047857: success text, at least 4.5:1 (WCAG AA) on light surfaces */
+  --emerald-700: 163.1 94.1% 24.3%;
 
   /* Blue (primary actions) */
   --blue-50: 213.8 100% 96.9%; /* #eff6ff */
@@ -101,7 +106,8 @@
   --amber-100: 48 96.5% 88.8%; /* #fef3c7 */
   --amber-200: 48 96.6% 76.7%; /* #fde68a */
   --amber-500: 43 96.4% 56.3%; /* #f59e0b */
-  --amber-700: 37.7 92.1% 38%; /* #b45309 */
+  /* #b45309: badge text, at least 4.5:1 (WCAG AA) on amber-50 */
+  --amber-700: 26 90.5% 37.1%;
   /* #92400e: warning text, at least 4.5:1 (WCAG AA) on light surfaces */
   --amber-800: 22.7 82.5% 31.4%;
 
@@ -180,6 +186,7 @@
   --emerald-200: 164 86% 18%;
   --emerald-500: 158 64% 52%;
   --emerald-600: 152.4 76% 80.4%;
+  --emerald-700: 149.3 80.4% 90%; /* #d1fae5 */
 
   /* Blue adjustments */
   --blue-50: 221 83% 15%; /* Dark blue bg */
@@ -269,6 +276,7 @@
   --emerald-200: 164 86% 18%;
   --emerald-500: 158 64% 52%;
   --emerald-600: 152.4 76% 80.4%;
+  --emerald-700: 149.3 80.4% 90%; /* #d1fae5 */
 
   --blue-50: 221 83% 15%;
   --blue-100: 222 87% 24%;
@@ -305,7 +313,9 @@
   --popover-foreground: 30 25% 10%;
 
   /* Primary (Amber - fits coffee theme) */
-  --primary: 37.7 92.1% 38%; /* #b45309 - amber-700 */
+  /* #92400e - amber-800: at least 4.5:1 (WCAG AA) with primary-foreground,
+     also under hover:bg-primary/90 */
+  --primary: 22.7 82.5% 31.4%;
   --primary-foreground: 40 17% 99%;
 
   /* Secondary */
@@ -319,7 +329,8 @@
 
   /* Accent */
   --accent: 40 21% 94%; /* #f7f5f0 */
-  --accent-foreground: 37.7 92.1% 38%;
+  /* #92400e - amber-800: at least 4.5:1 (WCAG AA) on accent */
+  --accent-foreground: 22.7 82.5% 31.4%;
 
   /* Destructive (Rose - slightly warmer) */
   --destructive: 346.8 77.2% 49.8%;
@@ -328,7 +339,7 @@
   /* Border & Input */
   --border: 40 17% 80%; /* #d6d0c2 - warm gray border */
   --input: 40 17% 80%;
-  --ring: 37.7 92.1% 38%;
+  --ring: 22.7 82.5% 31.4%; /* #92400e - amber-800, as primary */
 
   /* Extended palette - warm adjustments */
   --slate-50: 40 21% 94%; /* #f7f5f0 */
@@ -537,6 +548,7 @@
   --color-emerald-400: hsl(var(--emerald-400));
   --color-emerald-500: hsl(var(--emerald-500));
   --color-emerald-600: hsl(var(--emerald-600));
+  --color-emerald-700: hsl(var(--emerald-700));
 
   --color-blue-50: hsl(var(--blue-50));
   --color-blue-100: hsl(var(--blue-100));

@@ -216,7 +216,8 @@ interface BoundaryInput {
  * fall on: a day earlier when UNTIL's time comes before the first time of
  * day a date has (its start's time, or BYHOUR/BYMINUTE/BYSECOND), compared
  * in UTC for a UTC start read in local time. Hourly and shorter rules end on
- * UNTIL's own day; their dates are compared with `endDateTime`.
+ * UNTIL's own day; their dates are compared with `endDateTime`, or with
+ * `utcEndDateTime` for a UTC start.
  */
 export function readRuleBoundaries(input: BoundaryInput): RuleBoundaries {
   const { dtstart, until, tzid, raw, freq, times } = input;

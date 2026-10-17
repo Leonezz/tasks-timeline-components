@@ -254,6 +254,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;COUNT=10` is written as "every week on
     Monday for 10 times"), and the task editor lists times of day among the
     parts it can't show.
+- **Rules with `BYSETPOS` froze the app, and hourly rules with a UTC start
+  failed.**
+  - A daily or weekly rule with `BYSETPOS` whose day filters never match
+    (`FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30`) fails fast
+    again with the "has no date after" error, or ends at its `UNTIL`. rrule
+    scanned such rules to the year 9999, past any `UNTIL`, which blocked
+    `complete_task` for seconds (about 30 seconds with 24 hours and
+    positions).
+  - Hourly, minutely and secondly rules with a UTC start
+    (`DTSTART:20261016T220000Z`) are stepped in UTC, as rrule steps them, so
+    `BYHOUR` and day filters are UTC hours and days, and each date's day is
+    read in local time. `FREQ=HOURLY;INTERVAL=6;BYHOUR=22;BYDAY=SA` from that
+    start threw "has no date after" outside UTC, and steps of whole days
+    kept their local time across a change of clocks. Minutes and seconds
+    within each step (`FREQ=HOURLY;BYMINUTE=45`) count on their own day,
+    which differs from the hour's in zones whose offset isn't whole hours
+    (18:45 UTC is the next day in India).
+- **Weekly rules with `BYWEEKNO` skipped the days around the new year.**
+  rrule numbers a weekly rule's weeks in the year each week starts in, so
+  Saturday January 1 2022 is in week 52 of
+  `FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU`; the quick yearly check numbered it in
+  2022 and went on to December 31 (or ended the rule, with an `UNTIL`).
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't
@@ -447,15 +469,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single mode); saving then writes `""`. The edit modal's Created field still
   keeps its date when cleared, as before.
 - **Calendar picker accessibility.** Day buttons were announced by their
-  number alone and didn't expose which day was selected. They are now named
-  by the full date (for example "Tuesday, March 10, 2026") and set
-  `aria-pressed`, since clicking the selected day clears it. The month
-  buttons are named "Previous month" and "Next month". The **Time** label in
-  the task badges' date popovers and in `DatePicker` is now associated with
-  its input.
+  number alone and didn't expose which day was selected, and every day was
+  its own Tab stop with no arrow keys, so moving through a month took up to
+  about 44 presses of Tab. The days are now a grid, as in the WAI-ARIA date
+  picker dialog pattern: it is named by its month ("March 2026") and has
+  weekday column headers, and each day is a grid cell named by the full date
+  (for example "Tuesday, March 10, 2026") with `aria-selected` when it is
+  selected. Clicking the selected day still clears it.
+  - Tab reaches one day: the selected day if the month has it, else today,
+    else the 1st, until a key or a click moves it. Arrow keys move by a day
+    or a week, Home and End to the start and end of the week, Page Up and
+    Page Down by a month, and with Shift by a year. Moving past the month's
+    edge, or clicking a day outside the month, shows that day's month and
+    keeps focus on the day.
+  - Enter and Space pick the focused day and, unlike a click, never clear
+    it, so Enter on the day a picker opens on keeps the date. Delete and
+    Backspace on the selected day clear it, the keyboard's way to remove a
+    date.
+  - The task badges' date popovers and the task editor's date fields open
+    with focus on that day, in a shadow root too. Radix focused the
+    popover's first control ("Previous month"), or in a shadow root the
+    popover itself. The calendar's `initialFocus` prop, which was ignored,
+    now focuses that day as the calendar mounts.
+  - The month heading is announced when it changes, and disabled days stay
+    focusable (`aria-disabled`), so arrow keys can move past them.
+  - The month buttons are named "Previous month" and "Next month". The
+    **Time** label in the task badges' date popovers and in `DatePicker` is
+    now associated with its input.
+  - Day text meets WCAG AA (4.5:1) in all four themes. Days of other months
+    are `muted-foreground` instead of `muted-foreground/40` (about 1.7:1 to
+    2.2:1), still lighter than the month's days. Today and hovered days use
+    the themed `blue-600` on `blue-50` instead of `accent-foreground` on
+    `accent` (about 3.4:1 in the light theme, 3.2:1 in coffee). The selected
+    day uses `blue-600` with `white`, as the task editor's selected toggles
+    do, instead of `primary` (about 3.7:1 in the light theme, 3.6:1 in
+    coffee), so in the coffee theme it is blue rather than amber, and it no
+    longer lightens on hover, which took it below 4.5:1.
 - Task date badges are named like the category and priority badges, for
   example "Change due date for Write report. Current due date: Today", instead
   of by their visible label alone ("Due: Today").
+- **Task date badge text now meets WCAG AA (4.5:1) in all four themes.**
+  - Badges for a due date today or tomorrow use the themed `amber-800`
+    instead of `amber-700`, which was about 3.5:1 in the light and coffee
+    themes.
+  - Green badges (a later due date, a finished task's due date, the
+    completion date) use a new themed `emerald-700`. Tailwind's fixed
+    `emerald-700` stayed dark green in the dark and midnight themes, on a dark
+    green badge (about 3.0:1). `text-emerald-700` elsewhere, such as in the
+    agent panel, now follows the theme too.
+  - The creation date badge uses `slate-500` instead of `slate-400` (about
+    2.6:1 in the light theme).
+  - The Save button in the badges' date popovers uses the themed `blue-600`
+    instead of Tailwind's `blue-700`, which stayed dark in the dark themes
+    (about 2.5:1). On hover it changes to `blue-50` instead of `blue-100`,
+    which took it below 4.5:1 in the light and coffee themes.
+  - The colours are in one map, `DATE_BADGE_TONES` in
+    `src/components/date-badge-tones.ts`. `TaskItem` and the DateBadge stories
+    both use it, and the stories check every colour in every theme.
+- **Date popovers had no accessible name.** The calendar popovers of the task
+  date badges and of `DatePicker` are dialogs, and screen readers announced
+  them without a name. A badge's popover is now named by its heading ("Change
+  due date"). `DatePicker`'s is named by its placeholder, such as "Select due
+  date" in the task editor.
+- **The light theme's `amber-700` was not `#b45309`.** Its comment said
+  `#b45309`, but its value (`37.7 92.1% 38%`) was about `#ba7808`, so
+  `text-amber-700` on `amber-50` was about 3.5:1 in the light and coffee
+  themes (coffee uses the light theme's amber colours). It is now
+  `26 90.5% 37.1%`, the real `#b45309`, at about 4.8:1. This brings the task
+  row's **No dates** badge, the medium priority badge and the priority menu's
+  selected "medium" option to WCAG AA (4.5:1). Medium priority chips in toast
+  task lists (`amber-700` on `amber-100`) go from about 3.3:1 to 4.5:1. The
+  dark and midnight themes set their own `amber-700` and are unchanged. The
+  TaskItem stories check the No dates and medium priority labels in all four
+  themes.
+- **The coffee theme's `primary` and `accent-foreground` failed WCAG AA.**
+  Coffee set `--primary`, `--accent-foreground` and `--ring` to the same
+  `37.7 92.1% 38%` (about `#ba7808`) under a `#b45309` comment.
+  `primary-foreground` on `primary` (the default button and badge) and the
+  link button's `primary` text were about 3.6:1, and `accent-foreground` on
+  `accent` (ghost and outline buttons on hover, such as `DatePicker`'s field,
+  and focused dropdown items) was about 3.2:1. All three are now amber-800,
+  `#92400e` (`22.7 82.5% 31.4%`): about 7.0:1 under `primary-foreground`,
+  5.6:1 under the default button's `hover:bg-primary/90`, and 6.3:1 on
+  `accent`. The real `#b45309` would have reached only 4.2:1 on hover and
+  4.4:1 on `accent`. A new `UI/ThemeColors` story checks the default button,
+  badge, link button and a focused dropdown item in the coffee theme.
+- **The light theme's `primary` and `accent-foreground` failed WCAG AA.**
+  Light set `--primary`, `--accent-foreground` and `--ring` to blue-500,
+  `#3b82f6`. White `primary-foreground` on `primary` (the default button and
+  badge) was about 3.7:1, and 3.2:1 under the default button's
+  `hover:bg-primary/90`. The link button's `primary` text was about 3.7:1.
+  `accent-foreground` on `accent` (ghost and outline buttons on hover, such as
+  `DatePicker`'s field and the calendar's month buttons, and focused dropdown
+  items) was about 3.4:1. All three are now blue-700, `#1d4ed8`
+  (`224.3 76.3% 48%`): about 6.7:1 under `primary-foreground`, 5.5:1 on hover
+  and 6.2:1 on `accent`. Blue-600 (`#2563eb`) would have reached only 4.3:1 on
+  hover. The `UI/ThemeColors` stories now cover all four themes and also check
+  the default button's hover colour.
 
 ### Changed
 
