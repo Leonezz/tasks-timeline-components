@@ -28,7 +28,9 @@
   --popover-foreground: 222.2 47.4% 11.2%;
 
   /* Primary (Blue) */
-  --primary: 217.2 91.2% 59.8%; /* #3b82f6 - blue-500 */
+  /* #1d4ed8: blue-700, at least 4.5:1 (WCAG AA) on light surfaces and under
+     primary-foreground, also under hover:bg-primary/90 */
+  --primary: 224.3 76.3% 48%;
   --primary-foreground: 0 0% 100%; /* #ffffff */
 
   /* Secondary (Slate) */
@@ -41,7 +43,8 @@
 
   /* Accent */
   --accent: 214.3 100% 97.1%; /* #eff6ff - blue-50 */
-  --accent-foreground: 217.2 91.2% 59.8%;
+  /* #1d4ed8: blue-700, at least 4.5:1 (WCAG AA) on accent */
+  --accent-foreground: 224.3 76.3% 48%;
 
   /* Destructive (Rose) */
   --destructive: 346.8 77.2% 49.8%; /* #e11d48 - rose-600 */
@@ -50,7 +53,7 @@
   /* Border & Input */
   --border: 214.3 31.8% 91.4%; /* #e2e8f0 - slate-200 */
   --input: 214.3 31.8% 91.4%;
-  --ring: 217.2 91.2% 59.8%; /* blue-500 */
+  --ring: 224.3 76.3% 48%; /* #1d4ed8: blue-700, as primary */
 
   /* Radius */
   --radius: 0.5rem;
