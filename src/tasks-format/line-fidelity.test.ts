@@ -251,141 +251,138 @@ describe("Obsidian Tasks fields and notes after 🔁 (#43)", () => {
   });
 });
 
-describe("a 🔁 rule the rule characters stop inside a word", () => {
-  it.each([
-    [
-      "- [ ] Pay bill 🔁 every month https://billing.example.com",
-      "every month",
-      "https://billing.example.com",
-    ],
-    ["- [ ] Standup 🔁 every day at 9:30", "every day at", "9:30"],
-    [
-      "- [ ] Water plants 🔁 every week don't forget",
-      "every week",
-      "don't forget",
-    ],
-    ["- [ ] Call 🔁 every week Müller", "every week", "Müller"],
-  ])("reads %j with the rule %j and the word whole", (line, rule, notes) => {
-    const task = parseLine(line);
+/**
+ * Lines whose 🔁 rule characters run straight into other text. Obsidian
+ * Tasks reads a rule only at the end of the line, once the fields and tags
+ * after it are taken off, so it reads none of these as recurring.
+ */
+const RUN_ON_RULE_LINES = [
+  "- [ ] Pay bill 🔁 every month https://billing.example.com",
+  "- [ ] Standup 🔁 every day at 9:30",
+  "- [ ] Water plants 🔁 every week don't forget",
+  "- [ ] Call 🔁 every week Müller",
+  "- [ ] Water plants 🔁 every week.",
+  "- [ ] Water plants 🔁 every week[[Garden]]",
+  "- [ ] 浇水 🔁 every week记得",
+  "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
+  "- [ ] Water plants 🔁 every week—see notes",
+  "- [ ] Clean 🔁 every week's chores",
+  "- [ ] Clean 🔁 every week’s chores",
+  "- [ ] Standup 🔁 every weekday's standup",
+  "- [ ] Water plants 🔁 every week%%comment%%",
+  "- [ ] Water plants 🔁 every week/biweekly",
+  "- [ ] Water plants 🔁 every week#garden",
+  "- [ ] Water plants 🔁 every week-ish",
+  "- [ ] Water plants 🔁 every week_garden",
+  "- [ ] Water plants 🔁 every week.Notes",
+  "- [ ] Water plants 🔁 every week; see notes",
+  "- [ ] Water plants 🔁 every week… or so",
+  "- [ ] Pay rent 🔁 every month on the 1st's morning",
+  "- [ ] 물주기 🔁 every week마다",
+  "- [ ] Water plants 🔁 every week when done see https://example.com",
+];
 
-    expect(task.recurringInterval).toBe(rule);
-    expect(task.extra?.lineNotes).toBe(notes);
-    expect(rewrite(line)).toBe(line);
-  });
+/** The line from its 🔁 on, which edits keep as written. */
+const fromRule = (line: string): string => line.slice(line.indexOf("🔁"));
 
-  it.each([
-    ["- [ ] Water plants 🔁 every week.", "every week", "."],
-    ["- [ ] Water plants 🔁 every week[[Garden]]", "every week", "[[Garden]]"],
-    ["- [ ] 浇水 🔁 every week记得", "every week", "记得"],
-  ])(
-    "keeps the rule of %j whole when the text after it starts a word",
-    (line, rule, notes) => {
+describe("a 🔁 rule that runs into other text is not a rule, as in Obsidian Tasks", () => {
+  it.each(RUN_ON_RULE_LINES)(
+    "reads %j as a task that does not recur",
+    (line) => {
       const task = parseLine(line);
 
-      expect(task.recurringInterval).toBe(rule);
-      expect(task.extra?.lineNotes).toBe(notes);
+      expect(task.isRecurring).toBe(false);
+      expect(task.recurringInterval).toBeUndefined();
     },
   );
 
-  it("does not read a 🔁 followed by only part of a word as a rule", () => {
-    const task = parseLine("- [ ] See 🔁 https://example.com 📅 2026-10-16");
+  it.each(RUN_ON_RULE_LINES.filter((line) => !line.includes("📅")))(
+    "keeps the 🔁 of %j in the title",
+    (line) => {
+      expect(parseLine(line).title).toBe(line.slice("- [ ] ".length));
+    },
+  );
 
-    expect(task.recurringInterval).toBeUndefined();
-    expect(task.title).toBe("See 🔁 https://example.com");
+  it.each(RUN_ON_RULE_LINES)("writes %j back unchanged", (line) => {
+    expect(rewrite(line)).toBe(line);
   });
 
-  it.each([
-    [
-      "- [ ] Pay bill 🔁 every month https://billing.example.com",
-      "- [x] Pay bill 🔁 every month ✅ 2026-10-18 https://billing.example.com",
-    ],
-    [
-      "- [ ] Standup 🔁 every day at 9:30",
-      "- [x] Standup 🔁 every day at ✅ 2026-10-18 9:30",
-    ],
-    [
-      "- [ ] Water plants 🔁 every week don't forget",
-      "- [x] Water plants 🔁 every week ✅ 2026-10-18 don't forget",
-    ],
-    [
-      "- [ ] Water plants 🔁 every week.",
-      "- [x] Water plants ✅ 2026-10-18 🔁 every week.",
-    ],
-  ])(
-    "completes %j without splitting a word, and reopens it as it was",
-    (line, completed) => {
-      const done = rewrite(line, {
-        status: "done",
-        completedAt: "2026-10-18",
-      });
+  it.each(RUN_ON_RULE_LINES)(
+    "keeps the text of %j when the due date changes",
+    (line) => {
+      const edited = rewrite(line, { dueAt: "2026-11-20" });
 
-      expect(done).toBe(completed);
+      expect(edited).toContain(fromRule(line));
+      expect(parseLine(edited)).toMatchObject({
+        dueAt: "2026-11-20",
+        recurringInterval: undefined,
+      });
+    },
+  );
+
+  it.each(RUN_ON_RULE_LINES)(
+    "completes %j and reopens it as it was",
+    (line) => {
+      const done = rewrite(line, { status: "done", completedAt: "2026-10-18" });
+
+      expect(done).toContain(fromRule(line));
+      expect(parseLine(done).completedAt).toBe("2026-10-18");
       expect(rewrite(done, { status: "todo", completedAt: undefined })).toBe(
         line,
       );
     },
   );
 
-  it("changes the rule in place and keeps the word after it", () => {
+  it("adds the ✅ after the text, where Obsidian Tasks reads it", () => {
     expect(
       rewrite("- [ ] Pay bill 🔁 every month https://billing.example.com", {
-        recurringInterval: "every 2 months",
+        status: "done",
+        completedAt: "2026-10-18",
       }),
-    ).toBe("- [ ] Pay bill 🔁 every 2 months https://billing.example.com");
-    expect(
-      rewrite("- [ ] Water plants 🔁 every week don't forget", {
-        recurringInterval: "every 2 weeks",
-      }),
-    ).toBe("- [ ] Water plants 🔁 every 2 weeks don't forget");
+    ).toBe(
+      "- [x] Pay bill 🔁 every month https://billing.example.com ✅ 2026-10-18",
+    );
+  });
+
+  it("writes a rule the task gains after the text", () => {
+    const written = rewrite("- [ ] Standup 🔁 every day at 9:30", {
+      recurringInterval: "every day",
+      isRecurring: true,
+    });
+
+    expect(written).toBe("- [ ] Standup 🔁 every day at 9:30 🔁 every day");
+    expect(parseLine(written)).toMatchObject({
+      title: "Standup 🔁 every day at 9:30",
+      recurringInterval: "every day",
+    });
+  });
+
+  it("does not read a 🔁 before a cut-off word as a rule", () => {
+    const task = parseLine("- [ ] See 🔁 https://example.com 📅 2026-10-16");
+
+    expect(task.recurringInterval).toBeUndefined();
+    expect(task.title).toBe("See 🔁 https://example.com");
+    expect(task.dueAt).toBe("2026-10-16");
   });
 });
 
-/** Rules whose last word is a rule word, with text glued to it. */
-const RULE_WORD_LINES = [
-  [
-    "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
-    "every week when done",
-  ],
-  ["- [ ] Water plants 🔁 every week—see notes", "every week"],
-  ["- [ ] Clean 🔁 every week's chores", "every week"],
-  ["- [ ] Clean 🔁 every week’s chores", "every week"],
-  ["- [ ] Standup 🔁 every weekday's standup", "every weekday"],
-  ["- [ ] Water plants 🔁 every week%%comment%%", "every week"],
-  ["- [ ] Water plants 🔁 every week/biweekly", "every week"],
-  ["- [ ] Water plants 🔁 every week#garden", "every week"],
-  ["- [ ] Water plants 🔁 every week-ish", "every week"],
-  ["- [ ] Water plants 🔁 every week_garden", "every week"],
-  ["- [ ] Water plants 🔁 every week.Notes", "every week"],
-  ["- [ ] Water plants 🔁 every week; see notes", "every week"],
-  ["- [ ] Water plants 🔁 every week… or so", "every week"],
-  [
-    "- [ ] Pay rent 🔁 every month on the 1st's morning",
-    "every month on the 1st",
-  ],
-  ["- [ ] 물주기 🔁 every week마다", "every week"],
-] as const;
-
-describe("a 🔁 rule word with text glued to it stays in the rule", () => {
-  it.each(RULE_WORD_LINES)("reads %j with the rule %j", (line, rule) => {
-    expect(parseLine(line).recurringInterval).toBe(rule);
-  });
-
-  it.each(RULE_WORD_LINES)("writes %j back unchanged", (line) => {
+describe("a 🔁 rule Obsidian Tasks reads is read as before", () => {
+  it.each([
+    ["- [ ] Water plants 🔁 every week", "every week"],
+    ["- [ ] Water plants 🔁 every week📅 2026-10-16", "every week"],
+    ["- [ ] Water plants 🔁 every week⏫", "every week"],
+    ["- [ ] Water plants 🔁 every week #garden", "every week"],
+    [
+      "- [ ] Water plants 🔁 every week when done 🆔 w1",
+      "every week when done",
+    ],
+  ])("reads %j with the rule %j", (line, rule) => {
+    expect(parseLine(line)).toMatchObject({
+      isRecurring: true,
+      recurringInterval: rule,
+    });
     expect(rewrite(line)).toBe(line);
   });
-
-  it.each(RULE_WORD_LINES)(
-    "keeps the rule of %j and the text after it when the due date changes",
-    (line, rule) => {
-      const edited = rewrite(line, { dueAt: "2026-11-20" });
-
-      expect(edited).toContain(line.slice(line.indexOf("🔁")));
-      expect(parseLine(edited)).toMatchObject({
-        recurringInterval: rule,
-        dueAt: "2026-11-20",
-      });
-    },
-  );
 });
 
 /** Real Obsidian Tasks lines, written back as they are when nothing changed. */

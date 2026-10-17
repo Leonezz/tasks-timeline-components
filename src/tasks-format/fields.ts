@@ -123,67 +123,20 @@ const isDate = (value: string): boolean => {
  */
 const THROUGH_WHEN_DONE = /^.*?\bwhen done\b/i;
 
-/**
- * Text that carries on the word before it: a letter, digit or mark, or one
- * after punctuation used inside words (the "://" of "https://…", the ":" of
- * "9:30", the "'" of "don't"). Spaces, separators (— ; … / # %%), brackets,
- * symbols such as the next field's, and CJK and Hangul characters, which
- * need no space before them, end the word.
- */
-const WORD_GOES_ON =
-  /(?:['’:.\-‐_@&]['’:.\-‐_@&/]*)?(?![\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}\p{sc=Hangul}])[\p{L}\p{N}\p{M}]/uy;
-
-/**
- * The words rules are written with, in any case: rrule's English, which
- * Obsidian Tasks reads rules with, and "when done". A rule keeps them when
- * text is glued to them ("every week's chores", "every week-ish").
- */
-const RULE_WORD = new RegExp(
-  `^(?:${[
-    "every|(?:week)?days?|weeks?|months?|years?|hours?|minutes?|times?",
-    "on|in|at|the|and|or|for|(?:un)?til|till|when|done",
-    "first|second|third|last|one|two|three|\\d+(?:st|nd|rd|th)?",
-    "(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?s?",
-    "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?",
-    "aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?",
-  ].join("|")})$`,
-  "i",
-);
-
-/** A number the text after it carries on as a time or decimal ("9:30"). */
-const NUMBER_GOES_ON = /[:.]\d/y;
-
-const isRuleWord = (word: string, text: string, end: number): boolean => {
-  NUMBER_GOES_ON.lastIndex = end;
-  return (
-    RULE_WORD.test(word) && !(/^\d+$/.test(word) && NUMBER_GOES_ON.test(text))
-  );
-};
-
-/** The letters and digits the rule characters end with. */
-const LAST_WORD = /[a-zA-Z0-9]+$/;
-
-/**
- * The rule written at `start` of `text`, from what the rule characters
- * matched there. They can stop inside a word ("🔁 every month https://…"):
- * unless that word is a rule word, its start is then not part of the rule,
- * so the word stays whole in the text after it.
- */
-const ruleValue = (matched: string, text: string, start: number): string => {
-  const end = start + matched.length;
-  const word = LAST_WORD.exec(matched)?.[0] ?? "";
-  WORD_GOES_ON.lastIndex = end;
-  const cut =
-    word !== "" && WORD_GOES_ON.test(text) && !isRuleWord(word, text, end);
-  const rule = (cut ? matched.slice(0, -word.length) : matched).trimEnd();
+const ruleValue = (value: string): string => {
+  const rule = value.trimEnd();
   return THROUGH_WHEN_DONE.exec(rule)?.[0] ?? rule;
 };
 
-/** The field written at `index` of `text`, or null. */
+/**
+ * The field written at `index` of `text`, or null. `readEnd` is where the
+ * characters its pattern read end: after a rule, past the spaces and the
+ * words after "when done" that are not part of it.
+ */
 export function matchFieldAt(
   text: string,
   index: number,
-): { field: FieldText; end: number } | null {
+): { field: FieldText; end: number; readEnd: number } | null {
   for (const [key, pattern] of Object.entries(PATTERNS)) {
     pattern.lastIndex = index;
     const match = pattern.exec(text);
@@ -191,10 +144,7 @@ export function matchFieldAt(
       continue;
     }
     const [, symbol, gap, raw] = match;
-    const value =
-      key === "recurrence"
-        ? ruleValue(raw, text, index + symbol.length + gap.length)
-        : raw;
+    const value = key === "recurrence" ? ruleValue(raw) : raw;
     if (
       (key === "recurrence" && value === "") ||
       (isDateField(key as TasksFieldKey) && !isDate(value))
@@ -202,7 +152,11 @@ export function matchFieldAt(
       return null;
     }
     const field = { key: key as TasksFieldKey, symbol, gap, value };
-    return { field, end: index + fieldText(field).length };
+    return {
+      field,
+      end: index + fieldText(field).length,
+      readEnd: index + match[0].length,
+    };
   }
   return null;
 }
