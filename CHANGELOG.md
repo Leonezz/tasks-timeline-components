@@ -536,6 +536,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and 6.2:1 on `accent`. Blue-600 (`#2563eb`) would have reached only 4.3:1 on
   hover. The `UI/ThemeColors` stories now cover all four themes and also check
   the default button's hover colour.
+- **The default badge's hover colour failed WCAG AA.** `Badge`'s default
+  variant changed to `hover:bg-primary/80`, where its `primary-foreground`
+  text was about 4.46:1 in the light theme and 4.47:1 in coffee. It now uses
+  `hover:bg-primary/90`, as the default button does: about 5.5:1 in the light
+  theme, 5.6:1 in coffee, 5.9:1 in dark and 6.3:1 in midnight. The
+  `UI/ThemeColors` stories check it in all four themes.
 
 ### Changed
 
