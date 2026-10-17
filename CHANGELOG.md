@@ -390,7 +390,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     when the app is in a shadow root.
   - Used without `AppProvider` (the exported `TaskEditModal` on its own), the
     editor renders in place, inside the consumer's themed wrapper or shadow
-    root, instead of in `document.body` without the theme or styles.
+    root, instead of in `document.body` without the theme or styles. Its
+    date pickers' calendars open beside it there too, with the theme and
+    styles and without being clipped by the editor, and the keyboard reaches
+    them in a consumer's shadow root: Enter on a date field moves focus into
+    its calendar and keeps it there.
   - Text meets WCAG AA (4.5:1) in all four themes. Secondary text (the "Task
     Dates" heading, recurrence labels and summary) uses `slate-500` instead of
     `slate-400` (about 2.5:1); the coffee theme's `--slate-500` and
