@@ -177,7 +177,10 @@ function Calendar({
   return (
     <div
       data-slot="calendar"
-      className={cn("bg-popover p-3 w-[280px] select-none", className)}
+      className={cn(
+        "bg-popover text-popover-foreground p-3 w-[280px] select-none",
+        className,
+      )}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -258,20 +261,24 @@ function Calendar({
                     // Still focusable, so arrow keys can pass over it
                     aria-disabled={isDisabled || undefined}
                     aria-label={format(day, "EEEE, MMMM d, yyyy")}
+                    // Text meets WCAG AA (4.5:1) in every theme. The blue
+                    // tokens are themed, and white is --background, so it is
+                    // dark where the dark themes make blue-600 light.
                     className={cn(
                       "h-8 w-8 mx-auto rounded-full text-sm font-normal transition-all duration-150",
-                      "hover:bg-accent hover:text-accent-foreground",
+                      "hover:bg-blue-50 hover:text-blue-600",
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                       "active:scale-95",
-                      // Outside current month
-                      !isCurrentMonth && "text-muted-foreground/40",
+                      // Outside current month: muted, but readable
+                      !isCurrentMonth && "text-muted-foreground",
                       // Today indicator
                       isDayToday &&
                         !isSelected &&
-                        "bg-accent text-accent-foreground font-semibold ring-1 ring-primary/30",
-                      // Selected state
+                        "bg-blue-50 text-blue-600 font-semibold ring-1 ring-blue-600/30",
+                      // Selected state: it keeps its colours on hover, since
+                      // white fails AA on a lighter blue
                       isSelected &&
-                        "bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90 hover:text-primary-foreground",
+                        "bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-600 hover:text-white",
                       // Disabled
                       isDisabled && "pointer-events-none opacity-30",
                     )}

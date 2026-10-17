@@ -12,7 +12,7 @@ import {
 } from "../../components/ui/popover";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
-import { delay } from "../test-utils";
+import { delay, expectReadable } from "../test-utils";
 import { RRule } from "rrule";
 import { DateTime } from "luxon";
 
@@ -1119,74 +1119,6 @@ export const MonthTogglesExposeState: Story = {
       );
     });
   },
-};
-
-type Rgba = readonly [number, number, number, number];
-
-/** A CSS colour, in any syntax, as sRGB channels (0-255) and alpha (0-1). */
-const rgbaOf = (color: string): Rgba => {
-  if (!CSS.supports("color", color)) {
-    throw new Error(`Not a CSS colour: "${color}"`);
-  }
-  const context = document.createElement("canvas").getContext("2d");
-  if (!context) {
-    throw new Error("No 2D canvas to read the colour with");
-  }
-  context.fillStyle = color;
-  context.fillRect(0, 0, 1, 1);
-  const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
-  return [r, g, b, a / 255];
-};
-
-/** `top`, at its alpha, over the opaque `bottom`. */
-const over = (top: Rgba, bottom: Rgba): Rgba => [
-  top[0] * top[3] + bottom[0] * (1 - top[3]),
-  top[1] * top[3] + bottom[1] * (1 - top[3]),
-  top[2] * top[3] + bottom[2] * (1 - top[3]),
-  1,
-];
-
-/**
- * The colour behind an element: its own and its ancestors' backgrounds,
- * blended down to the first opaque one (bg-white/50 is translucent).
- */
-const backgroundBehind = (element: Element): Rgba => {
-  const layers: Rgba[] = [];
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const layer = rgbaOf(getComputedStyle(node).backgroundColor);
-    if (layer[3] > 0) {
-      layers.push(layer);
-    }
-    if (layer[3] === 1) {
-      return layers.reduceRight((below, above) => over(above, below));
-    }
-  }
-  throw new Error("No opaque background behind the element");
-};
-
-const luminance = ([r, g, b]: Rgba): number => {
-  const [lr, lg, lb] = [r, g, b].map((value) => {
-    const c = value / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-};
-
-/** The contrast of an element's text with the colour behind it. */
-const contrastRatio = (element: Element): number => {
-  const background = backgroundBehind(element);
-  const text = over(rgbaOf(getComputedStyle(element).color), background);
-  const [light, dark] = [luminance(text), luminance(background)].sort(
-    (a, b) => b - a,
-  );
-  return (light + 0.05) / (dark + 0.05);
-};
-
-/** The element's text meets WCAG AA (4.5:1), once its colours settle. */
-const expectReadable = async (element: Element) => {
-  // Colours transition when a toggle is pressed
-  await Promise.all(element.getAnimations().map(({ finished }) => finished));
-  expect(contrastRatio(element)).toBeGreaterThanOrEqual(4.5);
 };
 
 const themedEditorStory = (theme: string): Story => ({

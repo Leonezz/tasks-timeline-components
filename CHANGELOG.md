@@ -466,6 +466,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The month buttons are named "Previous month" and "Next month". The
     **Time** label in the task badges' date popovers and in `DatePicker` is
     now associated with its input.
+  - Day text meets WCAG AA (4.5:1) in all four themes. Days of other months
+    are `muted-foreground` instead of `muted-foreground/40` (about 1.7:1 to
+    2.2:1), still lighter than the month's days. Today and hovered days use
+    the themed `blue-600` on `blue-50` instead of `accent-foreground` on
+    `accent` (about 3.4:1 in the light theme, 3.2:1 in coffee). The selected
+    day uses `blue-600` with `white`, as the task editor's selected toggles
+    do, instead of `primary` (about 3.7:1 in the light theme, 3.6:1 in
+    coffee), so in the coffee theme it is blue rather than amber, and it no
+    longer lightens on hover, which took it below 4.5:1.
 - Task date badges are named like the category and priority badges, for
   example "Change due date for Write report. Current due date: Today", instead
   of by their visible label alone ("Due: Today").
