@@ -9,6 +9,10 @@ import { AppProvider } from "../../components/AppContext";
 import { DateTime } from "luxon";
 import { settingsBuilder } from "../fixtures";
 import { delay, withinShadow } from "../test-utils";
+import {
+  BROWSER_SPEECH_UNAVAILABLE_MESSAGE,
+  type VoiceRuntime,
+} from "../../utils/voice-providers";
 
 const meta: Meta<typeof InputBar> = {
   title: "Core/InputBar",
@@ -81,6 +85,8 @@ const meta: Meta<typeof InputBar> = {
           sort,
           onSortChange: setSort,
           onVoiceError: (msg: string) => console.error("Voice error:", msg),
+          voiceRuntime: (context.args as Record<string, unknown>)
+            .voiceRuntime as VoiceRuntime | undefined,
           onOpenSettings: () => console.log("Open settings"),
         };
 
@@ -192,6 +198,36 @@ export const WithVoiceInput: Story = {
       enableVoiceInput: true,
       voiceProvider: "browser",
     },
+  },
+};
+
+export const VoiceInputBrowserUnsupported: Story = {
+  args: {
+    settings: settingsBuilder.withVoiceInput(),
+    voiceRuntime: { browserSpeechSupported: false },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Voice button says to choose another provider", async () => {
+      const voiceButton = canvas.getByRole("button", {
+        name: "Start voice input",
+      });
+      await expect(voiceButton).toHaveAttribute(
+        "title",
+        BROWSER_SPEECH_UNAVAILABLE_MESSAGE,
+      );
+    });
+
+    await step("Clicking does not start listening", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Start voice input" }),
+      );
+      await delay(100);
+      await expect(
+        canvas.getByRole("button", { name: "Start voice input" }),
+      ).toHaveAttribute("aria-pressed", "false");
+    });
   },
 };
 

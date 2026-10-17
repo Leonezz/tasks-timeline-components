@@ -493,7 +493,7 @@ export const StatusTransitionToDoing: Story = {
   },
 };
 
-export const StatusTransitionToScheduled: Story = {
+export const StatusMenuOffersWorkflowStatusesOnly: Story = {
   args: {
     task: edgeCaseTasks.todoReadyForTransition,
   },
@@ -501,7 +501,7 @@ export const StatusTransitionToScheduled: Story = {
     docs: {
       description: {
         story:
-          "Tests status transition from Todo to Scheduled - should auto-populate startAt date.",
+          "Scheduled is derived from a future start date, not picked by hand - the status menu offers only the workflow statuses.",
       },
     },
   },
@@ -515,10 +515,18 @@ export const StatusTransitionToScheduled: Story = {
       await userEvent.click(statusButton);
     });
 
-    await step("Select Scheduled status", async () => {
+    await step("Verify only workflow statuses are offered", async () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
-      const scheduledOption = canvas.getByText(/^scheduled$/i);
-      await userEvent.click(scheduledOption);
+      for (const status of ["todo", "doing", "done", "cancelled"]) {
+        expect(
+          canvas.getByRole("button", {
+            name: new RegExp(`status to ${status}$`),
+          }),
+        ).toBeInTheDocument();
+      }
+      expect(
+        canvas.queryByRole("button", { name: /status to scheduled$/ }),
+      ).not.toBeInTheDocument();
     });
   },
 };
@@ -660,11 +668,7 @@ export const RenderTitleWithJSX: Story = {
   play: async ({ canvasElement, step }) => {
     await step("Verify URL is rendered as a link", async () => {
       await delay(500);
-      const shadowRoot = canvasElement.querySelector(
-        "#tasks-timeline-app",
-      )?.shadowRoot;
-      expect(shadowRoot).toBeTruthy();
-      const link = shadowRoot!.querySelector(
+      const link = canvasElement.querySelector(
         'a[href="https://example.com"]',
       ) as HTMLAnchorElement;
       expect(link).toBeTruthy();
@@ -691,15 +695,10 @@ export const RenderTitleNotAppliedDuringEdit: Story = {
     },
   },
   play: async ({ canvasElement, step }) => {
-    const shadowRoot = canvasElement.querySelector(
-      "#tasks-timeline-app",
-    )?.shadowRoot;
-    expect(shadowRoot).toBeTruthy();
-
     await step("Verify title is rendered uppercase initially", async () => {
       await delay(500);
       const buttons = Array.from(
-        shadowRoot!.querySelectorAll("button"),
+        canvasElement.querySelectorAll("button"),
       ) as HTMLButtonElement[];
       const titleButton = buttons.find(
         (b) => b.textContent?.trim() === "EDITABLE TITLE TEST",
@@ -709,7 +708,7 @@ export const RenderTitleNotAppliedDuringEdit: Story = {
 
     await step("Click to edit and verify raw title in input", async () => {
       const buttons = Array.from(
-        shadowRoot!.querySelectorAll("button"),
+        canvasElement.querySelectorAll("button"),
       ) as HTMLButtonElement[];
       const titleButton = buttons.find(
         (b) => b.textContent?.trim() === "EDITABLE TITLE TEST",
@@ -717,7 +716,7 @@ export const RenderTitleNotAppliedDuringEdit: Story = {
       await userEvent.click(titleButton);
       await delay(300);
       // The input should contain the raw title, not the transformed one
-      const input = shadowRoot!.querySelector("input") as HTMLInputElement;
+      const input = canvasElement.querySelector("input") as HTMLInputElement;
       expect(input).toBeTruthy();
       expect(input.value).toBe("Editable title test");
     });

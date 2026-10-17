@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   AIProviderResponse,
   ChatMessage,
@@ -85,9 +85,10 @@ interface HarnessResult {
   onNotify: ReturnType<typeof vi.fn>;
 }
 
+/** Pass `null` as the provider to render with the built-in providers. */
 function renderAgent(
   options: Omit<UseAIAgentOptions, "providerFactory" | "onAgentEvent">,
-  provider: IAIProvider,
+  provider: IAIProvider | null,
   tasks: Task[] = [TASK],
 ): HarnessResult {
   const events: AgentEvent[] = [];
@@ -117,7 +118,7 @@ function renderAgent(
       undefined,
       {
         ...options,
-        providerFactory: async () => provider,
+        ...(provider ? { providerFactory: async () => provider } : {}),
         onAgentEvent: (event) => events.push(event),
       },
     );
@@ -292,6 +293,106 @@ describe("useAIAgent extra tools", () => {
         provider,
       ),
     ).toThrow(/cannot be combined/);
+  });
+});
+
+describe("useAIAgent injected fetch", () => {
+  const geminiReply = {
+    candidates: [
+      {
+        content: { role: "model", parts: [{ text: "All clear today." }] },
+        finishReason: "STOP",
+        index: 0,
+      },
+    ],
+    usageMetadata: {
+      promptTokenCount: 3,
+      candidatesTokenCount: 4,
+      totalTokenCount: 7,
+    },
+  };
+
+  const jsonFetch = (body: unknown) =>
+    vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the built-in provider's requests through it", async () => {
+    const globalFetch = jsonFetch(geminiReply);
+    vi.stubGlobal("fetch", globalFetch);
+    const hostFetch = jsonFetch(geminiReply);
+    const { handleAICommand, events, onNotify } = renderAgent(
+      { fetch: hostFetch },
+      null,
+    );
+
+    await handleAICommand("Plan my day");
+
+    expect(hostFetch).toHaveBeenCalledOnce();
+    expect(String(hostFetch.mock.calls[0]?.[0])).toContain(
+      "generativelanguage.googleapis.com",
+    );
+    expect(globalFetch).not.toHaveBeenCalled();
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "assistant-message",
+        text: "All clear today.",
+      }),
+    );
+    expect(onNotify).not.toHaveBeenCalledWith(
+      "error",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("reports a failing host fetch as an agent error", async () => {
+    const globalFetch = jsonFetch(geminiReply);
+    vi.stubGlobal("fetch", globalFetch);
+    const hostFetch = vi.fn<typeof fetch>(async () => {
+      throw new Error("requestUrl failed: offline");
+    });
+    const { handleAICommand, events, onNotify } = renderAgent(
+      { fetch: hostFetch },
+      null,
+    );
+
+    await handleAICommand("Plan my day");
+
+    expect(globalFetch).not.toHaveBeenCalled();
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        kind: "error",
+        message: "requestUrl failed: offline",
+      }),
+    );
+    expect(onNotify).toHaveBeenCalledWith(
+      "error",
+      "AI Agent Error",
+      "requestUrl failed: offline",
+    );
+  });
+
+  it("throws when the fetch is not a function", () => {
+    expect(() =>
+      renderAgent({ fetch: null as unknown as typeof fetch }, null),
+    ).toThrow(/aiFetch\) must be a function/);
+  });
+
+  it("throws when both fetch and providerFactory are provided", () => {
+    const { provider } = makeProvider(alwaysToolCalls);
+
+    expect(() =>
+      renderAgent({ fetch: jsonFetch(geminiReply) }, provider),
+    ).toThrow(/aiFetch.*cannot be combined.*aiProviderFactory/);
   });
 });
 

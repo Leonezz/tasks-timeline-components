@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`VoiceRuntime.browserSpeechSupported` (#51).** A host that knows browser
+  speech recognition can't work (for example an Electron app whose Web Speech
+  API has no speech service) can set it to `false`. Then
+  `BrowserVoiceProvider.isAvailable()` returns `false`, Settings → AI disables
+  the **Browser** voice provider with an explanation, and the voice button
+  tells the user to choose OpenAI or Gemini instead of starting and failing.
+  Hosts that leave it unset behave as before.
+- `SettingsPage`, `SettingsModal` and `SettingsPageAI` accept `voiceRuntime`.
+  `TasksTimelineApp` passes its own `voiceRuntime` to the settings modal.
+- `useVoiceInput` returns `unavailableMessage`, set when the host has ruled
+  out the active provider. The built-in voice buttons show it as their
+  tooltip.
+- **`aiFetch` prop** on `TasksTimelineApp` (and `fetch` option on
+  `useAIAgent`): a `fetch` implementation for every request the built-in AI
+  providers make. Electron hosts such as Obsidian can route provider calls
+  through their own HTTP client (for example `requestUrl`) and reach
+  providers that do not allow browser CORS. The Settings **Test Connection**
+  button uses it too. It is a runtime option, never stored in
+  `ProviderConfig` or settings. Passing both `aiFetch` and
+  `aiProviderFactory` throws (Test Connection reports it as a failed test),
+  because a custom factory makes its own requests and the fetch would be
+  ignored. An `aiFetch` that is not a function, or that resolves to something
+  other than a fetch `Response` (such as an unconverted Obsidian `requestUrl`
+  result), fails with an explicit error; there is no fallback to the global
+  `fetch`. Errors the host fetch throws reach the agent and Test Connection
+  unchanged.
+- `SettingsPage`, `SettingsModal` and `SettingsPageAI` accept `aiFetch` and
+  `aiProviderFactory` for **Test Connection**. Hosts that render
+  `SettingsPage` themselves (such as a plugin settings tab) should pass the
+  same values they give `TasksTimelineApp`.
+- Obsidian Tasks dependency and lifecycle fields on `Task`, all optional:
+  `onCompletion` (🏁, `"keep"` or `"delete"`), `taskId` (🆔, not the host's
+  `id`) and `dependsOn` (⛔, a list of `taskId`s). `parseTasksFormatItem`
+  reads them and `cancelledAt` (❌); `taskToMarkdown` and
+  `formatTasksMetadata` write them. A value a line can't hold (an id with a
+  space, an action with punctuation) throws instead of breaking the line.
+- `tasks-format` exports `createdDateSymbol`, `cancelledDateSymbol`,
+  `onCompletionSymbol`, `idSymbol` and `dependsOnSymbol`, and
+  `TaskRegularExpressions` has `cancelledDateRegex`, `onCompletionRegex`,
+  `idRegex` and `dependsOnRegex`.
+
 ### Fixed
 
 - **Obsidian recurring tasks were not treated as recurring.** The Obsidian
@@ -200,6 +243,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     back automatically. Saving or completing such a task now fails with the
     manual fix: delete the `RRULE:` line and replace `🔁 DTSTART:…` with the
     rule as text (`🔁 every week`). The README documents it (#47).
+- **Block ids were duplicated when a task line was rewritten (#42).**
+  `parseTasksFormatItem` read a trailing `^block-id` into the title
+  (`Water plants  ^blk1`) and `taskToMarkdown` wrote it again at the end. The
+  block id at the end of a line is no longer part of the title and is written
+  once, at the end. A `^id` elsewhere in the line is text, as in Obsidian
+  Tasks (`TaskRegularExpressions.blockLinkRegex` only matches at the end).
+- **Obsidian Tasks fields and notes after 🔁 were read into the title and
+  moved on rewrite (#43).** 🏁 on-completion, ❌ cancelled date, 🆔 id and ⛔
+  depends-on are read as fields (see Added). ⏰ reminders, notes and
+  `[[links]]` after the fields stay where they are and are part of neither the
+  title nor the rule: `🔁 every week when done see [[Garden]]` has the rule
+  `every week when done` (a rule ends at "when done", which Obsidian Tasks
+  only reads at its end). Tags after the fields are still added
+  to the title, as Obsidian Tasks does.
+  - A priority emoji, 🏁, 🆔 or ⛔ inside the title stays title text: they
+    count as fields only when fields, tags or the end of the line follow
+    them, so `⛔ Don't touch prod 📅 …` keeps its title and gets no ⛔ id.
+  - A ⏰ reminder is not part of the title. One inside the title text is left
+    there on the line (`Call mom ⏰ 2026-10-16 09:00 about birthday` has the
+    title `Call mom about birthday`) and kept when the title is edited.
+  - On a line that starts with fields (`📅 2026-10-16 Water plants`), the
+    text after them is the title, and a new title is written there.
+- **Rewriting a task line reformatted it (#43).** `taskToMarkdown` rebuilt the
+  line from the title, the tags and every field in a fixed order. It now
+  edits the line in place, so a task read from a line and written back
+  unchanged gives the line byte for byte: indentation, callout `>` prefixes,
+  spacing, field order, symbol variants (`📆`, `🗓️`, `⌛`) and trailing text
+  are kept. A changed field is rewritten where it is, a removed one is
+  dropped with the space before it, and new fields go after the line's last
+  field. The title part is rewritten only when its words or tags change;
+  tags stay where they are while the task has them (also when the Obsidian
+  plugin took a tag followed by punctuation, `#work,`, out of the title). A
+  custom checkbox marker (`[>]`) is kept while it still means the task's
+  status.
+  - The written line always reads back as the task. When notes follow the
+    last field, a new priority, 🔁 rule, 🏁, 🆔 or ⛔ goes before a field
+    instead (`Call Bob ⏫ 📅 2026-10-16 about the plan`), since right before
+    notes it would be read as title text or take the notes into the rule.
+    A field that would no longer read back where it is (a rule followed by
+    notes once the date between them is removed) moves the same way.
+  - When no field is left that can stand between the title and the notes,
+    the notes join the title, as Obsidian Tasks reads such a line:
+    changing `🔁 every week when done see [[Garden]]` to `every 2 weeks`
+    writes `Water plants see [[Garden]] 🔁 every 2 weeks`. No text is
+    dropped.
+  - A task the line can't hold throws instead of being written with another
+    meaning, for example a title that would be read as a field (`Fix bug 🔺`
+    before a date).
+- `complete_task` no longer copies the 🆔 id and ⛔ dependencies to the next
+  occurrence, as Obsidian Tasks does; 🏁 is kept.
+- **The next occurrence of a recurring Obsidian task lost the notes after its
+  fields.** `parseTasksFormatItem` keeps them in `extra.lineNotes`, and
+  `taskToMarkdown` writes them after the fields of a line that has none,
+  such as the new line for the next occurrence. ⏰ reminders, which are for
+  one occurrence, are not carried over.
 - `complete_task` reports when it marked the task done but could not add the
   next occurrence, with the occurrence's details so it can be created with
   `create_task` (all its fields, including the description).
@@ -244,6 +342,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (dropped in the AI SDK migration), so requests from browsers and Electron
   hosts such as Obsidian pass Anthropic's CORS check. This also fixes the
   Settings **Test Connection** button for Anthropic.
+- **Misleading browser voice input error (#51).** When Web Speech recognition
+  failed with the `network` error, the message said "Browser voice input
+  requires internet connection." Embedded hosts report that error when they
+  have no speech service at all, so it pointed users to the wrong cause. It
+  now reads "Browser speech recognition isn't available here. Choose OpenAI
+  or Gemini as the voice provider in Settings → AI."
+- **Task editor accessibility (#50).** The editor is now a modal dialog (Radix
+  Dialog, rendered in the app's portal container): it has `role="dialog"` and
+  `aria-modal`, is named by its "Edit Task" title, closes on Escape, moves
+  focus inside and keeps it there, and hides the rest of the page from
+  assistive technology while open. Closing it returns focus to the control
+  that opened it, or to the task row's status button when that was "Edit
+  details" in the row's menu.
+  - In a shadow root, as in the Obsidian plugin, Tab and Shift+Tab stay in
+    the editor and in a date picker open over it, and a menu closing as the
+    editor opens no longer takes focus behind it. The editor scrolls with the
+    mouse wheel, trackpad and touch there too: its backdrop is not Radix's
+    `Dialog.Overlay`, whose scroll lock cancelled scrolling inside the editor
+    when the app is in a shadow root.
+  - Used without `AppProvider` (the exported `TaskEditModal` on its own), the
+    editor renders in place, inside the consumer's themed wrapper or shadow
+    root, instead of in `document.body` without the theme or styles.
+  - Text meets WCAG AA (4.5:1) in all four themes. Secondary text (the "Task
+    Dates" heading, recurrence labels and summary) uses `slate-500` instead of
+    `slate-400` (about 2.5:1); the coffee theme's `--slate-500` and
+    `--muted-foreground` are darker (`30 10% 40%`, were about 4.0:1 on its
+    card and 4.4:1 on its background). Selected weekday, month and day
+    buttons use `blue-600` (white on `blue-500` was about 3.7:1), the save
+    error `rose-700` (was 4.48:1) and the "Saving replaces…" warning a new
+    themed `amber-800` (Tailwind's `amber-600` was about 3.1:1).
+  - The editor no longer uses Tailwind `dark:` classes. They follow the OS
+    colour scheme, while the theme tokens already switch with the app's
+    theme, so with a dark OS they inverted the editor's colours a second time
+    (for example the "Recurrence" heading at about 1.2:1).
+  - The yearly month buttons expose their state with `aria-pressed`.
+- **Recurrence wording in the editor and the Recurring badge (#48).** The
+  editor lists the rule parts its settings can't show after a colon ("These
+  settings can't show: repetition count (COUNT)"), and warns "Saving replaces
+  the stored rule and drops the parts these settings can't show: …". Ordinal
+  weekdays ("every month on the 2nd Monday") are named once, not also as
+  "weekdays". When it
+  writes Obsidian Tasks text, its preview is the text saving writes ("every 2
+  years on the 1st in June", which rrule words "every 2 years June on the
+  1st"). The **Recurring** badge's tooltip and label give the start and end
+  dates the editor and `complete_task` read, so a legacy UTC `UNTIL`, a dashed
+  `UNTIL=2026-12-31` or a numeric text end date no longer shows another or a
+  raw end date; they keep "when done", and show a rule as written when rrule's
+  text would leave parts out (`BYSETPOS`, `BYEASTER`, `WKST`).
+- **Test Connection ignored `aiProviderFactory`.** The Settings button always
+  tested the built-in provider, even when the host's factory supplied the one
+  the agent uses. It now tests the provider from `aiProviderFactory` when one
+  is given.
+- The published type declarations now type-check for consumers. Thirteen
+  `.d.ts` files imported from the repo-only `@/types` path alias,
+  `dist/index.d.ts` re-exported `./index.css`, and
+  `dist/components/settings/SettingsPage.d.ts` imported `vite-env.d.ts` from
+  outside `dist/`. Hosts no longer need an ambient `declare module "@/types"`
+  or `declare module "*.css"` shim. The stylesheet is still published as
+  `@tasks-timeline/components/index.css`.
+- `pnpm build:lib` now fails if a declaration in `dist/` uses the `@/` alias,
+  imports a stylesheet, or has a relative path that does not resolve inside
+  `dist/` (`scripts/check-declarations.ts`). ESLint rejects `@/` imports in
+  `src/`.
+- **Dates could not be cleared.** Since the native date inputs were replaced
+  by the calendar picker (0.0.6), the calendar always reported a day, so the
+  task badges' date popovers and the edit modal's Due, Start At and Completed
+  fields could change a date but never remove it. Clicking the selected day
+  again now deselects it (`onSelect(undefined)`, as in react-day-picker's
+  single mode); saving then writes `""`. The edit modal's Created field still
+  keeps its date when cleared, as before.
+- **Calendar picker accessibility.** Day buttons were announced by their
+  number alone and didn't expose which day was selected. They are now named
+  by the full date (for example "Tuesday, March 10, 2026") and set
+  `aria-pressed`, since clicking the selected day clears it. The month
+  buttons are named "Previous month" and "Next month". The **Time** label in
+  the task badges' date popovers and in `DatePicker` is now associated with
+  its input.
+- Task date badges are named like the category and priority badges, for
+  example "Change due date for Write report. Current due date: Today", instead
+  of by their visible label alone ("Due: Today").
 
 ### Changed
 
@@ -258,6 +436,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completion.
 - Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
   Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+- `taskToMarkdown` edits lines in place (see Fixed): a rule it repairs
+  (`🔁 RRULE:…`, `until 2026-12-31`) stays where it was instead of moving to
+  the end, and fields a line gains are added after its last field, in
+  `formatTasksMetadata` order (or where they read back, see Fixed). It
+  throws for a task the line can't hold. A task with `cancelledAt` (set when
+  a task is cancelled in the timeline or with `cancel_task`) gets a ❌ date,
+  as Obsidian Tasks writes it.
 
 ### Added
 

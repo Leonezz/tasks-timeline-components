@@ -5,11 +5,15 @@ import type {
   ProviderConfig,
   SecretFieldRenderer,
   VoiceProvider,
-} from "@/types";
+} from "../../types";
 import { Icon } from "../Icon";
-import { cn } from "@/utils";
-import { testProvider } from "@/providers";
-import type { TestResult } from "@/providers/types";
+import { cn } from "../../utils";
+import {
+  isBrowserSpeechDisabledByHost,
+  type VoiceRuntime,
+} from "../../utils/voice-providers";
+import { testProvider } from "../../providers";
+import type { AIProviderFactory, TestResult } from "../../providers/types";
 import { MotionDiv, MotionSpan } from "../Motion";
 import { AnimatePresence } from "framer-motion";
 
@@ -32,6 +36,9 @@ const VOICE_PROVIDER_LABELS: Record<VoiceProvider, string> = {
   openai: "OpenAI",
   gemini: "Gemini",
 };
+
+const BROWSER_SPEECH_UNAVAILABLE_NOTE =
+  "Browser speech recognition isn't available here. Choose OpenAI or Gemini as the voice provider.";
 
 const AI_PROVIDER_PLACEHOLDERS: Record<
   AIProvider,
@@ -131,13 +138,28 @@ interface SettingsPageAIProps {
   settings: AppSettings;
   onUpdateSettings: (s: AppSettings) => void;
   renderSecretField?: SecretFieldRenderer;
+  /**
+   * Host voice runtime. When it sets `browserSpeechSupported: false`, the
+   * Browser voice provider is disabled with an explanation.
+   */
+  voiceRuntime?: VoiceRuntime;
+  /** Host provider factory for "Test Connection" (same as the agent's). */
+  aiProviderFactory?: AIProviderFactory;
+  /** Fetch for the built-in providers in "Test Connection". */
+  aiFetch?: typeof fetch;
 }
 export const SettingsPageAI = ({
   settings,
   onUpdateSettings,
   renderSecretField,
+  voiceRuntime,
+  aiProviderFactory,
+  aiFetch,
 }: SettingsPageAIProps) => {
   const inputIdPrefix = useId(),
+    browserSpeechDisabled = isBrowserSpeechDisabledByHost(voiceRuntime),
+    isVoiceProviderUnavailable = (p: VoiceProvider) =>
+      p === "browser" && browserSpeechDisabled,
     tokenUsageByModel = settings.tokenUsageByModel ?? {},
     totalTokenUsage = settings.totalTokenUsage ?? 0;
 
@@ -247,7 +269,8 @@ export const SettingsPageAI = ({
     voiceOpenAiBaseUrlInputId = `${inputIdPrefix}-voice-openai-base-url`,
     voiceGeminiApiKeyInputId = `${inputIdPrefix}-voice-gemini-api-key`,
     voiceGeminiModelInputId = `${inputIdPrefix}-voice-gemini-model`,
-    voiceLanguageInputId = `${inputIdPrefix}-voice-language`;
+    voiceLanguageInputId = `${inputIdPrefix}-voice-language`,
+    voiceBrowserNoteId = `${inputIdPrefix}-voice-browser-note`;
 
   const [testResult, setTestResult] = useState<TestResult | null>(null),
     [isTesting, setIsTesting] = useState(false),
@@ -259,7 +282,10 @@ export const SettingsPageAI = ({
 
       setIsTesting(true);
       setTestResult(null);
-      const result = await testProvider(activeProvider, activeProviderConfig);
+      const result = await testProvider(activeProvider, activeProviderConfig, {
+        providerFactory: aiProviderFactory,
+        fetch: aiFetch,
+      });
       setTestResult(result);
       setIsTesting(false);
     };
@@ -773,13 +799,26 @@ export const SettingsPageAI = ({
                         type="button"
                         key={p}
                         onClick={() => setVoiceProvider(p)}
+                        disabled={isVoiceProviderUnavailable(p)}
+                        title={
+                          isVoiceProviderUnavailable(p)
+                            ? BROWSER_SPEECH_UNAVAILABLE_NOTE
+                            : undefined
+                        }
                         aria-label={`Use ${VOICE_PROVIDER_LABELS[p]} voice provider`}
+                        aria-describedby={
+                          isVoiceProviderUnavailable(p)
+                            ? voiceBrowserNoteId
+                            : undefined
+                        }
                         aria-pressed={settings.voiceConfig.activeProvider === p}
                         className={cn(
                           "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
                           settings.voiceConfig.activeProvider === p
                             ? "bg-white dark:bg-slate-600 text-blue-600 shadow-sm"
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700",
+                          isVoiceProviderUnavailable(p) &&
+                            "opacity-50 cursor-not-allowed",
                         )}
                       >
                         {VOICE_PROVIDER_LABELS[p]}
@@ -787,8 +826,17 @@ export const SettingsPageAI = ({
                     ),
                   )}
                 </div>
+                {browserSpeechDisabled && (
+                  <p
+                    id={voiceBrowserNoteId}
+                    className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5"
+                  >
+                    {BROWSER_SPEECH_UNAVAILABLE_NOTE}
+                  </p>
+                )}
                 <p className="text-[10px] text-slate-400 mt-1.5">
                   {settings.voiceConfig.activeProvider === "browser" &&
+                    !browserSpeechDisabled &&
                     "Uses Web Speech API (free, requires internet in Chrome/Edge)"}
                   {settings.voiceConfig.activeProvider === "openai" &&
                     "OpenAI Whisper (requires API key, highly accurate)"}
@@ -817,11 +865,7 @@ export const SettingsPageAI = ({
                       inputClassName:
                         "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
                       onChange: (value) =>
-                        updateVoiceProviderConfig(
-                          "openai",
-                          "apiKey",
-                          value,
-                        ),
+                        updateVoiceProviderConfig("openai", "apiKey", value),
                     })}
                   </div>
                   <div>
@@ -891,11 +935,7 @@ export const SettingsPageAI = ({
                       inputClassName:
                         "w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder:text-slate-400",
                       onChange: (value) =>
-                        updateVoiceProviderConfig(
-                          "gemini",
-                          "apiKey",
-                          value,
-                        ),
+                        updateVoiceProviderConfig("gemini", "apiKey", value),
                     })}
                   </div>
                   <div>

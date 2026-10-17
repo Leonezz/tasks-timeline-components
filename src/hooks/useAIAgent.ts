@@ -6,8 +6,12 @@ import type {
   ToastMessage,
   TokenUsageRecord,
 } from "../types";
-import { createProvider as createDefaultProvider } from "../providers";
-import type { ChatMessage, IAIProvider, ToolResult } from "../providers/types";
+import { resolveProviderFactory } from "../providers";
+import type {
+  AIProviderFactory,
+  ChatMessage,
+  ToolResult,
+} from "../providers/types";
 import { createCapabilities } from "../capabilities";
 import type {
   Capabilities,
@@ -27,13 +31,15 @@ interface TokenUsageUpdate {
   totalTokens: number;
 }
 
-export type AIProviderFactory = (
-  provider: AppSettings["aiConfig"]["activeProvider"],
-  config: AppSettings["aiConfig"]["providers"][AppSettings["aiConfig"]["activeProvider"]],
-) => Promise<IAIProvider>;
+export type { AIProviderFactory };
 
 export interface UseAIAgentOptions {
   providerFactory?: AIProviderFactory;
+  /**
+   * Fetch for the built-in providers' requests, e.g. a host's CORS-free HTTP
+   * client. Cannot be combined with `providerFactory` (throws).
+   */
+  fetch?: typeof fetch;
   capabilities?: Capabilities;
   capabilityContext?: CapabilityContext;
   /** Extra host tools appended to the built-in tools. Cannot be combined with `capabilities`. */
@@ -71,7 +77,10 @@ export function appendAssistantMessageToHistory(
     : history;
 }
 
-function validateAgentOptions(options: UseAIAgentOptions | undefined): number {
+function validateAgentOptions(options: UseAIAgentOptions | undefined): {
+  maxToolRounds: number;
+  providerFactory: AIProviderFactory;
+} {
   if (options?.capabilities && options.extraTools?.length) {
     throw new Error(
       "useAIAgent: `capabilities` (aiCapabilities) and `extraTools` (aiExtraTools) cannot be combined. " +
@@ -84,7 +93,11 @@ function validateAgentOptions(options: UseAIAgentOptions | undefined): number {
       `useAIAgent: maxToolRounds (aiMaxToolRounds) must be a positive integer, got ${String(maxToolRounds)}.`,
     );
   }
-  return maxToolRounds;
+  const providerFactory = resolveProviderFactory({
+    providerFactory: options?.providerFactory,
+    fetch: options?.fetch,
+  });
+  return { maxToolRounds, providerFactory };
 }
 
 export const useAIAgent = (
@@ -110,7 +123,7 @@ export const useAIAgent = (
   onPrompt?: (question: string) => Promise<string | null>,
   options?: UseAIAgentOptions,
 ) => {
-  const maxToolRounds = validateAgentOptions(options);
+  const { maxToolRounds, providerFactory } = validateAgentOptions(options);
   const tasksRef = useRef(tasks),
     settingsRef = useRef(settings),
     historiesRef = useRef<Map<string, ChatMessage[]>>(new Map());
@@ -200,7 +213,6 @@ export const useAIAgent = (
         settings.aiConfig.systemPrompt,
       );
 
-      const providerFactory = options?.providerFactory ?? createDefaultProvider;
       emitAgentEvent({
         kind: "status",
         sessionId,

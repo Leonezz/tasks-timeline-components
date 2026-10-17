@@ -167,15 +167,15 @@ describe("lines written by v0.8.0", () => {
     [
       "- [ ] Pay rent 🔁 FREQ=WEEKLY;BYDAY=MO 📅 2026-10-01",
       "FREQ=WEEKLY;BYDAY=MO",
-      "- [ ] Pay rent 📅 2026-10-01 🔁 every week on Monday",
+      "- [ ] Pay rent 🔁 every week on Monday 📅 2026-10-01",
     ],
     [
       "- [ ] Pay rent 🔁 every month until 2026-12-31 📅 2026-10-01",
       "every month until 2026-12-31",
-      "- [ ] Pay rent 📅 2026-10-01 🔁 every month until December 31, 2026",
+      "- [ ] Pay rent 🔁 every month until December 31, 2026 📅 2026-10-01",
     ],
   ])(
-    "keeps the whole rule of %j and repairs it on write",
+    "keeps the whole rule of %j and repairs it in place on write",
     (line, rule, repaired) => {
       const { task, written } = rewriteLine(line);
 

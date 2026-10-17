@@ -6,6 +6,7 @@ import { TasksProvider, type TasksContextType } from "../contexts";
 import type { FilterState, SortState, Task } from "../types";
 import { settingsBuilder } from "../stories/fixtures";
 import { InputBar } from "./InputBar";
+import { TaskEditModal } from "./TaskEditModal";
 import { TaskItem } from "./TaskItem";
 import { TodoList } from "./TodoList";
 
@@ -138,6 +139,22 @@ describe("component accessibility affordances", () => {
     expect(html).toContain(">Recurring<");
   });
 
+  it("describes a recurring task's rule as the editor reads it", () => {
+    // rrule can't read this end date itself
+    const task = createTask({
+      isRecurring: true,
+      recurringInterval: "FREQ=WEEKLY;UNTIL=2026-12-31",
+    });
+    const html = renderWithProviders(<TaskItem task={task} />, {
+      tasks: [task],
+    });
+
+    expect(html).toContain(
+      'aria-label="Recurring task: every week until December 31, 2026"',
+    );
+    expect(html).toContain('title="every week until December 31, 2026"');
+  });
+
   it("does not force task titles to wrap inside the truncating title button", () => {
     const task = createTask();
     const html = renderWithProviders(<TaskItem task={task} />, {
@@ -168,5 +185,89 @@ describe("component accessibility affordances", () => {
     expect(html).toContain(
       'aria-label="Show backlog tasks by leaving focus mode"',
     );
+  });
+});
+
+describe("task editor accessibility", () => {
+  const yearlyTask = {
+    isRecurring: true,
+    recurringInterval: "FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=31",
+  };
+  const weeklyTask = {
+    isRecurring: true,
+    recurringInterval: "FREQ=WEEKLY;BYDAY=MO,WE",
+  };
+  const renderEditor = (overrides: Partial<Task> = {}) =>
+    renderToStaticMarkup(
+      <TaskEditModal
+        isOpen
+        task={createTask(overrides)}
+        onSave={() => undefined}
+        onClose={() => undefined}
+        availableCategories={[]}
+      />,
+    );
+  const escapeRegExp = (text: string) =>
+    text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Without AppProvider there is no portal container; portalling to
+  // document.body would leave the consumer's theme and shadow root behind
+  it("renders in place without an AppProvider", () => {
+    const html = renderToStaticMarkup(
+      <div className="tasks-timeline-app" data-theme="midnight">
+        <TaskEditModal
+          isOpen
+          task={createTask()}
+          onSave={() => undefined}
+          onClose={() => undefined}
+          availableCategories={[]}
+        />
+      </div>,
+    );
+
+    expect(html).toMatch(
+      /^<div class="tasks-timeline-app" data-theme="midnight">.*role="dialog"/,
+    );
+  });
+
+  it("is a modal dialog named by its title", () => {
+    const html = renderEditor();
+    const dialog = /<div[^>]*role="dialog"[^>]*>/.exec(html)?.[0] ?? "";
+
+    expect(dialog).toContain('aria-modal="true"');
+    const labelledBy = /aria-labelledby="([^"]+)"/.exec(dialog)?.[1] ?? "";
+    expect(labelledBy).not.toBe("");
+    expect(html).toMatch(
+      new RegExp(
+        `<h2[^>]*id="${escapeRegExp(labelledBy)}"[^>]*>Edit Task</h2>`,
+      ),
+    );
+  });
+
+  it("exposes which yearly months are selected", () => {
+    const html = renderEditor(yearlyTask);
+
+    expect(html).toMatch(/<button[^>]*aria-pressed="true"[^>]*>Dec<\/button>/);
+    expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Jan<\/button>/);
+  });
+
+  it("does not use slate-400, which fails AA contrast, for text", () => {
+    const classes = [
+      ...renderEditor(yearlyTask).matchAll(/class="([^"]*)"/g),
+    ].flatMap(([, list]) => list.split(/\s+/));
+
+    expect(classes).toContain("text-slate-500");
+    expect(classes).not.toContain("text-slate-400");
+  });
+
+  // Tailwind's dark: variant follows the OS colour scheme, but the theme
+  // tokens already switch with data-theme: with a dark OS, dark: classes
+  // invert the editor's colours a second time in every theme
+  it("does not use dark: variants", () => {
+    const classes = [yearlyTask, weeklyTask, {}]
+      .flatMap((task) => [...renderEditor(task).matchAll(/class="([^"]*)"/g)])
+      .flatMap(([, list]) => list.split(/\s+/));
+
+    expect(classes.filter((name) => name.startsWith("dark:"))).toEqual([]);
   });
 });

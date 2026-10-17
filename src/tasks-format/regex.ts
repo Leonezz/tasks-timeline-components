@@ -5,6 +5,14 @@
  */
 import { TasksPrioritySymbolToLabel } from "./symbols";
 
+/** The value after 🔁 (see `TaskRegularExpressions.recurrenceRegex`). */
+export const RECURRENCE_VALUE =
+  "(?:RRULE:|DTSTART|[A-Z]+=)[A-Za-z0-9=;:,+\\-/]+|[a-zA-Z0-9, !]*?\\buntil\\s+(?:\\d{4}-\\d{1,2}-\\d{1,2}|\\d{1,2}\\/\\d{1,2}\\/\\d{4}|\\d{4}\\/\\d{1,2}\\/\\d{1,2})(?:\\s+when done)?|[a-zA-Z0-9, !]+";
+/** One Obsidian Tasks 🆔 id. */
+export const TASK_ID = "[a-zA-Z0-9_-]+";
+/** Obsidian Tasks ⛔ ids: one or more, comma separated. */
+export const TASK_ID_SEQUENCE = `${TASK_ID}(?: *, *${TASK_ID})*`;
+
 export class TaskRegularExpressions {
   public static readonly dateFormat = "yyyy-MM-dd";
 
@@ -51,8 +59,9 @@ export class TaskRegularExpressions {
       TaskRegularExpressions.listMarkerRegex.source,
   );
 
-  // Match on block link at end.
-  public static readonly blockLinkRegex = / \^[a-zA-Z0-9-]+/u;
+  // Match on block link at end (as Obsidian Tasks does: a block id elsewhere
+  // in the line is text).
+  public static readonly blockLinkRegex = / \^[a-zA-Z0-9-]+$/u;
 
   // The following regex's end with `$` because they will be matched and
   // removed from the end until none are left.
@@ -70,6 +79,7 @@ export class TaskRegularExpressions {
   public static readonly scheduledDateRegex = /[⏳⌛] *(\d{4}-\d{2}-\d{2})/u;
   public static readonly dueDateRegex = /[📅📆🗓] *(\d{4}-\d{2}-\d{2})/u;
   public static readonly doneDateRegex = /✅ *(\d{4}-\d{2}-\d{2})/u;
+  public static readonly cancelledDateRegex = /❌ *(\d{4}-\d{2}-\d{2})/u;
   /**
    * The recurrence after 🔁 (optionally followed by U+FE0F, as Obsidian Tasks
    * allows): a text rule in the characters Tasks reads ([a-zA-Z0-9, !]), so
@@ -79,8 +89,19 @@ export class TaskRegularExpressions {
    * "FREQ=DAILY") and text with a numeric end date ("every month until
    * 2026-12-31").
    */
-  public static readonly recurrenceRegex =
-    /🔁\uFE0F? *((?:RRULE:|DTSTART|[A-Z]+=)[A-Za-z0-9=;:,+\-/]+|[a-zA-Z0-9, !]*?\buntil\s+(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{4}|\d{4}\/\d{1,2}\/\d{1,2})(?:\s+when done)?|[a-zA-Z0-9, !]+)/u;
+  public static readonly recurrenceRegex = new RegExp(
+    `🔁\\uFE0F? *(${RECURRENCE_VALUE})`,
+    "u",
+  );
+  /** Obsidian Tasks 🏁 on-completion action ("keep", "delete"). */
+  public static readonly onCompletionRegex = /🏁\uFE0F? *([a-zA-Z]+)/u;
+  /** Obsidian Tasks 🆔 task id. */
+  public static readonly idRegex = new RegExp(`🆔\\uFE0F? *(${TASK_ID})`, "u");
+  /** Obsidian Tasks ⛔ ids of the tasks this one depends on, comma separated. */
+  public static readonly dependsOnRegex = new RegExp(
+    `⛔\\uFE0F? *(${TASK_ID_SEQUENCE})`,
+    "u",
+  );
 
   // regex from @702573N
   public static readonly hexColorRegex =

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  BROWSER_SPEECH_UNAVAILABLE_MESSAGE,
   BrowserVoiceProvider,
   OpenAIWhisperProvider,
   GeminiSpeechProvider,
+  isBrowserSpeechDisabledByHost,
   type IVoiceProvider,
   type VoiceInputResult,
   type VoiceInputError,
@@ -19,6 +21,13 @@ export const useVoiceInput = (
 ) => {
   const [isListening, setIsListening] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
+  // Set when the host ruled out the active provider, so the voice button can
+  // say what to do instead of starting and failing.
+  const unavailableMessage =
+    voiceConfig.activeProvider === "browser" &&
+    isBrowserSpeechDisabledByHost(runtime)
+      ? BROWSER_SPEECH_UNAVAILABLE_MESSAGE
+      : null;
 
   const stop = useCallback(() => {
     const stopFn = stopRef.current;
@@ -75,7 +84,10 @@ export const useVoiceInput = (
 
     // Check if provider is available
     if (!provider.isAvailable()) {
-      onError(`${provider.getName()} is not available in this browser.`);
+      onError(
+        unavailableMessage ??
+          `${provider.getName()} is not available in this browser.`,
+      );
       logger.error("Voice", `Provider ${provider.getName()} is not available`);
       return;
     }
@@ -121,7 +133,7 @@ export const useVoiceInput = (
     if (!finished) {
       stopRef.current = cleanup;
     }
-  }, [voiceConfig, onResult, onError, runtime]);
+  }, [voiceConfig, onResult, onError, runtime, unavailableMessage]);
 
-  return { isListening, start, stop };
+  return { isListening, start, stop, unavailableMessage };
 };

@@ -215,6 +215,23 @@ describe("TaskRegularExpressions", () => {
       expect(match).not.toBeNull();
       expect(match![0]).toContain("^block-id-123");
     });
+
+    it("only matches a block link at the end", () => {
+      expect("See ^notes for details").not.toMatch(
+        TaskRegularExpressions.blockLinkRegex,
+      );
+    });
+  });
+
+  describe("Obsidian Tasks dependency fields", () => {
+    it.each([
+      ["cancelledDateRegex", "Task ❌ 2026-10-15", "2026-10-15"],
+      ["onCompletionRegex", "Task 🏁 delete", "delete"],
+      ["idRegex", "Task 🆔 abc_1-2", "abc_1-2"],
+      ["dependsOnRegex", "Task ⛔ abc, def,ghi", "abc, def,ghi"],
+    ] as const)("%s reads %j", (name, text, value) => {
+      expect(text.match(TaskRegularExpressions[name])?.[1]).toBe(value);
+    });
   });
 
   describe("keyValueRegex (dataview fields)", () => {

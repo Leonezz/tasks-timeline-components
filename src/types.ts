@@ -30,6 +30,7 @@ export interface Task {
   startAt?: ISO8601String;
   dueAt?: ISO8601String;
   completedAt?: ISO8601String;
+  /** When the task was cancelled (❌ on Obsidian Tasks lines). */
   cancelledAt?: ISO8601String;
 
   priority: Priority;
@@ -37,6 +38,18 @@ export interface Task {
   tags: Tag[];
   isRecurring?: boolean;
   recurringInterval?: string;
+  /**
+   * Obsidian Tasks 🏁 on-completion action, as written on the line: "keep" or
+   * "delete" (Obsidian Tasks ignores other values).
+   */
+  onCompletion?: string;
+  /**
+   * Obsidian Tasks 🆔 id (letters, digits, "-" and "_"), which other tasks
+   * list in `dependsOn`. Not the host's `id`.
+   */
+  taskId?: string;
+  /** Obsidian Tasks ⛔ ids (`taskId`s) of the tasks this task waits for. */
+  dependsOn?: string[];
   extra?: {
     [key: string]: string | undefined;
   };

@@ -58,6 +58,41 @@ describe("taskToMarkdown", () => {
       expect(result).toBe("- [-] Test task");
     });
 
+    it("keeps a custom marker that still means the task's status", () => {
+      const task: Task = {
+        id: "1",
+        title: "Deferred task",
+        status: "todo",
+        category: "test",
+        priority: "medium",
+        tags: [],
+        dueAt: "2024-01-16",
+      };
+
+      expect(taskToMarkdown(task, "- [>] Deferred task 📅 2024-01-15")).toBe(
+        "- [>] Deferred task 📅 2024-01-16",
+      );
+      expect(
+        taskToMarkdown(
+          { ...task, status: "done" },
+          "- [>] Deferred task 📅 2024-01-15",
+        ),
+      ).toBe("- [x] Deferred task 📅 2024-01-16");
+    });
+
+    it("returns a line that is not a task unchanged", () => {
+      const task: Task = {
+        id: "1",
+        title: "Test task",
+        status: "done",
+        category: "test",
+        priority: "medium",
+        tags: [],
+      };
+
+      expect(taskToMarkdown(task, "- Not a task")).toBe("- Not a task");
+    });
+
     it("should update status to doing", () => {
       const task: Task = {
         id: "1",
@@ -489,6 +524,34 @@ describe("formatTasksMetadata", () => {
     expect(formatTasksMetadata(task)).toBe(
       "⏫ 📅 2024-01-15 🛫 2024-01-10 ⏳ 2024-01-12 ➕ 2024-01-01 ✅ 2024-01-20 🔁 every week",
     );
+  });
+
+  it("writes ❌, 🏁, 🆔 and ⛔ after the other fields", () => {
+    const task = baseTask({
+      dueAt: "2024-01-15",
+      cancelledAt: "2024-01-16T09:00:00+08:00",
+      recurringInterval: "every week",
+      onCompletion: "delete",
+      taskId: "abc",
+      dependsOn: ["x1", "y_2"],
+    });
+    expect(formatTasksMetadata(task)).toBe(
+      "📅 2024-01-15 ❌ 2024-01-16 🔁 every week 🏁 delete 🆔 abc ⛔ x1,y_2",
+    );
+  });
+
+  it.each([
+    [{ taskId: "has space" }, 'task id "has space"'],
+    [{ dependsOn: ["ok", "not ok"] }, 'task id "not ok"'],
+    [{ onCompletion: "delete!" }, 'on-completion action "delete!"'],
+  ] as const)("refuses %j, which a line can't hold", (overrides, message) => {
+    expect(() =>
+      formatTasksMetadata(baseTask(overrides as Partial<Task>)),
+    ).toThrow(message);
+  });
+
+  it("writes nothing for an empty dependency list", () => {
+    expect(formatTasksMetadata(baseTask({ dependsOn: [] }))).toBe("");
   });
 
   it("uses the low priority symbol", () => {

@@ -5,15 +5,16 @@ import type {
   CustomSettingsTab,
   SecretFieldRenderer,
 } from "../../types";
+import type { AIProviderFactory } from "../../providers/types";
 import { cn } from "../../utils";
+import type { VoiceRuntime } from "../../utils/voice-providers";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
 import { Documentation } from "./Documentation";
 import styles from "../../index.css?inline";
-import "../../../vite-env.d.ts";
 import { About } from "./About.tsx";
-import { logger } from "@/utils/logger.ts";
+import { logger } from "../../utils/logger.ts";
 
 const RESERVED_TAB_IDS = ["general", "filters", "ai", "docs", "about"] as const;
 
@@ -30,6 +31,18 @@ interface SettingsPageProps {
   customTabs?: CustomSettingsTab[];
   /** Host-provided renderer for secret selector controls. */
   renderSecretField?: SecretFieldRenderer;
+  /** Host voice runtime; `browserSpeechSupported: false` disables the Browser voice provider. */
+  voiceRuntime?: VoiceRuntime;
+  /**
+   * Host provider factory for "Test Connection". Pass the same one given to
+   * `TasksTimelineApp` so the test checks what the agent will use.
+   */
+  aiProviderFactory?: AIProviderFactory;
+  /**
+   * Fetch for the built-in providers in "Test Connection". Pass the same one
+   * given to `TasksTimelineApp` as `aiFetch`.
+   */
+  aiFetch?: typeof fetch;
 }
 
 type BuiltInTab = "general" | "filters" | "ai" | "docs" | "about";
@@ -44,6 +57,9 @@ export const SettingsPage = ({
   inDarkMode,
   customTabs = [],
   renderSecretField,
+  voiceRuntime,
+  aiProviderFactory,
+  aiFetch,
 }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<BuiltInTab | string>("general"),
     [containerElement, setContainerElement] = useState<HTMLDivElement | null>(
@@ -206,6 +222,9 @@ export const SettingsPage = ({
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             renderSecretField={renderSecretField}
+            voiceRuntime={voiceRuntime}
+            aiProviderFactory={aiProviderFactory}
+            aiFetch={aiFetch}
           />
         )}
         {activeTab === "docs" && <Documentation />}

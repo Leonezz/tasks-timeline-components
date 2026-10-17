@@ -231,7 +231,7 @@ export const TypeNewCategory: Story = {
 
     await step("Click Set button to save", async () => {
       const setButton = canvas.getByRole("button", {
-        name: /Set to "New Category"/i,
+        name: /category to New Category$/,
       });
       await userEvent.click(setButton);
       await delay(100);
@@ -443,12 +443,11 @@ export const MaxSuggestionsLimit: Story = {
     });
 
     await step("Verify max 5 suggestions shown", async () => {
-      const buttons = canvas.getAllByRole("button"),
-        // Count buttons that are category suggestions (excluding "Set to..." button)
-        suggestionButtons = buttons.filter((btn: HTMLElement) =>
-          btn.textContent?.match(/^[A-Z]/),
-        );
-      expect(suggestionButtons.length).toBeLessThanOrEqual(5);
+      // All 8 categories match "A"; the "Set to" button targets "A" itself
+      const suggestionButtons = canvas.getAllByRole("button", {
+        name: /category to A[a-z]+$/,
+      });
+      expect(suggestionButtons).toHaveLength(5);
     });
   },
 };
@@ -509,7 +508,10 @@ export const AriaLabels: Story = {
 
     await step("Verify button has accessible title", async () => {
       const button = canvas.getByRole("button", { name: /Change Category/i });
-      expect(button).toHaveAttribute("title", "Change Category");
+      expect(button).toHaveAttribute(
+        "title",
+        "Change category (current: Work)",
+      );
     });
   },
 };

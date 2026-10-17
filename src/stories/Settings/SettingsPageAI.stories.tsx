@@ -1,7 +1,8 @@
 import { SettingsPageAI } from "../../components/settings/SettingsPageAI";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { AppSettings } from "../../types";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import type { AIProviderFactory } from "../../providers/types";
 import { settingsBuilder } from "../fixtures";
 
 const meta: Meta<typeof SettingsPageAI> = {
@@ -228,6 +229,82 @@ export const CustomProviderValidation: Story = {
   },
 };
 
+// ========================================
+// Host Runtime (aiFetch / aiProviderFactory)
+// ========================================
+
+const geminiHelloReply = {
+  candidates: [
+    {
+      content: { role: "model", parts: [{ text: "Hello" }] },
+      finishReason: "STOP",
+      index: 0,
+    },
+  ],
+  usageMetadata: {
+    promptTokenCount: 3,
+    candidatesTokenCount: 1,
+    totalTokenCount: 4,
+  },
+};
+
+/** "Test Connection" goes through the host's fetch, never the network. */
+export const TestConnectionWithHostFetch: Story = {
+  args: {
+    ...GeminiProvider.args,
+    aiFetch: fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify(geminiHelloReply), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    ),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Send the connection test through the host fetch", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        'Connected to gemini-2.0-flash. Response: "Hello"',
+      );
+      await expect(args.aiFetch).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+/** "Test Connection" tests the provider the host's factory builds. */
+export const TestConnectionWithHostFactory: Story = {
+  args: {
+    ...GeminiProvider.args,
+    aiProviderFactory: fn<AIProviderFactory>(async () => ({
+      chat: async () => ({ text: "" }),
+      test: async () => ({
+        success: true,
+        message: "Connected through the host provider",
+      }),
+    })),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Test the host factory's provider", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        "Connected through the host provider",
+      );
+      await expect(args.aiProviderFactory).toHaveBeenCalledWith(
+        "gemini",
+        expect.objectContaining({ model: "gemini-2.0-flash" }),
+      );
+    });
+  },
+};
+
 export const WithTokenUsage: Story = {
   args: {
     settings: {
@@ -318,6 +395,35 @@ export const VoiceInputGemini: Story = {
       },
     },
     onUpdateSettings: handleUpdateSettings,
+  },
+};
+
+export const VoiceInputBrowserUnsupported: Story = {
+  args: {
+    settings: settingsBuilder.withVoiceInput(),
+    onUpdateSettings: handleUpdateSettings,
+    voiceRuntime: { browserSpeechSupported: false },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Browser provider is disabled with an explanation", async () => {
+      await expect(
+        canvas.getByRole("button", { name: "Use Browser voice provider" }),
+      ).toBeDisabled();
+      await expect(
+        canvas.getByText(/speech recognition isn.t available here/i),
+      ).toBeInTheDocument();
+    });
+
+    await step("OpenAI and Gemini stay selectable", async () => {
+      await expect(
+        canvas.getByRole("button", { name: "Use OpenAI voice provider" }),
+      ).toBeEnabled();
+      await expect(
+        canvas.getByRole("button", { name: "Use Gemini voice provider" }),
+      ).toBeEnabled();
+    });
   },
 };
 

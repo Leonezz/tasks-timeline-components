@@ -345,15 +345,21 @@ export const ExpandCollapse: Story = {
     });
 
     await step("Click to collapse backlog section", async () => {
-      const collapseButton = canvas.getByRole("button");
+      const collapseButton = canvas.getByRole("button", {
+        name: /^Collapse backlog/,
+      });
       await userEvent.click(collapseButton);
       await delay(400); // Wait for collapse animation
+      expect(collapseButton).toHaveAttribute("aria-expanded", "false");
     });
 
     await step("Click again to expand", async () => {
-      const expandButton = canvas.getByRole("button");
+      const expandButton = canvas.getByRole("button", {
+        name: /^Expand backlog/,
+      });
       await userEvent.click(expandButton);
       await delay(400); // Wait for expand animation
+      expect(expandButton).toHaveAttribute("aria-expanded", "true");
     });
   },
 };

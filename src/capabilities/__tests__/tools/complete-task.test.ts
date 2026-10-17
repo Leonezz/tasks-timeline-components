@@ -211,6 +211,19 @@ describe("complete_task tool", () => {
       expect(nextTask.recurringInterval).toBe("every week");
     });
 
+    it("gives the next occurrence no 🆔 or ⛔, as Obsidian Tasks does, and keeps 🏁", async () => {
+      const { nextTask } = await completeAndGetNext({
+        ...OBSIDIAN_TASK,
+        taskId: "water1",
+        dependsOn: ["buy-can"],
+        onCompletion: "delete",
+      });
+
+      expect(nextTask.taskId).toBeUndefined();
+      expect(nextTask.dependsOn).toBeUndefined();
+      expect(nextTask.onCompletion).toBe("delete");
+    });
+
     it("advances 'when done' rules from the completion date", async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2026, 2, 4, 12));

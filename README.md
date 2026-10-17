@@ -236,12 +236,20 @@ const { processTask, generateSuggestions, isLoading } = useAIAgent(
 
 ### useVoiceInput
 
-Handle browser voice input or Whisper API integration.
+Handle voice input with the configured provider (browser Web Speech API,
+OpenAI Whisper or Gemini).
 
 ```typescript
-const { transcript, isListening, startListening, stopListening } =
-  useVoiceInput();
+const { isListening, start, stop, unavailableMessage } = useVoiceInput(
+  settings.voiceConfig,
+  (transcript) => appendText(transcript),
+  (message) => showError(message),
+  voiceRuntime, // optional, see "Voice Input" below
+);
 ```
+
+`unavailableMessage` is set when the host has ruled out the active provider.
+`start()` then reports it through the error callback instead of starting.
 
 ## Types
 
@@ -330,11 +338,15 @@ interface TasksTimelineAppProps {
   // AI agent (see "AI Capabilities" below)
   aiSystemPrompt?: string;
   aiProviderFactory?: AIProviderFactory;
+  aiFetch?: typeof fetch; // Unreleased: fetch for the built-in providers
   aiCapabilityContext?: CapabilityContext;
   aiCapabilities?: Capabilities;
   aiExtraTools?: ToolSpec[]; // v0.6.0+: host tools appended to the built-ins
   aiMaxToolRounds?: number; // v0.6.0+: default 16
   onAgentEvent?: (event: AgentEvent) => void;
+
+  // Voice input (see "Voice Input" below)
+  voiceRuntime?: VoiceRuntime;
 }
 ```
 
@@ -342,6 +354,12 @@ interface TasksTimelineAppProps {
   built-in tool (or another extra tool) throws. Passing both `aiCapabilities` and a
   non-empty `aiExtraTools` throws — add extra tools via
   `createCapabilities(ctx, { extraTools })` when you build your own capabilities.
+- `aiFetch` replaces the global `fetch` for every request the built-in AI providers
+  make, in the agent and in the Settings **Test Connection** button. See
+  "Routing provider requests through the host" below. Passing both `aiFetch` and
+  `aiProviderFactory` throws: a custom factory makes its own requests.
+- **Test Connection** uses `aiProviderFactory` when one is given, so it tests the
+  same provider the agent will use.
 - `aiMaxToolRounds` bounds the number of tool-call rounds per agent turn. When the
   limit is reached the agent stops calling the provider and reports
   `Stopped after N tool rounds without a final answer` as an agent error.
@@ -349,8 +367,9 @@ interface TasksTimelineAppProps {
   Tasks text (`every 2 weeks on Monday until December 31, 2026`). Set it when you
   store tasks as Obsidian Tasks lines, which can't hold RRULE syntax or a start
   date. `"auto"` writes text for text rules and tasks from the Obsidian Tasks
-  parser, and RRULE syntax otherwise. The built-in agent's task tools follow it
-  too (see `recurrenceFormat` under AI Capabilities).
+  parser, and RRULE syntax otherwise. When the editor writes text, its preview
+  is the text that saving writes. The built-in agent's
+  task tools follow it too (see `recurrenceFormat` under AI Capabilities).
 - **Repairing lines written by v0.8.0.** v0.8.0 wrote a rule with a start
   date on two lines, which splits the task line in the note:
 
@@ -416,10 +435,81 @@ const settings: AppSettings = {
 };
 ```
 
-Requests go straight from the browser to the provider. The Anthropic provider
-sends the `anthropic-dangerous-direct-browser-access: true` header that
-Anthropic requires for browser (and Electron, e.g. Obsidian) requests, so your
-API key is visible to anyone who can inspect the page.
+Requests go straight from the browser to the provider (unless the host passes
+`aiFetch`, see below). The Anthropic provider sends the
+`anthropic-dangerous-direct-browser-access: true` header that Anthropic
+requires for browser (and Electron, e.g. Obsidian) requests, so your API key is
+visible to anyone who can inspect the page.
+
+#### Routing provider requests through the host
+
+Some providers reject browser requests (CORS). Hosts with their own HTTP client
+can pass it as `aiFetch`. The built-in providers then send every request
+through it, including **Test Connection**. `aiFetch` is a runtime prop and is
+never saved with the settings.
+
+```typescript
+import { requestUrl } from "obsidian";
+
+// Sketch: adapt Obsidian's requestUrl (not subject to CORS) to fetch. It does
+// not stream, which is fine: the built-in providers make plain requests.
+const obsidianFetch: typeof fetch = async (input, init) => {
+  const request = new Request(input, init);
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const response = await requestUrl({
+    url: request.url,
+    method: request.method,
+    headers: Object.fromEntries(request.headers.entries()),
+    body: hasBody ? await request.text() : undefined,
+    throw: false,
+  });
+  return new Response(response.arrayBuffer, {
+    status: response.status,
+    headers: response.headers,
+  });
+};
+
+<TasksTimelineApp {...props} aiFetch={obsidianFetch} />;
+
+// If you render SettingsPage yourself (e.g. in a plugin settings tab), pass the
+// same value so Test Connection goes through it too.
+<SettingsPage {...settingsProps} aiFetch={obsidianFetch} />;
+```
+
+`aiFetch` must resolve to a fetch `Response`; any other result (such as a raw
+`requestUrl` result) fails with an explicit error, and so does a value that is
+not a function. Nothing falls back to the global `fetch`. Errors your fetch
+throws are shown as agent errors and as failed connection tests.
+
+`aiFetch` cannot be combined with `aiProviderFactory`: `TasksTimelineApp`
+throws when it renders, and **Test Connection** reports a failed test. A custom
+factory makes its own requests, so use your fetch inside the factory instead.
+
+### Voice Input
+
+The default voice provider is the browser's Web Speech API. Some embedded
+browsers, such as Electron apps, expose `SpeechRecognition` with no speech
+service behind it, so recognition always fails. A host that knows this can
+declare it through `voiceRuntime`:
+
+```tsx
+<TasksTimelineApp
+  voiceRuntime={{ browserSpeechSupported: false }}
+  // ...
+/>
+```
+
+With `browserSpeechSupported: false`:
+
+- `BrowserVoiceProvider.isAvailable()` returns `false`.
+- Settings → AI disables the **Browser** voice provider and explains why.
+- The voice button shows, and reports on click, "Browser speech recognition
+  isn't available here. Choose OpenAI or Gemini as the voice provider in
+  Settings → AI." It doesn't start recognition.
+
+Leave the flag unset to keep detecting support from the window. If you render
+`SettingsPage` or `SettingsModal` yourself, pass them the same `voiceRuntime`.
+See [docs/VOICE_INPUT.md](docs/VOICE_INPUT.md) for details.
 
 ### AI Capabilities
 
@@ -517,6 +607,24 @@ pnpm dev
 
 ```bash
 pnpm storybook
+```
+
+### Run Tests
+
+```bash
+# Unit tests (Node)
+pnpm test
+
+# Storybook play tests (headless Chromium via Playwright)
+pnpm test-storybook
+```
+
+The Storybook tests need the Chromium headless shell that matches the
+installed Playwright version. Install it once, and again after upgrading
+Playwright:
+
+```bash
+pnpm exec playwright install chromium-headless-shell
 ```
 
 ### Build Library

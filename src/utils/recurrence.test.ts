@@ -3,6 +3,8 @@ import { RRule } from "rrule";
 import {
   DEFAULT_RECURRENCE_FORM_STATE,
   describeRecurrence,
+  describeStoredRecurrence,
+  previewRecurrence,
   readRecurrenceRule,
   recurrenceSaveFormat,
   resolveRecurrenceOnSave,
@@ -205,6 +207,86 @@ describe("describeRecurrence", () => {
   });
 });
 
+describe("previewRecurrence", () => {
+  const yearlyEveryOther: RecurrenceFormState = {
+    ...DEFAULT_RECURRENCE_FORM_STATE,
+    freq: RRule.YEARLY,
+    interval: 2,
+    byMonth: [6, 12],
+    byMonthDay: [1, 15],
+  };
+  const saveAsText = (state: RecurrenceFormState, whenDone = false) =>
+    resolveRecurrenceOnSave(
+      {},
+      {
+        isRecurring: true,
+        controlsTouched: true,
+        format: "text",
+        whenDone,
+        state,
+      },
+    ).recurringInterval;
+
+  it("shows the text that saving writes in text format", () => {
+    // rrule's own wording is "every 2 years June and December on the …"
+    expect(previewRecurrence(yearlyEveryOther, "text")).toBe(
+      "every 2 years on the 1st and 15th in June and December",
+    );
+    expect(previewRecurrence(yearlyEveryOther, "text")).toBe(
+      saveAsText(yearlyEveryOther),
+    );
+  });
+
+  it("includes 'when done', which saving keeps", () => {
+    expect(previewRecurrence({ ...weekly, interval: 2 }, "text", true)).toBe(
+      saveAsText({ ...weekly, interval: 2 }, true),
+    );
+  });
+
+  it("describes the settings when they can't be written as text", () => {
+    // Text rules can't hold a start date; saving reports that
+    const withStart = { ...weekly, start: "2026-10-16" };
+
+    expect(() => saveAsText(withStart)).toThrow("can't store a start date");
+    expect(previewRecurrence(withStart, "text")).toBe(
+      describeRecurrence(withStart),
+    );
+  });
+
+  it("describes the settings in RRULE format", () => {
+    expect(previewRecurrence(yearlyEveryOther, "rrule")).toBe(
+      describeRecurrence(yearlyEveryOther),
+    );
+  });
+});
+
+describe("describeStoredRecurrence", () => {
+  it.each([
+    ["every week when done", "every week when done"],
+    // Numeric end dates are read as calendar days and written out
+    ["every week until 2026-12-31", "every week until December 31, 2026"],
+    ["FREQ=WEEKLY;UNTIL=2026-12-31", "every week until December 31, 2026"],
+    [
+      "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY;UNTIL=20261231T235959Z",
+      "every week, from October 16, 2026 until December 31, 2026",
+    ],
+    ["FREQ=MONTHLY;BYDAY=+2MO", "every month on the 2nd Monday"],
+    ["FREQ=WEEKLY;COUNT=5", "every week for 5 times"],
+  ])("describes %j as %j", (rule, text) => {
+    expect(describeStoredRecurrence(rule)).toBe(text);
+  });
+
+  it.each([
+    "every fortnight",
+    // rrule's text leaves these parts out, so it would describe another rule
+    "FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1",
+    "FREQ=YEARLY;BYEASTER=0",
+    "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,SU;WKST=SU",
+  ])("can't describe %j", (rule) => {
+    expect(describeStoredRecurrence(rule)).toBeNull();
+  });
+});
+
 describe("resolveRecurrenceOnSave in text format", () => {
   const edited = (state: Partial<RecurrenceFormState>, whenDone = false) =>
     resolveRecurrenceOnSave(
@@ -345,21 +427,57 @@ describe("readRecurrenceRule: parts the editor can't show", () => {
     expect(read.unsupportedParts).toEqual([]);
   });
 
-  it.each([
+  const partsByRule = [
     ["FREQ=MONTHLY;BYDAY=+2MO", "ordinal weekdays (like the 2nd Monday)"],
     ["FREQ=MONTHLY;BYDAY=-1FR", "ordinal weekdays (like the 2nd Monday)"],
-    ["FREQ=WEEKLY;COUNT=5", "a number of repetitions (COUNT)"],
+    ["FREQ=WEEKLY;COUNT=5", "repetition count (COUNT)"],
     ["FREQ=WEEKLY;BYMONTH=6", "months"],
     [
       "FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1",
-      "a position within the period (BYSETPOS)",
+      "position within the period (BYSETPOS)",
     ],
-    ["FREQ=WEEKLY;INTERVAL=2;WKST=SU", "a week start other than Monday"],
-    ["FREQ=HOURLY;INTERVAL=48", "an hourly or shorter frequency"],
+    ["FREQ=WEEKLY;INTERVAL=2;WKST=SU", "week start other than Monday"],
+    ["FREQ=HOURLY;INTERVAL=48", "hourly or shorter frequency"],
     ["FREQ=DAILY;BYHOUR=9", "times of day (BYHOUR, BYMINUTE, BYSECOND)"],
     ["FREQ=YEARLY;BYYEARDAY=100", "days of the year"],
-  ])("%j has %s", (rule, part) => {
+    ["FREQ=YEARLY;BYWEEKNO=20", "week numbers"],
+    ["FREQ=YEARLY;BYEASTER=0", "Easter offset"],
+    ["FREQ=WEEKLY;BYMONTHDAY=1", "days of the month"],
+    ["FREQ=MONTHLY;BYMONTHDAY=-2", "days counted from the month's end"],
+  ] as const;
+
+  it.each(partsByRule)("%j has %s", (rule, part) => {
     expect(readRecurrenceRule(rule).unsupportedParts).toContain(part);
+  });
+
+  // "These settings can't show: ordinal weekdays (like the 2nd Monday),
+  // weekdays." named the same weekdays twice
+  it.each([
+    ["FREQ=MONTHLY;BYDAY=+2MO", ["ordinal weekdays (like the 2nd Monday)"]],
+    ["FREQ=MONTHLY;BYDAY=-1FR", ["ordinal weekdays (like the 2nd Monday)"]],
+    [
+      "FREQ=YEARLY;BYDAY=+1MO;BYMONTH=1",
+      ["ordinal weekdays (like the 2nd Monday)"],
+    ],
+    [
+      "every month on the 2nd Monday",
+      ["ordinal weekdays (like the 2nd Monday)"],
+    ],
+    // Plain weekdays alongside ordinal ones are a part of their own
+    [
+      "FREQ=MONTHLY;BYDAY=+2MO,TU",
+      ["ordinal weekdays (like the 2nd Monday)", "weekdays"],
+    ],
+    ["FREQ=MONTHLY;BYDAY=TU", ["weekdays"]],
+  ] as const)("lists the weekdays of %j once", (rule, parts) => {
+    expect(readRecurrenceRule(rule).unsupportedParts).toEqual(parts);
+  });
+
+  // The editor lists them after a colon ("These settings can't show: …")
+  it.each(partsByRule)("names the parts of %j without an article", (rule) => {
+    for (const part of readRecurrenceRule(rule).unsupportedParts) {
+      expect(part).not.toMatch(/^(a|an|the) /i);
+    }
   });
 
   it("keeps such a rule verbatim while the controls are untouched", () => {
