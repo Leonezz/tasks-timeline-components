@@ -12,8 +12,10 @@ import {
   asYearlySuperset,
   hasFilters,
   isSet,
+  maxDaysPerWeek,
   noLaterDate,
   toList,
+  weekNumbersNeverMatch,
 } from "./day-rule-search";
 import { isSubDaily, nextSubDailyDay } from "./sub-daily-rule";
 import { timesOfDayChangeDays } from "./rule-boundaries";
@@ -65,6 +67,28 @@ const withDailySetPos = (
     return null;
   }
   return perDay === 1 ? { ...options, bysetpos: null } : options;
+};
+
+/**
+ * Whether BYSETPOS never picks a date of a weekly rule: every position is
+ * past the most dates a week can have, its days times its times of day.
+ * rrule picks a week's first date for a negative position past its dates,
+ * so only positive ones are ruled out. rrule makes a rule with BYEASTER
+ * yearly.
+ */
+const weeklySetPosNeverPicks = (
+  options: Partial<Options>,
+  perDay: number,
+): boolean => {
+  if (
+    options.freq !== RRule.WEEKLY ||
+    !isSet(options.bysetpos) ||
+    isSet(options.byeaster)
+  ) {
+    return false;
+  }
+  const most = maxDaysPerWeek(options) * perDay;
+  return toList(options.bysetpos).every((position) => position > most);
 };
 
 const wallDate = (wall: string): Date =>
@@ -145,17 +169,21 @@ function nextDayLevelDay(
   ruleText: string,
 ): string | null {
   const withTimes = timesOfDayChangeDays(rule);
+  const perDay = withTimes ? datesPerDay(rule) : 1;
   const options = withDailySetPos(
     withTimes ? { ...rule.options, ...rule.timesOfDay } : rule.options,
-    withTimes ? datesPerDay(rule) : 1,
+    perDay,
   );
-  if (!options) {
+  if (!options || weeklySetPosNeverPicks(options, perDay)) {
     return noLaterDate(rule, from, ruleText);
   }
   const frame =
     withTimes && rule.utcStartDateTime
       ? utcFrame(rule, rule.utcStartDateTime, from)
       : floatingFrame(rule, from, withTimes);
+  if (weekNumbersNeverMatch(options, frame.startDay, frame.daysAfter)) {
+    return noLaterDate(rule, from, ruleText);
+  }
 
   // The rule's own days, when a yearly rule has the same dates
   const same = withTimes ? null : asYearly(options, frame.startDay);

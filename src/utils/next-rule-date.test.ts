@@ -502,6 +502,70 @@ describe("nextRuleDay with BYSETPOS and day filters that never match", () => {
   });
 });
 
+describe("nextRuleDay with BYSETPOS past a week's dates", () => {
+  // rrule alone scans these to the year 9999, past any UNTIL or COUNT:
+  // about a second for one position, several for twenty
+  const positionsFrom = (first: number) =>
+    Array.from({ length: 20 }, (_, i) => i + first).join(",");
+
+  it.each([
+    // One Monday a week
+    "FREQ=WEEKLY;BYDAY=MO;BYSETPOS=2",
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)}`,
+    `FREQ=WEEKLY;BYDAY=+1MO,+2MO;BYSETPOS=${positionsFrom(2)}`,
+    // Without days, the start's weekday
+    `FREQ=WEEKLY;BYSETPOS=${positionsFrom(2)}`,
+    // A day of the month or year falls at most once a week
+    "FREQ=WEEKLY;BYSETPOS=3;BYMONTH=2;BYMONTHDAY=28",
+    `FREQ=WEEKLY;BYSETPOS=${positionsFrom(2)};BYMONTH=2;BYMONTHDAY=28`,
+    `FREQ=WEEKLY;BYMONTHDAY=1,15;BYDAY=SA,SU;BYSETPOS=${positionsFrom(3)}`,
+    `FREQ=WEEKLY;BYYEARDAY=1,-1;BYDAY=MO,TU,WE;BYSETPOS=${positionsFrom(3)}`,
+    // Each of a week's days has its times of day
+    "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYSETPOS=2",
+    `FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9,17;BYSETPOS=${positionsFrom(5)}`,
+    `DTSTART:20261016T100000Z\nRRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9,23;BYSETPOS=${positionsFrom(3)}`,
+  ])("rules out %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(() => nextRuleDay(parse(rule), "2026-10-17", rule)).toThrow(
+      "has no date after 2026-10-17",
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)};UNTIL=20271231`,
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)};COUNT=3`,
+  ])("ends %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    ["FREQ=WEEKLY;BYDAY=MO,TU;BYSETPOS=2", "2026-10-20"],
+    ["FREQ=WEEKLY;BYDAY=+1MO,+2MO,TU;BYSETPOS=2", "2026-10-20"],
+    ["FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9,17;BYSETPOS=4", "2026-10-22"],
+    // rrule picks a week's first date for a negative position past its dates
+    ["FREQ=WEEKLY;BYDAY=MO;BYSETPOS=-2", "2026-10-19"],
+    // A week number picks all its days, not the start's weekday
+    ["FREQ=WEEKLY;BYWEEKNO=1;BYSETPOS=7", "2027-01-10"],
+    // Days of the month or year across a month's or year's end
+    ["FREQ=WEEKLY;BYMONTHDAY=1,-1;BYSETPOS=2", "2026-11-01"],
+    ["FREQ=WEEKLY;BYMONTHDAY=28,29,30,31,1;BYSETPOS=5", "2026-11-01"],
+    ["FREQ=WEEKLY;BYYEARDAY=1,-1;BYSETPOS=2", "2027-01-01"],
+    // Weeks from Sunday: Saturday is second
+    ["FREQ=WEEKLY;WKST=SU;BYDAY=SA,SU;BYSETPOS=2", "2026-10-24"],
+    ["FREQ=WEEKLY;BYMONTH=2;BYSETPOS=1", "2027-02-06"],
+    // rrule makes a rule with BYEASTER yearly
+    ["FREQ=WEEKLY;BYEASTER=0;BYSETPOS=1", "2027-03-28"],
+  ])("%j from 2026-10-17 is %s", (rule, expected) => {
+    expect(wholeRuleTruth(rule, "2026-10-17")).toBe(expected);
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBe(expected);
+  });
+});
+
 describe("nextRuleDay's quick check with many times of day", () => {
   const list = (first: number, last: number) =>
     Array.from({ length: last - first + 1 }, (_, i) => first + i).join(",");
@@ -588,6 +652,70 @@ describe("nextRuleDay with BYWEEKNO around the new year", () => {
     expect(nextRuleDay(parse(rule), from, rule)).toBe(
       wholeRuleTruth(rule, from),
     );
+  });
+});
+
+/**
+ * Week -53 is week 1 of a 53-week year, which starts the year before, where
+ * a weekly rule numbers it; only a first week starting in such a year's
+ * first days holds it. rrule alone scans the rest to the year 9999, past
+ * any UNTIL or COUNT.
+ */
+describe("nextRuleDay with week numbers a weekly rule never has", () => {
+  it.each([
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2021-12-28"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53;WKST=SU", "2021-12-28"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53,60", "2021-12-28"],
+    // After a first week that held it
+    ["DTSTART:20200101T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53", "2021-12-28"],
+    ["DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-10"],
+    // A first week in a year's first days that isn't week -53: 2027 has 52
+    // weeks, weeks from Sunday give 2026 52, and January 1-4 2026 are week
+    // -53 from Monday
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2027-01-02"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53;WKST=SU", "2026-01-01"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-04"],
+  ])("rules out %j from %s quickly", (rule, from) => {
+    const started = performance.now();
+
+    expect(() => nextRuleDay(parse(rule), from, rule)).toThrow(
+      `has no date after ${from}`,
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    "FREQ=WEEKLY;BYWEEKNO=-53;BYDAY=SA,SU;COUNT=2",
+    "FREQ=WEEKLY;BYWEEKNO=-53;UNTIL=20260105",
+  ])("ends %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2021-12-28", rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    // 2020 and 2026 have 53 weeks
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-01", "2026-01-02"],
+    [
+      "DTSTART:20200101T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53;BYDAY=SU",
+      "2019-12-31",
+      "2020-01-05",
+    ],
+    [
+      "DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53",
+      "2025-12-20",
+      "2026-01-02",
+    ],
+    [
+      "DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53;UNTIL=20270101",
+      "2026-01-03",
+      "2026-01-04",
+    ],
+    ["FREQ=WEEKLY;BYWEEKNO=-53,-52", "2021-12-28", "2022-01-03"],
+  ])("%j from %s is %s", (rule, from, expected) => {
+    expect(wholeRuleTruth(rule, from)).toBe(expected);
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(expected);
   });
 });
 

@@ -271,11 +271,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     within each step (`FREQ=HOURLY;BYMINUTE=45`) count on their own day,
     which differs from the hour's in zones whose offset isn't whole hours
     (18:45 UTC is the next day in India).
+- **Weekly rules with a `BYSETPOS` past each week's dates froze the app.** A
+  week has no more dates than its weekdays (its start's without `BYDAY`)
+  times its times of day, and each `BYMONTHDAY` or `BYYEARDAY` falls at most
+  once a week. A weekly rule whose positions all count past that
+  (`FREQ=WEEKLY;BYDAY=MO;BYSETPOS=2`,
+  `FREQ=WEEKLY;BYSETPOS=3;BYMONTH=2;BYMONTHDAY=28`) now fails fast with the
+  "has no date after" error, or ends at its `UNTIL` or `COUNT`. rrule scanned
+  such rules to the year 9999, about a second each, several with more
+  positions or times of day. Negative positions are left to rrule, which
+  picks a week's first date for one past its dates.
 - **Weekly rules with `BYWEEKNO` skipped the days around the new year.**
   rrule numbers a weekly rule's weeks in the year each week starts in, so
   Saturday January 1 2022 is in week 52 of
   `FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU`; the quick yearly check numbered it in
   2022 and went on to December 31 (or ended the rule, with an `UNTIL`).
+  Likewise week -53 is week 1 of a 53-week year, which starts the year
+  before, so a weekly rule only has it in a first week starting in such a
+  year's first days: `FREQ=WEEKLY;BYWEEKNO=-53` from 2021-12-28 gave January
+  1 2026, and now fails fast with the "has no date after" error (or ends at
+  its `UNTIL` or `COUNT`).
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't
