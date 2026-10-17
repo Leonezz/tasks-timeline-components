@@ -1,10 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, waitFor } from "storybook/test";
+import type { ComponentProps } from "react";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DateBadge } from "../../components/DateBadge";
+import { DATE_BADGE_TONES } from "../../components/date-badge-tones";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
+import { cn } from "../../utils";
 import { taskBuilder } from "../fixtures";
-import { delay, withinShadow } from "../test-utils";
+import {
+  delay,
+  expectReadable,
+  waitForOpaque,
+  withinShadow,
+} from "../test-utils";
 import { DateTime } from "luxon";
 
 const meta: Meta<typeof DateBadge> = {
@@ -13,13 +21,16 @@ const meta: Meta<typeof DateBadge> = {
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
+    // Fail on any axe violation (the default only reports them), such as a
+    // badge label below WCAG AA contrast or an unnamed popover
+    a11y: { test: "error" },
   },
   argTypes: {
     onUpdate: { action: "task-updated" },
   },
   decorators: [
-    (Story) => (
-      <AppProvider>
+    (Story, { parameters }) => (
+      <AppProvider theme={parameters.theme as string | undefined}>
         <div className="p-4 bg-slate-50 min-w-50">
           <Story />
         </div>
@@ -42,7 +53,15 @@ const today = DateTime.now(),
   handleUpdate = (task: Task) => console.log("Updated task:", task),
   // The calendar header is formatted by date-fns in English, e.g. "March 2026"
   calendarMonth = (date: DateTime) =>
-    date.setLocale("en-US").toFormat("MMMM yyyy");
+    date.setLocale("en-US").toFormat("MMMM yyyy"),
+  /** A badge in a colour of the task row's (`DATE_BADGE_TONES`). */
+  badgeClass = (tone: string) =>
+    cn(
+      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border",
+      tone,
+    ),
+  // Empty badges, which the task row doesn't show
+  emptyBadgeClass = badgeClass("border-slate-100 bg-slate-50 text-slate-500");
 
 // ========================================
 // Due Date Stories
@@ -56,8 +75,8 @@ export const DueDate: Story = {
     date: today.toISODate()!,
     label: "Today",
     icon: "Calendar",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-rose-600 bg-rose-50/80 border-rose-100/50",
+    // Due today or tomorrow
+    className: badgeClass(DATE_BADGE_TONES.due),
   },
 };
 
@@ -66,8 +85,6 @@ export const DueTomorrow: Story = {
     ...DueDate.args,
     date: tomorrow.toISODate()!,
     label: "Tomorrow",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-amber-600 bg-amber-50/80 border-amber-100/50",
   },
 };
 
@@ -76,8 +93,7 @@ export const Overdue: Story = {
     ...DueDate.args,
     date: yesterday.toISODate()!,
     label: yesterday.toFormat("MMM d"),
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-rose-700 bg-rose-100 border-rose-200 font-bold",
+    className: badgeClass(DATE_BADGE_TONES.overdue),
   },
 };
 
@@ -86,8 +102,7 @@ export const NoDueDate: Story = {
     ...DueDate.args,
     date: undefined,
     label: "No date",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-slate-400 bg-slate-50 border-slate-100",
+    className: emptyBadgeClass,
   },
 };
 
@@ -103,8 +118,7 @@ export const StartDate: Story = {
     date: today.toISO()!,
     label: "Today 9:00 AM",
     icon: "PlayCircle",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-blue-600 bg-blue-50/80 border-blue-100/50",
+    className: badgeClass(DATE_BADGE_TONES.start),
   },
 };
 
@@ -121,8 +135,7 @@ export const NoStartDate: Story = {
     ...StartDate.args,
     date: undefined,
     label: "No start",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-slate-400 bg-slate-50 border-slate-100",
+    className: emptyBadgeClass,
   },
 };
 
@@ -138,8 +151,7 @@ export const CreatedDate: Story = {
     date: yesterday.toISO()!,
     label: "Yesterday 3:45 PM",
     icon: "Plus",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-slate-500 bg-slate-50/80 border-slate-100/50",
+    className: badgeClass(DATE_BADGE_TONES.created),
   },
 };
 
@@ -163,8 +175,7 @@ export const CompletedDate: Story = {
     date: today.toISO()!,
     label: "Today 4:20 PM",
     icon: "CheckCircle2",
-    className:
-      "flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-emerald-600 bg-emerald-50/80 border-emerald-100/50",
+    className: badgeClass(DATE_BADGE_TONES.completed),
   },
 };
 
@@ -535,3 +546,67 @@ export const MonthNavigation: Story = {
     });
   },
 };
+
+// ========================================
+// Themes
+// ========================================
+
+/** A badge in each of the task row's colours, labelled by it, and an empty one. */
+const everyBadge = [
+  ...Object.entries(DATE_BADGE_TONES).map(([tone, colors]) => ({
+    ...StartDate.args,
+    label: tone,
+    className: badgeClass(colors),
+  })),
+  NoStartDate.args,
+] as ComponentProps<typeof DateBadge>[];
+
+/**
+ * Every badge colour in `theme`, then a popover open, which axe checks with
+ * them.
+ */
+const themedBadgesStory = (theme: string): Story => ({
+  parameters: { theme },
+  render: () => (
+    <div className="flex flex-col items-start gap-2">
+      {everyBadge.map((args) => (
+        <DateBadge key={args.label} {...args} />
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const badges = canvas.getAllByRole("button", { name: /^Change / });
+
+    await step("Badge labels meet WCAG AA (4.5:1)", async () => {
+      expect(badges).toHaveLength(everyBadge.length);
+      for (const badge of badges) {
+        // The label inherits the badge's colours
+        await expectReadable(badge);
+      }
+    });
+
+    await step("The popover is named by its heading", async () => {
+      await userEvent.click(badges[0]);
+      const popover = await canvas.findByRole("dialog", {
+        name: "Change start date",
+      });
+      // Let it finish fading in before axe checks its colours
+      await waitForOpaque(within(popover).getByText("Change start date"));
+    });
+
+    await step("Its heading, Time label and Save button meet AA", async () => {
+      const popover = within(canvas.getByRole("dialog"));
+      await expectReadable(popover.getByText("Change start date"));
+      await expectReadable(popover.getByText("Time"));
+      await expectReadable(
+        popover.getByRole("button", { name: "Save start date" }),
+      );
+    });
+  },
+});
+
+export const LightTheme: Story = themedBadgesStory("light");
+export const DarkTheme: Story = themedBadgesStory("dark");
+export const MidnightTheme: Story = themedBadgesStory("midnight");
+export const CoffeeTheme: Story = themedBadgesStory("coffee");

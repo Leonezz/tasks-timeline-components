@@ -1,5 +1,5 @@
 import type { Task, TaskStatus } from "../types";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 
 /**
  * Test utilities for Storybook interaction testing
@@ -375,6 +375,18 @@ export const contrastRatio = (element: Element): number => {
   );
   return (light + 0.05) / (dark + 0.05);
 };
+
+/**
+ * Waits until `element` and its ancestors are opaque: axe counts opacity, so
+ * a popover still fading in fails its contrast check. Framer Motion's fades
+ * don't show in `getAnimations()`.
+ */
+export const waitForOpaque = (element: Element) =>
+  waitFor(() => {
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      expect(getComputedStyle(node).opacity).toBe("1");
+    }
+  });
 
 /** The element's text meets WCAG AA (4.5:1), once its colours settle. */
 export const expectReadable = async (element: Element) => {
