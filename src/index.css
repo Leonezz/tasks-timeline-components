@@ -310,7 +310,9 @@
   --popover-foreground: 30 25% 10%;
 
   /* Primary (Amber - fits coffee theme) */
-  --primary: 37.7 92.1% 38%; /* #b45309 - amber-700 */
+  /* #92400e - amber-800: at least 4.5:1 (WCAG AA) with primary-foreground,
+     also under hover:bg-primary/90 */
+  --primary: 22.7 82.5% 31.4%;
   --primary-foreground: 40 17% 99%;
 
   /* Secondary */
@@ -324,7 +326,8 @@
 
   /* Accent */
   --accent: 40 21% 94%; /* #f7f5f0 */
-  --accent-foreground: 37.7 92.1% 38%;
+  /* #92400e - amber-800: at least 4.5:1 (WCAG AA) on accent */
+  --accent-foreground: 22.7 82.5% 31.4%;
 
   /* Destructive (Rose - slightly warmer) */
   --destructive: 346.8 77.2% 49.8%;
@@ -333,7 +336,7 @@
   /* Border & Input */
   --border: 40 17% 80%; /* #d6d0c2 - warm gray border */
   --input: 40 17% 80%;
-  --ring: 37.7 92.1% 38%;
+  --ring: 22.7 82.5% 31.4%; /* #92400e - amber-800, as primary */
 
   /* Extended palette - warm adjustments */
   --slate-50: 40 21% 94%; /* #f7f5f0 */
