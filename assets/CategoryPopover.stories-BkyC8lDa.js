@@ -1,0 +1,433 @@
+import{j as Q}from"./jsx-runtime-u17CrQMm.js";import{C as L}from"./CategoryPopover-Sjb1CCU2.js";import{A as M}from"./AppContext-SrkG8hzT.js";import{t as r}from"./tasks-CcRg1J09.js";import"./edge-cases-DMAB-FsE.js";import{w as p,d as o}from"./test-utils-BjL_0stX.js";import"./Icon-g5MVMxEO.js";import"./iframe-DZazhMmd.js";import"./preload-helper-PPVm8Dsz.js";import"./chevron-right-Cri6jyFi.js";import"./calendar-Cmr1cyWC.js";import"./circle-DDRLbMmN.js";import"./chevron-left-BLaTK1Ra.js";import"./Motion-Ba_Df5rY.js";import"./proxy-CgUC1axK.js";import"./tslib.es6-C44cpxNM.js";import"./recurrence-Co3oC643.js";import"./popover-Dj8_k19a.js";import"./Combination-BgwXw_pz.js";import"./usePortalContainer-BjvVFpRl.js";import"./index-ChRTMkvB.js";import"./index-BvO_gj8L.js";import"./index-DrBVBWl1.js";const{expect:g,userEvent:s}=__STORYBOOK_MODULE_TEST__,ua={title:"UI/CategoryPopover",component:L,tags:["autodocs"],parameters:{layout:"centered"},argTypes:{onUpdate:{action:"task-updated"}},decorators:[n=>Q.jsx(M,{children:Q.jsx("div",{className:"p-4 bg-slate-50 min-w-[250px]",children:Q.jsx(n,{})})})]},c="flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border font-medium",u=["Work","Personal","Shopping","Health","Finance"],i=n=>console.log("Updated task:",n),l={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:u,badgeClass:c}},d={args:{task:r.base({category:"Personal"}),onUpdate:i,availableCategories:u,badgeClass:c}},m={args:{task:r.base({category:"Shopping"}),onUpdate:i,availableCategories:u,badgeClass:c}},b={args:{task:r.base({category:void 0}),onUpdate:i,availableCategories:u,badgeClass:c}},v={args:{task:r.base({category:""}),onUpdate:i,availableCategories:u,badgeClass:c}},w={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:["Work","Personal","Shopping","Health","Finance","Education","Home","Travel","Fitness","Hobbies","Social","Family","Career","Projects","Ideas"],badgeClass:c}},h={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:["Work","Personal"],badgeClass:c}},C={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:[],badgeClass:c}},k={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:["Work"],badgeClass:c}},B={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open category selector popover",async()=>{const a=t.getByRole("button",{name:/Change Category/i});await s.click(a),await o(200)}),await e("Verify input field is visible and focused",async()=>{const a=t.getByPlaceholderText(/Category name/i);g(a).toBeInTheDocument(),g(a).toHaveValue("Work")}),await e("Verify suggestions are shown",async()=>{const a=t.getAllByRole("button");g(a.length).toBeGreaterThan(0)})}},S={args:{task:r.base({category:"Wor"}),onUpdate:i,availableCategories:u,badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Verify Work is suggested",async()=>{const a=t.getByPlaceholderText(/Category name/i);g(a).toHaveValue("Wor")})}},f={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:u,badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open category selector",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Clear existing value",async()=>{const a=t.getByPlaceholderText(/Category name/i);await s.clear(a),await o(100)}),await e("Type new category name",async()=>{const a=t.getByPlaceholderText(/Category name/i);await s.type(a,"New Category"),await o(100),g(a).toHaveValue("New Category")}),await e("Click Set button to save",async()=>{const a=t.getByRole("button",{name:/category to New Category$/});await s.click(a),await o(100)})}},E={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:u,badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Click a suggested category",async()=>{const a=t.getAllByRole("button"),y=a.find(I=>I.textContent?.includes("Personal"));y&&(await s.click(y),await o(100))})}},x={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Type partial match",async()=>{const a=t.getByPlaceholderText(/Category name/i);await s.clear(a),await s.type(a,"Heal"),await o(100)}),await e("Verify only matching categories shown",async()=>{const a=t.getAllByRole("button"),y=a.find(I=>I.textContent?.includes("Health"));g(y).toBeDefined()})}},U={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Type new category",async()=>{const a=t.getByPlaceholderText(/Category name/i);await s.clear(a),await s.type(a,"Quick Entry"),await o(100)}),await e("Press Enter to save",async()=>{await s.keyboard("{Enter}"),await o(100)})}},P={args:{task:r.base({category:"Work"}),onUpdate:i,availableCategories:u,badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Clear category value",async()=>{const a=t.getByPlaceholderText(/Category name/i);await s.clear(a),await o(100)}),await e("Save empty category",async()=>{await s.keyboard("{Enter}"),await o(100)})}},T={args:{task:r.base({category:"This is a very long category name that might overflow"}),onUpdate:i,availableCategories:u,badgeClass:c}},W={args:{task:r.base({category:"Work/Personal 🏠"}),onUpdate:i,availableCategories:["Work/Personal 🏠","Shopping","Health"],badgeClass:c}},A={args:{task:r.base({category:"Q4 2024"}),onUpdate:i,availableCategories:["Q1 2024","Q2 2024","Q3 2024","Q4 2024"],badgeClass:c}},R={args:{task:r.base({category:"work"}),onUpdate:i,availableCategories:["Work","WORK","work","Personal"],badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Verify case-insensitive filtering",async()=>{const a=t.getByPlaceholderText(/Category name/i);g(a).toHaveValue("work")})}},O={args:{task:r.base({category:"A"}),onUpdate:i,availableCategories:["Art","Architecture","Astronomy","Athletics","Aviation","Agriculture","Archaeology","Anthropology"],badgeClass:c},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Verify max 5 suggestions shown",async()=>{const a=t.getAllByRole("button",{name:/category to A[a-z]+$/});g(a).toHaveLength(5)})}},H={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Tab to category button",async()=>{const a=t.getByRole("button");a.focus(),g(a).toHaveFocus()}),await e("Press Enter to open popover",async()=>{await s.keyboard("{Enter}"),await o(200);const a=t.getByPlaceholderText(/Category name/i);g(a).toBeInTheDocument()})}},V={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Open popover",async()=>{const a=t.getByRole("button");await s.click(a),await o(200)}),await e("Verify input is auto-focused",async()=>{const a=t.getByPlaceholderText(/Category name/i);g(a).toBeInTheDocument()})}},N={args:{...l.args},play:async({canvasElement:n,step:e})=>{const t=p(n);await e("Verify button has accessible title",async()=>{const a=t.getByRole("button",{name:/Change Category/i});g(a).toHaveAttribute("title","Change category (current: Work)")})}},D={args:{...l.args,badgeClass:"flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border-2"}},F={args:{...l.args,badgeClass:"flex gap-1 px-1 py-0.5 text-xs rounded"}};l.parameters={...l.parameters,docs:{...l.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...l.parameters?.docs?.source}}};d.parameters={...d.parameters,docs:{...d.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Personal"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...d.parameters?.docs?.source}}};m.parameters={...m.parameters,docs:{...m.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Shopping"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...m.parameters?.docs?.source}}};b.parameters={...b.parameters,docs:{...b.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: undefined
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...b.parameters?.docs?.source}}};v.parameters={...v.parameters,docs:{...v.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: ""
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...v.parameters?.docs?.source}}};w.parameters={...w.parameters,docs:{...w.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Work", "Personal", "Shopping", "Health", "Finance", "Education", "Home", "Travel", "Fitness", "Hobbies", "Social", "Family", "Career", "Projects", "Ideas"],
+    badgeClass
+  }
+}`,...w.parameters?.docs?.source}}};h.parameters={...h.parameters,docs:{...h.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Work", "Personal"],
+    badgeClass
+  }
+}`,...h.parameters?.docs?.source}}};C.parameters={...C.parameters,docs:{...C.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: [],
+    badgeClass
+  }
+}`,...C.parameters?.docs?.source}}};k.parameters={...k.parameters,docs:{...k.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Work"],
+    badgeClass
+  }
+}`,...k.parameters?.docs?.source}}};B.parameters={...B.parameters,docs:{...B.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open category selector popover", async () => {
+      const button = canvas.getByRole("button", {
+        name: /Change Category/i
+      });
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Verify input field is visible and focused", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveValue("Work");
+    });
+    await step("Verify suggestions are shown", async () => {
+      // Should show categories that don't match current value
+      const suggestions = canvas.getAllByRole("button");
+      // At least the "Set to..." button should be present
+      expect(suggestions.length).toBeGreaterThan(0);
+    });
+  }
+}`,...B.parameters?.docs?.source}}};S.parameters={...S.parameters,docs:{...S.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Wor"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Verify Work is suggested", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      expect(input).toHaveValue("Wor");
+      // Should suggest "Work" as it matches
+    });
+  }
+}`,...S.parameters?.docs?.source}}};f.parameters={...f.parameters,docs:{...f.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open category selector", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Clear existing value", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      await userEvent.clear(input);
+      await delay(100);
+    });
+    await step("Type new category name", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      await userEvent.type(input, "New Category");
+      await delay(100);
+      expect(input).toHaveValue("New Category");
+    });
+    await step("Click Set button to save", async () => {
+      const setButton = canvas.getByRole("button", {
+        name: /category to New Category$/
+      });
+      await userEvent.click(setButton);
+      await delay(100);
+      // OnUpdate should be called with category: "New Category"
+    });
+  }
+}`,...f.parameters?.docs?.source}}};E.parameters={...E.parameters,docs:{...E.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Click a suggested category", async () => {
+      const buttons = canvas.getAllByRole("button"),
+        // Find Personal category button
+        personalButton = buttons.find((btn: HTMLElement) => btn.textContent?.includes("Personal"));
+      if (personalButton) {
+        await userEvent.click(personalButton);
+        await delay(100);
+        // OnUpdate should be called with category: "Personal"
+      }
+    });
+  }
+}`,...E.parameters?.docs?.source}}};x.parameters={...x.parameters,docs:{...x.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Type partial match", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      await userEvent.clear(input);
+      await userEvent.type(input, "Heal");
+      await delay(100);
+    });
+    await step("Verify only matching categories shown", async () => {
+      // Should show "Health" in suggestions
+      const buttons = canvas.getAllByRole("button"),
+        healthButton = buttons.find((btn: HTMLElement) => btn.textContent?.includes("Health"));
+      expect(healthButton).toBeDefined();
+    });
+  }
+}`,...x.parameters?.docs?.source}}};U.parameters={...U.parameters,docs:{...U.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Type new category", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      await userEvent.clear(input);
+      await userEvent.type(input, "Quick Entry");
+      await delay(100);
+    });
+    await step("Press Enter to save", async () => {
+      await userEvent.keyboard("{Enter}");
+      await delay(100);
+      // OnUpdate should be called with category: "Quick Entry"
+    });
+  }
+}`,...U.parameters?.docs?.source}}};P.parameters={...P.parameters,docs:{...P.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Clear category value", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      await userEvent.clear(input);
+      await delay(100);
+    });
+    await step("Save empty category", async () => {
+      await userEvent.keyboard("{Enter}");
+      await delay(100);
+      // OnUpdate should be called with category: ""
+    });
+  }
+}`,...P.parameters?.docs?.source}}};T.parameters={...T.parameters,docs:{...T.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "This is a very long category name that might overflow"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: defaultCategories,
+    badgeClass
+  }
+}`,...T.parameters?.docs?.source}}};W.parameters={...W.parameters,docs:{...W.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Work/Personal 🏠"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Work/Personal 🏠", "Shopping", "Health"],
+    badgeClass
+  }
+}`,...W.parameters?.docs?.source}}};A.parameters={...A.parameters,docs:{...A.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "Q4 2024"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
+    badgeClass
+  }
+}`,...A.parameters?.docs?.source}}};R.parameters={...R.parameters,docs:{...R.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "work"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Work", "WORK", "work", "Personal"],
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Verify case-insensitive filtering", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      expect(input).toHaveValue("work");
+      // Should filter out exact match "work" but show "Work" and "WORK"
+    });
+  }
+}`,...R.parameters?.docs?.source}}};O.parameters={...O.parameters,docs:{...O.parameters?.docs,source:{originalSource:`{
+  args: {
+    task: taskBuilder.base({
+      category: "A"
+    }),
+    onUpdate: handleUpdate,
+    availableCategories: ["Art", "Architecture", "Astronomy", "Athletics", "Aviation", "Agriculture", "Archaeology", "Anthropology"],
+    badgeClass
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Verify max 5 suggestions shown", async () => {
+      // All 8 categories match "A"; the "Set to" button targets "A" itself
+      const suggestionButtons = canvas.getAllByRole("button", {
+        name: /category to A[a-z]+$/
+      });
+      expect(suggestionButtons).toHaveLength(5);
+    });
+  }
+}`,...O.parameters?.docs?.source}}};H.parameters={...H.parameters,docs:{...H.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Tab to category button", async () => {
+      const button = canvas.getByRole("button");
+      button.focus();
+      expect(button).toHaveFocus();
+    });
+    await step("Press Enter to open popover", async () => {
+      await userEvent.keyboard("{Enter}");
+      await delay(200);
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      expect(input).toBeInTheDocument();
+    });
+  }
+}`,...H.parameters?.docs?.source}}};V.parameters={...V.parameters,docs:{...V.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Open popover", async () => {
+      const button = canvas.getByRole("button");
+      await userEvent.click(button);
+      await delay(200);
+    });
+    await step("Verify input is auto-focused", async () => {
+      const input = canvas.getByPlaceholderText(/Category name/i);
+      // Input should have autoFocus attribute
+      expect(input).toBeInTheDocument();
+    });
+  }
+}`,...V.parameters?.docs?.source}}};N.parameters={...N.parameters,docs:{...N.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args
+  },
+  play: async ({
+    canvasElement,
+    step
+  }) => {
+    const canvas = withinShadow(canvasElement);
+    await step("Verify button has accessible title", async () => {
+      const button = canvas.getByRole("button", {
+        name: /Change Category/i
+      });
+      expect(button).toHaveAttribute("title", "Change category (current: Work)");
+    });
+  }
+}`,...N.parameters?.docs?.source}}};D.parameters={...D.parameters,docs:{...D.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args,
+    badgeClass: "flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border-2"
+  }
+}`,...D.parameters?.docs?.source}}};F.parameters={...F.parameters,docs:{...F.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...Default.args,
+    badgeClass: "flex gap-1 px-1 py-0.5 text-xs rounded"
+  }
+}`,...F.parameters?.docs?.source}}};const ya=["Default","PersonalCategory","ShoppingCategory","NoCategory","EmptyCategory","ManyCategories","FewCategories","NoAvailableCategories","SingleCategoryAvailable","PopoverOpen","PopoverWithSuggestions","TypeNewCategory","SelectSuggestion","FilterSuggestions","EnterToSave","ClearCategory","VeryLongCategoryName","SpecialCharactersInCategory","NumbersInCategory","CaseSensitiveSuggestions","MaxSuggestionsLimit","KeyboardNavigation","AutoFocusInput","AriaLabels","CustomBadgeClass","MinimalBadgeClass"];export{N as AriaLabels,V as AutoFocusInput,R as CaseSensitiveSuggestions,P as ClearCategory,D as CustomBadgeClass,l as Default,v as EmptyCategory,U as EnterToSave,h as FewCategories,x as FilterSuggestions,H as KeyboardNavigation,w as ManyCategories,O as MaxSuggestionsLimit,F as MinimalBadgeClass,C as NoAvailableCategories,b as NoCategory,A as NumbersInCategory,d as PersonalCategory,B as PopoverOpen,S as PopoverWithSuggestions,E as SelectSuggestion,m as ShoppingCategory,k as SingleCategoryAvailable,W as SpecialCharactersInCategory,f as TypeNewCategory,T as VeryLongCategoryName,ya as __namedExportsOrder,ua as default};

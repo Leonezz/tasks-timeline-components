@@ -1,0 +1,1 @@
+const o='[data-slot="calendar"] [role="gridcell"][tabindex="0"]';function t(e){const n=e.currentTarget,r=n instanceof HTMLElement?n.querySelector(o):null;if(!r)throw new Error("focusCalendarOnOpen: the popover has no Calendar");e.preventDefault(),r.focus({preventScroll:!0})}export{t as f};
