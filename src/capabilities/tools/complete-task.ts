@@ -88,6 +88,10 @@ export function createCompleteTaskTool(ctx: CapabilityContext): ToolSpec {
           createdAt: now,
           completedAt: undefined,
           cancelledAt: undefined,
+          // A 🆔 id names one task, so the next occurrence has no 🆔 or ⛔,
+          // as in Obsidian Tasks
+          taskId: undefined,
+          dependsOn: undefined,
         };
 
         try {

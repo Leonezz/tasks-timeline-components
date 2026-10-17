@@ -398,6 +398,35 @@ export const VoiceInputGemini: Story = {
   },
 };
 
+export const VoiceInputBrowserUnsupported: Story = {
+  args: {
+    settings: settingsBuilder.withVoiceInput(),
+    onUpdateSettings: handleUpdateSettings,
+    voiceRuntime: { browserSpeechSupported: false },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Browser provider is disabled with an explanation", async () => {
+      await expect(
+        canvas.getByRole("button", { name: "Use Browser voice provider" }),
+      ).toBeDisabled();
+      await expect(
+        canvas.getByText(/speech recognition isn.t available here/i),
+      ).toBeInTheDocument();
+    });
+
+    await step("OpenAI and Gemini stay selectable", async () => {
+      await expect(
+        canvas.getByRole("button", { name: "Use OpenAI voice provider" }),
+      ).toBeEnabled();
+      await expect(
+        canvas.getByRole("button", { name: "Use Gemini voice provider" }),
+      ).toBeEnabled();
+    });
+  },
+};
+
 // ========================================
 // Interaction Testing
 // ========================================
