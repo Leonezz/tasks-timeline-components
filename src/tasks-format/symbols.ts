@@ -32,6 +32,11 @@ export const startDateSymbol = "🛫";
 export const scheduledDateSymbol = "⏳";
 export const dueDateSymbol = "📅";
 export const doneDateSymbol = "✅";
+export const createdDateSymbol = "➕";
+export const cancelledDateSymbol = "❌";
+export const onCompletionSymbol = "🏁";
+export const idSymbol = "🆔";
+export const dependsOnSymbol = "⛔";
 
 export type MarkdownTaskStatus = Extract<
   TaskStatus,

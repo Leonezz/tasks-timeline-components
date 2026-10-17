@@ -4,19 +4,11 @@
  * Pure module: no React, no DOM.
  */
 import type { Task, TaskStatus } from "../types";
-import {
-  MdMarkerToTaskStatus,
-  PriorityToTasksSymbol,
-  dueDateSymbol,
-  startDateSymbol,
-  scheduledDateSymbol,
-  doneDateSymbol,
-  recurrenceSymbol,
-} from "./symbols";
+import { MdMarkerToTaskStatus, getTaskStatusFromMarker } from "./symbols";
 import { TaskRegularExpressions } from "./regex";
-import { toTasksRecurrenceText } from "../utils/recurrence-text";
-
-const createdDateSymbol = "➕";
+import { fieldText, taskFields } from "./fields";
+import { readTaskBody } from "./layout";
+import { writeTaskBody } from "./body-writer";
 
 /**
  * Converts a task status to the corresponding markdown checkbox marker character.
@@ -46,46 +38,21 @@ export const statusToMarker = (status: TaskStatus): string => {
   }
 };
 
-/** Truncates an ISO date/datetime to YYYY-MM-DD (Tasks plugin date format). */
-const dateOnly = (iso: string): string => iso.slice(0, 10);
-
 /**
  * Formats the Tasks-plugin metadata tokens of a task: priority symbol (unless
  * "medium"), then due / start / scheduled (`extra.scheduledAt`) / created /
- * completed dates (truncated to YYYY-MM-DD), then recurrence. RRULE-syntax
- * rules are written as Obsidian Tasks text ("every week on Monday"); one that
- * can't be (for example with a start date) throws instead of breaking the line.
+ * completed / cancelled dates (truncated to YYYY-MM-DD), then recurrence,
+ * 🏁 `onCompletion`, 🆔 `taskId` and ⛔ `dependsOn`. RRULE-syntax rules are
+ * written as Obsidian Tasks text ("every week on Monday"); one that can't be
+ * (for example with a start date) throws instead of breaking the line, as do
+ * ids and actions a line can't hold.
  *
  * Tokens are joined by single spaces with no leading or trailing whitespace.
  * Returns an empty string when the task has no metadata. Never includes the
  * title, tags, block link or checkbox.
  */
-export const formatTasksMetadata = (task: Task): string => {
-  const tokens: string[] = [];
-
-  const prioritySymbol = PriorityToTasksSymbol[task.priority];
-  if (prioritySymbol) {
-    tokens.push(prioritySymbol);
-  }
-
-  const scheduledAt = task.extra?.["scheduledAt"];
-  if (task.dueAt) tokens.push(`${dueDateSymbol} ${dateOnly(task.dueAt)}`);
-  if (task.startAt) tokens.push(`${startDateSymbol} ${dateOnly(task.startAt)}`);
-  if (scheduledAt)
-    tokens.push(`${scheduledDateSymbol} ${dateOnly(scheduledAt)}`);
-  if (task.createdAt)
-    tokens.push(`${createdDateSymbol} ${dateOnly(task.createdAt)}`);
-  if (task.completedAt)
-    tokens.push(`${doneDateSymbol} ${dateOnly(task.completedAt)}`);
-
-  if (task.recurringInterval) {
-    tokens.push(
-      `${recurrenceSymbol} ${toTasksRecurrenceText(task.recurringInterval)}`,
-    );
-  }
-
-  return tokens.join(" ");
-};
+export const formatTasksMetadata = (task: Task): string =>
+  taskFields(task).map(fieldText).join(" ");
 
 const parseFrontmatterTags = (task: Task): string[] => {
   const ft: unknown = task.extra?.["frontmatterTags"];
@@ -109,77 +76,70 @@ const parseFrontmatterTags = (task: Task): string[] => {
 };
 
 /**
- * Serializes a Task object back into a markdown string, preserving as much of the original line as possible.
+ * The task's tags that belong on its line, with "#": all but tags that only
+ * come from the note's frontmatter (those stay when the line has them too).
+ */
+const inlineTags = (task: Task, originalLine: string): string[] => {
+  const frontmatterTags = parseFrontmatterTags(task);
+  return (task.tags ?? [])
+    .map((tag) => (tag.name.startsWith("#") ? tag.name : "#" + tag.name))
+    .filter(
+      (tagName) =>
+        !frontmatterTags.includes(tagName) || originalLine.includes(tagName),
+    );
+};
+
+/**
+ * The line's start up to the text, with the checkbox showing the task's
+ * status. A marker that already means that status (such as a custom "[>]"
+ * read as todo) is kept.
+ */
+const withStatus = (head: string, status: TaskStatus): string => {
+  const marker = statusToMarker(status);
+  return head.replace(
+    TaskRegularExpressions.checkboxRegex,
+    (box: string, current: string) =>
+      statusToMarker(getTaskStatusFromMarker(current)) === marker
+        ? box
+        : `[${marker}]`,
+  );
+};
+
+/**
+ * Writes a task onto its original markdown line, changing only what the task
+ * changed: the checkbox, the title and tags, and each field in its place.
+ * The indentation, list marker, block id (`^id`), ⏰ reminders, notes and
+ * links stay as written, so a task read from the line and written back
+ * unchanged gives the line byte for byte.
+ *
+ * The line written reads back as the task. Fields the task gained go after
+ * the line's last field, or before a field when notes follow it (a priority
+ * or a 🔁 rule right before notes would not be read back). A field that no
+ * longer reads back where it is, such as a rule followed by notes once the
+ * field between them is removed, moves the same way. When no field is left
+ * that can stand between the title and the notes, the notes join the title,
+ * as Obsidian Tasks reads such a line; no text is dropped. On a line without
+ * notes (a new line), the task's `extra.lineNotes` are written after the
+ * fields.
  *
  * @param task The updated Task object.
  * @param originalLine The original markdown line from the file.
- * @returns The new markdown line.
+ * @returns The new markdown line, or `originalLine` when it is not a task line.
+ * @throws When the task holds a value a line can't (see formatTasksMetadata),
+ * or when the line would not read back as the task (a title that would be
+ * read as a field, such as "Fix bug 🔺" before a date).
  */
 export const taskToMarkdown = (task: Task, originalLine: string): string => {
-  let newLine = originalLine;
-
-  // 1. Update Status
-  // Find the status check box [ ] or [x] etc.
-  const checkboxMatch = newLine.match(TaskRegularExpressions.checkboxRegex);
-  if (checkboxMatch) {
-    const currentStatusChar = checkboxMatch[1];
-    const newStatusChar = statusToMarker(task.status);
-
-    // Only replace if changed
-    if (currentStatusChar !== newStatusChar) {
-      newLine = newLine.replace(
-        TaskRegularExpressions.checkboxRegex,
-        `[${newStatusChar}]`,
-      );
-    }
-  }
-
-  // 2. Update Title (Description)
-  const taskMatch = newLine.match(TaskRegularExpressions.taskRegex);
-  if (!taskMatch) {
+  const match = TaskRegularExpressions.taskRegex.exec(originalLine);
+  if (!match) {
     return originalLine;
   }
-
-  const indentation = taskMatch[1];
-  const listMarker = taskMatch[2];
-  const finalStatusChar = statusToMarker(task.status);
-
-  let body = task.title.trim();
-
-  if (task.tags && task.tags.length > 0) {
-    const frontmatterTags = parseFrontmatterTags(task);
-
-    // Append a tag if:
-    // 1. It is NOT in frontmatterTags.
-    // 2. OR it IS in frontmatterTags, BUT it matches an inline tag in the original line.
-    const tagsToAppend = task.tags
-      .map((t) => (t.name.startsWith("#") ? t.name : "#" + t.name))
-      .filter((tagName) => {
-        const isFrontmatter = frontmatterTags.includes(tagName);
-        if (!isFrontmatter) return true;
-        return originalLine.includes(tagName);
-      });
-
-    if (tagsToAppend.length > 0) {
-      body += " " + tagsToAppend.join(" ");
-    }
-  }
-
-  // 3-5. Priority, dates, recurrence
-  const metadata = formatTasksMetadata(task);
-  if (metadata.length > 0) {
-    body += " " + metadata;
-  }
-
-  // 6. Block Link
-  // Check if original line had a block link
-  const blockLinkMatch = originalLine.match(
-    TaskRegularExpressions.blockLinkRegex,
+  const body = match[4];
+  const bodyEnd = match.index + match[0].length;
+  const head = originalLine.slice(0, bodyEnd - body.length);
+  return (
+    withStatus(head, task.status) +
+    writeTaskBody(readTaskBody(body), task, inlineTags(task, originalLine)) +
+    originalLine.slice(bodyEnd)
   );
-  if (blockLinkMatch) {
-    body += blockLinkMatch[0];
-  }
-
-  // Construct final line
-  return `${indentation}${listMarker} [${finalStatusChar}] ${body}`;
 };

@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `aiProviderFactory` for **Test Connection**. Hosts that render
   `SettingsPage` themselves (such as a plugin settings tab) should pass the
   same values they give `TasksTimelineApp`.
+- Obsidian Tasks dependency and lifecycle fields on `Task`, all optional:
+  `onCompletion` (🏁, `"keep"` or `"delete"`), `taskId` (🆔, not the host's
+  `id`) and `dependsOn` (⛔, a list of `taskId`s). `parseTasksFormatItem`
+  reads them and `cancelledAt` (❌); `taskToMarkdown` and
+  `formatTasksMetadata` write them. A value a line can't hold (an id with a
+  space, an action with punctuation) throws instead of breaking the line.
+- `tasks-format` exports `createdDateSymbol`, `cancelledDateSymbol`,
+  `onCompletionSymbol`, `idSymbol` and `dependsOnSymbol`, and
+  `TaskRegularExpressions` has `cancelledDateRegex`, `onCompletionRegex`,
+  `idRegex` and `dependsOnRegex`.
 
 ### Fixed
 
@@ -177,6 +187,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`🔁 every week on Monday`). The rule stops at the next field (🏁, ❌, 🆔,
   ⛔, ⏰, dates, priorities, `[[links]]`, `#tags`), and `🔁` followed by
   U+FE0F is read.
+- **Block ids were duplicated when a task line was rewritten (#42).**
+  `parseTasksFormatItem` read a trailing `^block-id` into the title
+  (`Water plants  ^blk1`) and `taskToMarkdown` wrote it again at the end. The
+  block id at the end of a line is no longer part of the title and is written
+  once, at the end. A `^id` elsewhere in the line is text, as in Obsidian
+  Tasks (`TaskRegularExpressions.blockLinkRegex` only matches at the end).
+- **Obsidian Tasks fields and notes after 🔁 were read into the title and
+  moved on rewrite (#43).** 🏁 on-completion, ❌ cancelled date, 🆔 id and ⛔
+  depends-on are read as fields (see Added). ⏰ reminders, notes and
+  `[[links]]` after the fields stay where they are and are part of neither the
+  title nor the rule: `🔁 every week when done see [[Garden]]` has the rule
+  `every week when done` (a rule ends at "when done", which Obsidian Tasks
+  only reads at its end). Tags after the fields are still added
+  to the title, as Obsidian Tasks does.
+  - A priority emoji, 🏁, 🆔 or ⛔ inside the title stays title text: they
+    count as fields only when fields, tags or the end of the line follow
+    them, so `⛔ Don't touch prod 📅 …` keeps its title and gets no ⛔ id.
+  - A ⏰ reminder is not part of the title. One inside the title text is left
+    there on the line (`Call mom ⏰ 2026-10-16 09:00 about birthday` has the
+    title `Call mom about birthday`) and kept when the title is edited.
+  - On a line that starts with fields (`📅 2026-10-16 Water plants`), the
+    text after them is the title, and a new title is written there.
+- **Rewriting a task line reformatted it (#43).** `taskToMarkdown` rebuilt the
+  line from the title, the tags and every field in a fixed order. It now
+  edits the line in place, so a task read from a line and written back
+  unchanged gives the line byte for byte: indentation, callout `>` prefixes,
+  spacing, field order, symbol variants (`📆`, `🗓️`, `⌛`) and trailing text
+  are kept. A changed field is rewritten where it is, a removed one is
+  dropped with the space before it, and new fields go after the line's last
+  field. The title part is rewritten only when its words or tags change;
+  tags stay where they are while the task has them (also when the Obsidian
+  plugin took a tag followed by punctuation, `#work,`, out of the title). A
+  custom checkbox marker (`[>]`) is kept while it still means the task's
+  status.
+  - The written line always reads back as the task. When notes follow the
+    last field, a new priority, 🔁 rule, 🏁, 🆔 or ⛔ goes before a field
+    instead (`Call Bob ⏫ 📅 2026-10-16 about the plan`), since right before
+    notes it would be read as title text or take the notes into the rule.
+    A field that would no longer read back where it is (a rule followed by
+    notes once the date between them is removed) moves the same way.
+  - When no field is left that can stand between the title and the notes,
+    the notes join the title, as Obsidian Tasks reads such a line:
+    changing `🔁 every week when done see [[Garden]]` to `every 2 weeks`
+    writes `Water plants see [[Garden]] 🔁 every 2 weeks`. No text is
+    dropped.
+  - A task the line can't hold throws instead of being written with another
+    meaning, for example a title that would be read as a field (`Fix bug 🔺`
+    before a date).
+- `complete_task` no longer copies the 🆔 id and ⛔ dependencies to the next
+  occurrence, as Obsidian Tasks does; 🏁 is kept.
+- **The next occurrence of a recurring Obsidian task lost the notes after its
+  fields.** `parseTasksFormatItem` keeps them in `extra.lineNotes`, and
+  `taskToMarkdown` writes them after the fields of a line that has none,
+  such as the new line for the next occurrence. ⏰ reminders, which are for
+  one occurrence, are not carried over.
 - `complete_task` reports when it marked the task done but could not add the
   next occurrence, with the occurrence's details so it can be created with
   `create_task` (all its fields, including the description).
@@ -273,6 +338,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completion.
 - Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
   Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+- `taskToMarkdown` edits lines in place (see Fixed): a rule it repairs
+  (`🔁 RRULE:…`, `until 2026-12-31`) stays where it was instead of moving to
+  the end, and fields a line gains are added after its last field, in
+  `formatTasksMetadata` order (or where they read back, see Fixed). It
+  throws for a task the line can't hold. A task with `cancelledAt` (set when
+  a task is cancelled in the timeline or with `cancel_task`) gets a ❌ date,
+  as Obsidian Tasks writes it.
 
 ## [0.8.0] - 2026-10-14
 
