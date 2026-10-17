@@ -75,31 +75,34 @@ const EDITOR_FREQUENCIES = new Set<Frequency>([
 
 const isSet = (value: unknown): boolean => toArray(value).length > 0;
 
+const hasWeekStartOtherThanMonday = (wkst: Options["wkst"] | undefined) =>
+  wkst !== undefined &&
+  wkst !== null &&
+  toWeekday(wkst as ByWeekday).weekday !== 0;
+
 /** The parts of a rule the controls (frequency, interval, days, months, dates) can't show. */
 function unsupportedRuleParts(options: Partial<Options>): string[] {
   const { freq, byweekday, bymonth, bymonthday, wkst } = options;
   const weekdays = toArray(byweekday).map(toWeekday);
+  const isOrdinal = (day: Weekday) => day.n !== undefined && day.n !== 0;
+  // Listed after a colon ("These settings can't show: …"), so no articles
   const parts: [boolean, string][] = [
     [
       freq !== undefined && !EDITOR_FREQUENCIES.has(freq),
-      "an hourly or shorter frequency",
+      "hourly or shorter frequency",
     ],
-    [isSet(options.count), "a number of repetitions (COUNT)"],
-    [isSet(options.bysetpos), "a position within the period (BYSETPOS)"],
+    [isSet(options.count), "repetition count (COUNT)"],
+    [isSet(options.bysetpos), "position within the period (BYSETPOS)"],
     [isSet(options.byyearday), "days of the year"],
     [isSet(options.byweekno), "week numbers"],
-    [isSet(options.byeaster), "an Easter offset"],
+    [isSet(options.byeaster), "Easter offset"],
+    [hasWeekStartOtherThanMonday(wkst), "week start other than Monday"],
+    [weekdays.some(isOrdinal), "ordinal weekdays (like the 2nd Monday)"],
+    // Plain weekdays; ordinal ones are named above
     [
-      wkst !== undefined &&
-        wkst !== null &&
-        toWeekday(wkst as ByWeekday).weekday !== 0,
-      "a week start other than Monday",
+      weekdays.some((day) => !isOrdinal(day)) && freq !== RRule.WEEKLY,
+      "weekdays",
     ],
-    [
-      weekdays.some((day) => day.n !== undefined && day.n !== 0),
-      "ordinal weekdays (like the 2nd Monday)",
-    ],
-    [weekdays.length > 0 && freq !== RRule.WEEKLY, "weekdays"],
     [isSet(bymonth) && freq !== RRule.YEARLY, "months"],
     [
       isSet(bymonthday) && freq !== RRule.MONTHLY && freq !== RRule.YEARLY,
@@ -205,17 +208,64 @@ const toParsedRule = (
   whenDone,
 });
 
+const formatDay = (day: string): string =>
+  DateTime.fromISO(day).toFormat("LLLL d, yyyy");
+
+/** "every week" with ", from October 16, 2026" and " until December 31, 2026". */
+const withRuleDates = (repeat: string, start?: string, end?: string): string =>
+  `${repeat}${start ? `, from ${formatDay(start)}` : ""}${end ? ` until ${formatDay(end)}` : ""}`;
+
 /** The form state in words, e.g. "every week on Monday until December 31, 2026". */
-export const describeRecurrence = (state: RecurrenceFormState): string => {
-  const repeat = new RRule(toRepeatOptions(state)).toText();
-  const from = state.start
-    ? `, from ${DateTime.fromISO(state.start).toFormat("LLLL d, yyyy")}`
-    : "";
-  const until = state.end
-    ? ` until ${DateTime.fromISO(state.end).toFormat("LLLL d, yyyy")}`
-    : "";
-  return `${repeat}${from}${until}`;
-};
+export const describeRecurrence = (state: RecurrenceFormState): string =>
+  withRuleDates(
+    new RRule(toRepeatOptions(state)).toText(),
+    state.start,
+    state.end,
+  );
+
+/**
+ * The editor's preview of its settings. In text format it is the text saving
+ * writes, which can be worded differently from rrule's own text ("every 2
+ * years on the 1st in June", not "every 2 years June on the 1st"). Settings
+ * text can't hold, such as a start date, are described instead; saving them
+ * fails with the reason.
+ */
+export function previewRecurrence(
+  state: RecurrenceFormState,
+  format: "rrule" | "text",
+  whenDone = false,
+): string {
+  if (format === "text") {
+    try {
+      return recurrenceRuleToText(toParsedRule(state, whenDone));
+    } catch {
+      // Deliberate fallback: the save reports why these settings can't be text
+    }
+  }
+  return describeRecurrence(state);
+}
+
+/** Parts rrule's text leaves out, so it would describe a different rule. */
+const dropsPartsFromText = (options: Partial<Options>): boolean =>
+  isSet(options.bysetpos) ||
+  isSet(options.byeaster) ||
+  hasWeekStartOtherThanMonday(options.wkst);
+
+/**
+ * A stored rule in words, with the start and end dates the editor and
+ * complete_task read from it (rrule's own text can name another end date),
+ * e.g. "every week until December 31, 2026 when done". Null when the rule
+ * can't be read, or can't be put in words without leaving parts out; show
+ * it as written then.
+ */
+export function describeStoredRecurrence(rule: string): string | null {
+  const parsed = parseRecurrenceRule(rule);
+  if (!parsed || dropsPartsFromText(parsed.options)) {
+    return null;
+  }
+  const repeat = new RRule(parsed.options).toText();
+  return `${withRuleDates(repeat, parsed.start, parsed.end)}${parsed.whenDone ? " when done" : ""}`;
+}
 
 /**
  * How the editor writes an edited rule: Obsidian Tasks text when the host

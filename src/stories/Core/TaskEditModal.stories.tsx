@@ -1,11 +1,39 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { AppProvider } from "../../components/AppContext";
 import { TaskEditModal } from "../../components/TaskEditModal";
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover";
 import type { Task } from "../../types";
 import { taskBuilder } from "../fixtures";
 import { delay } from "../test-utils";
 import { RRule } from "rrule";
 import { DateTime } from "luxon";
+
+/** Renders the story in a shadow root, as the Obsidian plugin mounts the app. */
+const ShadowRootFrame: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+  return (
+    <div
+      data-testid="shadow-host"
+      ref={(host) => {
+        if (host && !shadowRoot) {
+          setShadowRoot(host.shadowRoot ?? host.attachShadow({ mode: "open" }));
+        }
+      }}
+    >
+      {shadowRoot && createPortal(children, shadowRoot)}
+    </div>
+  );
+};
 
 const meta: Meta<typeof TaskEditModal> = {
   title: "Core/TaskEditModal",
@@ -19,11 +47,31 @@ const meta: Meta<typeof TaskEditModal> = {
     onClose: { action: "closed" },
   },
   decorators: [
-    (Story) => (
-      <div className="w-full h-screen flex items-center justify-center bg-slate-50">
-        <Story />
-      </div>
-    ),
+    // AppProvider supplies the theme and the portal container the dialog
+    // renders into, so it stays inside the story's canvas. With
+    // `appProvider: false` the story is a consumer using the exported editor
+    // in its own themed wrapper instead.
+    (Story, { parameters }) => {
+      const theme = parameters.theme as string | undefined;
+      const content = (
+        <div className="w-full h-screen flex items-center justify-center bg-slate-50">
+          <Story />
+        </div>
+      );
+      const app =
+        parameters.appProvider === false ? (
+          <div className="tasks-timeline-app" data-theme={theme}>
+            {content}
+          </div>
+        ) : (
+          <AppProvider theme={theme}>{content}</AppProvider>
+        );
+      return parameters.shadowRoot ? (
+        <ShadowRootFrame>{app}</ShadowRootFrame>
+      ) : (
+        app
+      );
+    },
   ],
 };
 
@@ -43,6 +91,18 @@ const defaultTask = taskBuilder.base({
   }),
   handleSave = (task: Task) => console.log("Save task:", task),
   handleClose = () => console.log("Close modal");
+
+/**
+ * Waits for the editor's open animation: until then its opacity blends every
+ * colour, and the accessibility checks after the play function misread them.
+ */
+const waitForEditorToOpen = async (canvasElement: HTMLElement) => {
+  const dialog = await within(canvasElement).findByRole("dialog", {
+    name: "Edit Task",
+  });
+  await waitFor(() => expect(getComputedStyle(dialog).opacity).toBe("1"));
+  return dialog;
+};
 
 // ========================================
 // Core Stories
@@ -319,6 +379,8 @@ export const SaveFailureKeepsEdits: Story = {
     onClose: fn(),
     availableCategories: ["Work"],
   },
+  // Fail on any axe violation, the error text's contrast included
+  parameters: { a11y: { test: "error" } },
   play: async ({ args, canvasElement, step }) => {
     const canvas = within(canvasElement);
 
@@ -336,8 +398,687 @@ export const SaveFailureKeepsEdits: Story = {
       expect(canvas.getByDisplayValue("Renamed task")).toBeInTheDocument();
       expect(args.onClose).not.toHaveBeenCalled();
     });
+    await waitForEditorToOpen(canvasElement);
   },
 };
+
+// Hosts that store Obsidian Tasks text see the text saving writes, which can
+// be worded differently from rrule's ("every 2 years June on the 1st")
+export const TextPreviewMatchesSavedRule: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.base({
+      title: "Renew the passport",
+      isRecurring: undefined,
+      recurringInterval: "every year on the 1st in June",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+    recurrenceFormat: "text",
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Repeat every 2 years", async () => {
+      const interval = canvas.getByLabelText("Recurrence interval");
+      // Clearing the field resets it to 1, so replace the value instead
+      await userEvent.tripleClick(interval);
+      await userEvent.keyboard("2");
+    });
+
+    await step("The preview is the text that is saved", async () => {
+      expect(
+        canvas.getByText("every 2 years on the 1st in June"),
+      ).toBeInTheDocument();
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      expect(args.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recurringInterval: "every 2 years on the 1st in June",
+        }),
+      );
+    });
+  },
+};
+
+// Changing the settings of a rule with parts they can't show replaces it
+export const WarnsWhichRulePartsSavingDrops: Story = {
+  args: {
+    isOpen: true,
+    task: taskBuilder.withRecurrence({
+      title: "Five weekly check-ins",
+      isRecurring: true,
+      recurringInterval: "FREQ=WEEKLY;COUNT=5",
+    }),
+    onSave: fn(),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  // Fail on any axe violation, the warning's contrast included
+  parameters: { a11y: { test: "error" } },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Says which parts the settings can't show", async () => {
+      expect(
+        canvas.getByText(
+          /These settings can't show: repetition count \(COUNT\)\./,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    await step("Warns what saving drops once the settings change", async () => {
+      const interval = canvas.getByLabelText("Recurrence interval");
+      await userEvent.tripleClick(interval);
+      await userEvent.keyboard("2");
+      const warning = canvas.getByText(
+        "Saving replaces the stored rule and drops the parts these settings can't show: repetition count (COUNT).",
+      );
+      expect(warning).toBeInTheDocument();
+      // axe, which runs next, skips text scrolled out of view
+      warning.scrollIntoView({ block: "nearest" });
+    });
+    await waitForEditorToOpen(canvasElement);
+  },
+};
+
+// ========================================
+// Accessibility
+// ========================================
+
+/** The element that has focus, inside a shadow root too. */
+const focusedElement = (node: Node): Element | null => {
+  const root = node.getRootNode() as Document | ShadowRoot;
+  return root.activeElement;
+};
+
+/** The story's own content: inside its shadow root when it renders in one. */
+const storyContent = (canvasElement: HTMLElement): HTMLElement => {
+  const host = canvasElement.querySelector('[data-testid="shadow-host"]');
+  if (!host) {
+    return canvasElement;
+  }
+  const content = host.shadowRoot?.firstElementChild;
+  if (!(content instanceof HTMLElement)) {
+    throw new Error("The story's shadow root has no content yet");
+  }
+  return content;
+};
+
+/** The editor's dialog in `container`, once it has opened. */
+const findEditor = (container: HTMLElement): Promise<HTMLElement> =>
+  waitFor(() => {
+    // Date pickers are dialogs too, but not modal ones
+    const dialog = container.querySelector<HTMLElement>(
+      '[role="dialog"][aria-modal="true"]',
+    );
+    if (!dialog) {
+      throw new Error("The editor has not opened");
+    }
+    return dialog;
+  });
+
+/** Tab and Shift+Tab wrap around inside the dialog. */
+const expectFocusTrapped = async (dialog: HTMLElement) => {
+  const firstButton = within(dialog).getByRole("button", {
+    name: "Close edit task modal",
+  });
+  const saveButton = within(dialog).getByRole("button", { name: /save/i });
+
+  // Radix moves focus into the dialog when it opens
+  await waitFor(() =>
+    expect(dialog.contains(focusedElement(dialog))).toBe(true),
+  );
+
+  saveButton.focus();
+  await userEvent.tab();
+  expect(focusedElement(dialog)).toBe(firstButton);
+
+  await userEvent.tab({ shift: true });
+  expect(focusedElement(dialog)).toBe(saveButton);
+};
+
+export const DialogSemantics: Story = {
+  args: {
+    ...Default.args,
+    onClose: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const dialog = await canvas.findByRole("dialog", { name: "Edit Task" });
+
+    await step("Is a modal dialog named by its title", async () => {
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+    });
+
+    await step("Keeps Tab and Shift+Tab inside", async () => {
+      await expectFocusTrapped(dialog);
+    });
+
+    await step("Closes on Escape", async () => {
+      await userEvent.keyboard("{Escape}");
+      expect(args.onClose).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+// The Obsidian plugin renders the app in a shadow root, where
+// document.activeElement is the shadow host rather than the focused field
+export const DialogSemanticsInShadowRoot: Story = {
+  args: {
+    ...Default.args,
+    onClose: fn(),
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const host = canvasElement.querySelector<HTMLElement>(
+      '[data-testid="shadow-host"]',
+    );
+    const shadowRoot = host?.shadowRoot;
+    if (!shadowRoot) {
+      throw new Error("The story did not render into a shadow root");
+    }
+    const dialog = await waitFor(() => {
+      const found = shadowRoot.querySelector<HTMLElement>('[role="dialog"]');
+      if (!found) {
+        throw new Error("No dialog in the shadow root yet");
+      }
+      return found;
+    });
+
+    await step("Is a modal dialog", async () => {
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+      expect(within(dialog).getByRole("heading")).toHaveTextContent(
+        "Edit Task",
+      );
+    });
+
+    await step("Keeps Tab and Shift+Tab inside", async () => {
+      await expectFocusTrapped(dialog);
+    });
+
+    await step("Closes on Escape", async () => {
+      await userEvent.keyboard("{Escape}");
+      expect(args.onClose).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+// Date pickers portal their calendar outside the dialog; picking a date or
+// pressing Escape there must not close the editor
+export const DatePickerInsideDialog: Story = {
+  args: {
+    ...MinimalTask.args,
+    onClose: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Escape closes the open calendar only", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Select due date/ }),
+      );
+      expect(
+        await canvas.findByRole("button", { name: "Today" }),
+      ).toBeInTheDocument();
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(canvas.queryByRole("button", { name: "Today" })).toBeNull(),
+      );
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
+
+    await step("Picking a date keeps the editor open", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Select due date/ }),
+      );
+      await userEvent.click(
+        await canvas.findByRole("button", { name: "Today" }),
+      );
+      expect(
+        canvas.queryByRole("button", { name: /Select due date/ }),
+      ).toBeNull();
+      expect(
+        canvas.getByRole("dialog", { name: "Edit Task" }),
+      ).toBeInTheDocument();
+      expect(args.onClose).not.toHaveBeenCalled();
+    });
+  },
+};
+
+// Radix's dialog overlay locks page scrolling with a document-level wheel and
+// touchmove listener. In a shadow root that listener sees the shadow host as
+// the event's target, so it cancelled scrolling inside the editor too.
+export const ScrollsInShadowRoot: Story = {
+  args: {
+    ...WithYearlyRecurrence.args,
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement, step }) => {
+    const dialog = await findEditor(
+      await waitFor(() => storyContent(canvasElement)),
+    );
+    const body = Array.from(dialog.querySelectorAll<HTMLElement>("*")).find(
+      (element) => getComputedStyle(element).overflowY === "auto",
+    );
+    if (!body) {
+      throw new Error("The editor has no scrolling body");
+    }
+
+    await step("Wheel scrolling is not cancelled", async () => {
+      const wheel = new WheelEvent("wheel", {
+        deltaY: 120,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+      body.dispatchEvent(wheel);
+      expect(wheel.defaultPrevented).toBe(false);
+    });
+
+    await step("Touch scrolling is not cancelled", async () => {
+      const touchAt = (clientY: number) => {
+        const touch = new Touch({
+          identifier: 1,
+          target: body,
+          clientX: 100,
+          clientY,
+        });
+        return {
+          touches: [touch],
+          targetTouches: [touch],
+          changedTouches: [touch],
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        };
+      };
+      body.dispatchEvent(new TouchEvent("touchstart", touchAt(200)));
+      // A swipe up, which scrolls the body down
+      const move = new TouchEvent("touchmove", touchAt(100));
+      body.dispatchEvent(move);
+      expect(move.defaultPrevented).toBe(false);
+    });
+  },
+};
+
+// In a shadow root, Radix's focus loops read document.activeElement (the
+// shadow host). Tab from a date picker's last field left the editor for the
+// host page, and Shift+Tab from the picker went back to the editor.
+export const DatePickerKeepsTabInShadowRoot: Story = {
+  args: {
+    ...MinimalTask.args,
+    onClose: fn(),
+  },
+  parameters: {
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement, step }) => {
+    const content = await waitFor(() => storyContent(canvasElement));
+    const dialog = await findEditor(content);
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /Select due date/ }),
+    );
+    const picker = await waitFor(() => {
+      const found = content.querySelector<HTMLElement>(
+        "[data-radix-popper-content-wrapper]",
+      );
+      if (!found) {
+        throw new Error("The date picker has not opened");
+      }
+      return found;
+    });
+    const fields = Array.from(
+      picker.querySelectorAll<HTMLElement>("button, input"),
+    ).filter((field) => field.tabIndex >= 0 && !field.hasAttribute("disabled"));
+    const first = fields[0];
+    const last = fields[fields.length - 1];
+
+    await step("Tab from its last field wraps to its first", async () => {
+      last.focus();
+      await userEvent.tab();
+      expect(focusedElement(picker)).toBe(first);
+    });
+
+    await step("Shift+Tab from its first field wraps to its last", async () => {
+      await userEvent.tab({ shift: true });
+      expect(focusedElement(picker)).toBe(last);
+    });
+
+    // In a shadow root Radix focuses the picker itself when it opens
+    await step("Shift+Tab from the picker itself stays in it", async () => {
+      const popover = picker.querySelector<HTMLElement>('[role="dialog"]');
+      if (!popover) {
+        throw new Error("The date picker has no dialog element");
+      }
+      popover.focus();
+      await userEvent.tab({ shift: true });
+      expect(focusedElement(picker)).toBe(last);
+    });
+  },
+};
+
+/**
+ * Opens the editor from a button, and from a popover button that closes the
+ * popover as it opens the editor, as a task row's "Edit details" does.
+ */
+const EditorOpeners: React.FC<React.ComponentProps<typeof TaskEditModal>> = (
+  props,
+) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const open = () => setIsOpen(true);
+  const close = () => setIsOpen(false);
+  return (
+    <div className="flex gap-2">
+      <button type="button" onClick={open}>
+        Open editor
+      </button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button">Task actions</button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <PopoverClose asChild>
+            <button type="button" onClick={open}>
+              Edit details
+            </button>
+          </PopoverClose>
+        </PopoverContent>
+      </Popover>
+      <TaskEditModal
+        {...props}
+        isOpen={isOpen}
+        onClose={close}
+        onSave={close}
+      />
+    </div>
+  );
+};
+
+/** Closing the editor returns focus to what opened it. */
+const expectFocusReturned: Story["play"] = async ({ canvasElement, step }) => {
+  const content = await waitFor(() => storyContent(canvasElement));
+  const canvas = within(content);
+  /** Opens the editor with Enter on `opener`, then closes it with `close`. */
+  const openAndClose = async (
+    opener: HTMLElement,
+    close: (dialog: HTMLElement) => Promise<unknown>,
+  ) => {
+    opener.focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = await findEditor(content);
+    await waitFor(() =>
+      expect(dialog.contains(focusedElement(dialog))).toBe(true),
+    );
+    // A popup closing as the editor opens returns focus to its trigger a
+    // moment later; in a shadow root that left the editor without focus
+    await delay(100);
+    expect(dialog.contains(focusedElement(dialog))).toBe(true);
+    await close(dialog);
+    await waitFor(() => expect(dialog.isConnected).toBe(false));
+  };
+
+  await step("Escape returns focus to the button that opened it", async () => {
+    const opener = canvas.getByRole("button", { name: "Open editor" });
+    await openAndClose(opener, () => userEvent.keyboard("{Escape}"));
+    await waitFor(() => expect(focusedElement(content)).toBe(opener));
+  });
+
+  await step("Saving returns focus there too", async () => {
+    const opener = canvas.getByRole("button", { name: "Open editor" });
+    await openAndClose(opener, (dialog) =>
+      userEvent.click(within(dialog).getByRole("button", { name: /save/i })),
+    );
+    await waitFor(() => expect(focusedElement(content)).toBe(opener));
+  });
+
+  await step(
+    "When the opener has gone, focus returns to its popover's trigger",
+    async () => {
+      const trigger = canvas.getByRole("button", { name: "Task actions" });
+      trigger.focus();
+      await userEvent.keyboard("{Enter}");
+      const edit = await canvas.findByRole("button", { name: "Edit details" });
+      await openAndClose(edit, (dialog) =>
+        userEvent.click(within(dialog).getByRole("button", { name: "Cancel" })),
+      );
+      expect(edit.isConnected).toBe(false);
+      await waitFor(() => expect(focusedElement(content)).toBe(trigger));
+    },
+  );
+};
+
+// Radix returns focus to a Dialog.Trigger, and the editor has none, so focus
+// fell to <body> and keyboard users restarted from the top of the page
+export const ReturnsFocusToOpener: Story = {
+  args: {
+    ...Default.args,
+  },
+  render: (args) => <EditorOpeners {...args} />,
+  play: expectFocusReturned,
+};
+
+export const ReturnsFocusToOpenerInShadowRoot: Story = {
+  ...ReturnsFocusToOpener,
+  parameters: {
+    shadowRoot: true,
+  },
+};
+
+// The exported editor used without AppProvider, which the package does not
+// export, has no portal container: it renders in place, inside the
+// consumer's themed wrapper, rather than in document.body
+export const RendersInPlaceWithoutAppProvider: Story = {
+  args: {
+    ...Default.args,
+  },
+  parameters: {
+    appProvider: false,
+    theme: "midnight",
+  },
+  play: async ({ canvasElement }) => {
+    const wrapper = canvasElement.querySelector<HTMLElement>(
+      '.tasks-timeline-app[data-theme="midnight"]',
+    );
+    if (!wrapper) {
+      throw new Error("The story has no themed wrapper");
+    }
+    const dialog = await findEditor(canvasElement.ownerDocument.body);
+
+    expect(wrapper.contains(dialog)).toBe(true);
+    // The consumer's midnight card, not the light one on :root
+    expect(getComputedStyle(dialog).getPropertyValue("--card")).toBe(
+      getComputedStyle(wrapper).getPropertyValue("--card"),
+    );
+  },
+};
+
+// ...and inside the consumer's own shadow root
+export const RendersInPlaceInConsumerShadowRoot: Story = {
+  args: {
+    ...Default.args,
+  },
+  parameters: {
+    appProvider: false,
+    shadowRoot: true,
+  },
+  play: async ({ canvasElement }) => {
+    const content = await waitFor(() => storyContent(canvasElement));
+
+    await findEditor(content);
+    expect(
+      canvasElement.ownerDocument.body.querySelector('[role="dialog"]'),
+    ).toBeNull();
+  },
+};
+
+export const MonthTogglesExposeState: Story = {
+  args: {
+    ...WithYearlyRecurrence.args,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("The rule's month is pressed", async () => {
+      expect(canvas.getByRole("button", { name: "Dec" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(canvas.getByRole("button", { name: "Jan" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    await step("Toggling a month updates its state", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: "Jan" }));
+      expect(canvas.getByRole("button", { name: "Jan" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+  },
+};
+
+type Rgba = readonly [number, number, number, number];
+
+/** A CSS colour, in any syntax, as sRGB channels (0-255) and alpha (0-1). */
+const rgbaOf = (color: string): Rgba => {
+  if (!CSS.supports("color", color)) {
+    throw new Error(`Not a CSS colour: "${color}"`);
+  }
+  const context = document.createElement("canvas").getContext("2d");
+  if (!context) {
+    throw new Error("No 2D canvas to read the colour with");
+  }
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+  return [r, g, b, a / 255];
+};
+
+/** `top`, at its alpha, over the opaque `bottom`. */
+const over = (top: Rgba, bottom: Rgba): Rgba => [
+  top[0] * top[3] + bottom[0] * (1 - top[3]),
+  top[1] * top[3] + bottom[1] * (1 - top[3]),
+  top[2] * top[3] + bottom[2] * (1 - top[3]),
+  1,
+];
+
+/**
+ * The colour behind an element: its own and its ancestors' backgrounds,
+ * blended down to the first opaque one (bg-white/50 is translucent).
+ */
+const backgroundBehind = (element: Element): Rgba => {
+  const layers: Rgba[] = [];
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const layer = rgbaOf(getComputedStyle(node).backgroundColor);
+    if (layer[3] > 0) {
+      layers.push(layer);
+    }
+    if (layer[3] === 1) {
+      return layers.reduceRight((below, above) => over(above, below));
+    }
+  }
+  throw new Error("No opaque background behind the element");
+};
+
+const luminance = ([r, g, b]: Rgba): number => {
+  const [lr, lg, lb] = [r, g, b].map((value) => {
+    const c = value / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+};
+
+/** The contrast of an element's text with the colour behind it. */
+const contrastRatio = (element: Element): number => {
+  const background = backgroundBehind(element);
+  const text = over(rgbaOf(getComputedStyle(element).color), background);
+  const [light, dark] = [luminance(text), luminance(background)].sort(
+    (a, b) => b - a,
+  );
+  return (light + 0.05) / (dark + 0.05);
+};
+
+/** The element's text meets WCAG AA (4.5:1), once its colours settle. */
+const expectReadable = async (element: Element) => {
+  // Colours transition when a toggle is pressed
+  await Promise.all(element.getAnimations().map(({ finished }) => finished));
+  expect(contrastRatio(element)).toBeGreaterThanOrEqual(4.5);
+};
+
+const themedEditorStory = (theme: string): Story => ({
+  args: {
+    isOpen: true,
+    task: taskBuilder.withRecurrence({
+      title: `Editor in the ${theme} theme`,
+      isRecurring: true,
+      // Selected weekdays, and a part these settings can't show (COUNT)
+      recurringInterval: "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=5",
+    }),
+    onSave: fn(async () => {
+      throw new Error("The vault is read-only");
+    }),
+    onClose: handleClose,
+    availableCategories: ["Work"],
+  },
+  // Fail on any axe violation (the default only reports them)
+  parameters: { theme, a11y: { test: "error" } },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    await waitForEditorToOpen(canvasElement);
+
+    await step("Secondary text meets WCAG AA (4.5:1)", async () => {
+      for (const text of ["Task Dates", "Repeats automatically", "On days"]) {
+        await expectReadable(canvas.getByText(text));
+      }
+    });
+
+    await step("Selected weekdays meet AA", async () => {
+      await expectReadable(
+        canvas.getByRole("button", { name: "Monday", pressed: true }),
+      );
+    });
+
+    await step("Selected months and days meet AA", async () => {
+      await userEvent.selectOptions(
+        canvas.getByLabelText("Recurrence frequency"),
+        String(RRule.YEARLY),
+      );
+      await userEvent.click(canvas.getByRole("button", { name: "Jun" }));
+      await userEvent.click(canvas.getByRole("button", { name: "15" }));
+      await expectReadable(
+        canvas.getByRole("button", { name: "Jun", pressed: true }),
+      );
+      await expectReadable(
+        canvas.getByRole("button", { name: "15", pressed: true }),
+      );
+    });
+
+    const warning = canvas.getByText(/^Saving replaces the stored rule/);
+    await step("The warning about dropped rule parts meets AA", async () => {
+      await expectReadable(warning);
+    });
+
+    await step("The save error meets AA", async () => {
+      await userEvent.click(canvas.getByRole("button", { name: /save/i }));
+      await expectReadable(await canvas.findByRole("alert"));
+    });
+
+    // axe, which runs next, skips text scrolled out of view
+    warning.scrollIntoView({ block: "nearest" });
+  },
+});
+
+export const LightTheme: Story = themedEditorStory("light");
+export const DarkTheme: Story = themedEditorStory("dark");
+export const MidnightTheme: Story = themedEditorStory("midnight");
+export const CoffeeTheme: Story = themedEditorStory("coffee");
 
 // ========================================
 // Status Variants

@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Task } from "../types";
-import { TaskEditModal } from "./TaskEditModal";
+import { TaskEditModal, type RecurrenceFormat } from "./TaskEditModal";
 
-const renderModal = (task: Task) =>
+const renderModal = (task: Task, recurrenceFormat?: RecurrenceFormat) =>
   renderToStaticMarkup(
     <TaskEditModal
       isOpen
@@ -11,6 +11,7 @@ const renderModal = (task: Task) =>
       onSave={() => undefined}
       onClose={() => undefined}
       availableCategories={[]}
+      recurrenceFormat={recurrenceFormat}
     />,
   );
 
@@ -51,12 +52,15 @@ describe("TaskEditModal recurrence", () => {
   it("says which parts of a rule its settings can't show", () => {
     const html = renderModal({
       ...baseTask,
-      recurringInterval: "FREQ=MONTHLY;BYDAY=+2MO",
+      recurringInterval: "FREQ=WEEKLY;COUNT=5;WKST=SU",
     });
 
-    expect(html).toContain("FREQ=MONTHLY;BYDAY=+2MO");
+    expect(html).toContain("FREQ=WEEKLY;COUNT=5;WKST=SU");
     expect(html).toContain(
-      "can&#x27;t show its ordinal weekdays (like the 2nd Monday)",
+      "These settings can&#x27;t show: repetition count (COUNT), week start other than Monday.",
+    );
+    expect(html).toContain(
+      "The rule is kept as written unless you change them, which replaces it.",
     );
   });
 
@@ -67,5 +71,24 @@ describe("TaskEditModal recurrence", () => {
     });
 
     expect(html).toMatch(/aria-pressed="true"[^>]*>Last day</);
+  });
+
+  describe("preview", () => {
+    const yearlyEveryOther = {
+      ...baseTask,
+      recurringInterval: "FREQ=YEARLY;INTERVAL=2;BYMONTH=6,12;BYMONTHDAY=1,15",
+    };
+
+    it("shows the text saving writes when rules are saved as text", () => {
+      expect(renderModal(yearlyEveryOther, "text")).toContain(
+        "every 2 years on the 1st and 15th in June and December",
+      );
+    });
+
+    it("describes the rule in rrule's words when rules are saved as RRULE", () => {
+      expect(renderModal(yearlyEveryOther, "auto")).toContain(
+        "every 2 years June and December on the 1st and 15th",
+      );
+    });
   });
 });

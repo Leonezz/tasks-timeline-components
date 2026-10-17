@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { TasksTimelineApp } from "../../TasksTimelineApp";
 import type { SettingsRepository, Task } from "../../types";
 import { delay, withinShadow } from "../test-utils";
@@ -44,6 +44,40 @@ export const App: Story = {
     onTaskUpdated: handleTaskUpdated,
     onTaskDeleted: handleTaskDeleted,
     onItemClick: handleItemClick,
+  },
+};
+
+// "Edit details" sits in the row's status menu, which closes as the editor
+// opens. Closing the editor used to drop focus to <body>, sending keyboard
+// users back to the top of the page.
+export const EditorReturnsFocusToTaskRow: Story = {
+  args: {
+    ...App.args,
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const [statusButton] = await canvas.findAllByRole("button", {
+      name: /^Change status for /,
+    });
+
+    await step("Open the editor from the row's status menu", async () => {
+      statusButton.focus();
+      await userEvent.keyboard("{Enter}");
+      const edit = await canvas.findByRole("button", {
+        name: /^Edit details for /,
+      });
+      edit.focus();
+      await userEvent.keyboard("{Enter}");
+      await canvas.findByRole("dialog", { name: "Edit Task" });
+    });
+
+    await step("Escape returns focus to the row's status button", async () => {
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(canvas.queryByRole("dialog", { name: "Edit Task" })).toBeNull(),
+      );
+      await waitFor(() => expect(document.activeElement).toBe(statusButton));
+    });
   },
 };
 

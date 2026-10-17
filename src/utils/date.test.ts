@@ -1,5 +1,14 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { formatSmartDate } from "./date";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { formatRecurrence, formatSmartDate } from "./date";
+import { readRecurrenceRule } from "./recurrence";
 
 describe("formatSmartDate", () => {
   beforeAll(() => {
@@ -71,5 +80,46 @@ describe("formatSmartDate", () => {
       const result = formatSmartDate("2026-01-20", true, "yyyy-MM-dd"); // ~12 days ago
       expect(result).toContain("ago");
     });
+  });
+});
+
+// The Recurring badge's tooltip and aria-label
+describe("formatRecurrence", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("gives the end date the editor and complete_task read", () => {
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    expect(new Date(2026, 0, 1).getTimezoneOffset()).toBe(480);
+
+    // A legacy UTC end: the last occurrence is on December 30 local time
+    const rule = "FREQ=WEEKLY;UNTIL=20261231T050000Z";
+    expect(readRecurrenceRule(rule).state.end).toBe("2026-12-30");
+    // rrule's own text says December 31
+    expect(formatRecurrence(rule)).toBe("every week until December 30, 2026");
+  });
+
+  it("reads end dates rrule can't parse", () => {
+    expect(formatRecurrence("FREQ=WEEKLY;UNTIL=2026-12-31")).toBe(
+      "every week until December 31, 2026",
+    );
+    expect(formatRecurrence("every week until 2026-12-31")).toBe(
+      "every week until December 31, 2026",
+    );
+  });
+
+  it("keeps 'when done'", () => {
+    expect(formatRecurrence("every week when done")).toBe(
+      "every week when done",
+    );
+  });
+
+  it("shows a rule it can't read as written", () => {
+    expect(formatRecurrence("every fortnight")).toBe("every fortnight");
+    expect(formatRecurrence("FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1")).toBe(
+      "FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1",
+    );
+    expect(formatRecurrence("")).toBe("");
   });
 });

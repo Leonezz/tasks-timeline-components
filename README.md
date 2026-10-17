@@ -367,7 +367,8 @@ interface TasksTimelineAppProps {
   Tasks text (`every 2 weeks on Monday until December 31, 2026`). Set it when you
   store tasks as Obsidian Tasks lines, which can't hold RRULE syntax or a start
   date. `"auto"` writes text for text rules and tasks from the Obsidian Tasks
-  parser, and RRULE syntax otherwise.
+  parser, and RRULE syntax otherwise. When the editor writes text, its preview
+  is the text that saving writes.
 - When saving from the task editor, a rejected `onTaskUpdated` keeps the editor
   open with the error and the user's changes. The editor refuses to save when
   the task now at that id is not the one it opened (ids that are line positions

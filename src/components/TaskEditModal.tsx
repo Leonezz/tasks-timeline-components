@@ -1,17 +1,24 @@
-import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Frequency, RRule } from "rrule";
 import { DateTime } from "luxon";
 import type { Priority, Task } from "../types";
 import { Icon } from "./Icon";
 import { cn, deriveWorkflowStatus, isTaskRecurring } from "../utils";
 import {
-  describeRecurrence,
+  previewRecurrence,
   readRecurrenceRule,
   recurrenceSaveFormat,
   resolveRecurrenceOnSave,
 } from "../utils/recurrence";
+import {
+  keepTabInShadowRoot,
+  trapFocusInShadowRoot,
+} from "../utils/focus-loop";
+import { captureFocusReturn, restoreFocus } from "../utils/focus-return";
 import { DatePicker } from "./ui/date-picker";
+import { Dialog, DialogPortal } from "./ui/dialog";
 
 /**
  * How edited recurrence rules are written. "text" always writes Obsidian
@@ -92,6 +99,12 @@ const EditForm: React.FC<EditFormProps> = ({
     [recurrenceControlsTouched, setRecurrenceControlsTouched] = useState(false),
     [saveError, setSaveError] = useState<string | null>(null),
     [isSaving, setIsSaving] = useState(false),
+    // Obsidian Tasks lines only hold text rules ("every 2 weeks on Monday")
+    saveFormat = recurrenceSaveFormat(
+      recurrenceFormat,
+      storedRule.source,
+      task,
+    ),
     updateRecurrence = (updates: Partial<typeof recurrenceState>) => {
       setRecurrenceControlsTouched(true);
       setRecurrenceState((prev) => ({ ...prev, ...updates }));
@@ -103,12 +116,7 @@ const EditForm: React.FC<EditFormProps> = ({
           isRecurring: Boolean(editedTask.isRecurring),
           controlsTouched: recurrenceControlsTouched,
           state: recurrenceState,
-          // Obsidian Tasks lines only hold text rules ("every 2 weeks on Monday")
-          format: recurrenceSaveFormat(
-            recurrenceFormat,
-            storedRule.source,
-            task,
-          ),
+          format: saveFormat,
           whenDone: storedRule.whenDone,
         });
       } catch (error) {
@@ -150,20 +158,26 @@ const EditForm: React.FC<EditFormProps> = ({
         {storedRule.source === "unparsed" &&
           ". These settings can't show it; it is kept unless you change them."}
         {unsupportedParts !== "" &&
-          `. These settings can't show its ${unsupportedParts}; it is kept as written unless you change them, which replaces it.`}
+          `. These settings can't show: ${unsupportedParts}. The rule is kept as written unless you change them, which replaces it.`}
       </>
     ) : (
       <>
         {(() => {
           try {
-            return describeRecurrence(recurrenceState);
+            // In text format, the text saving writes
+            return previewRecurrence(
+              recurrenceState,
+              saveFormat,
+              storedRule.whenDone,
+            );
           } catch (error) {
-            return `Invalid rule: ${error instanceof Error ? error.message : String(error)}`;
+            return `Invalid rule: ${errorText(error)}`;
           }
         })()}
         {unsupportedParts !== "" && (
-          <span className="block not-italic text-amber-600">
-            Saving replaces the stored rule and drops its {unsupportedParts}.
+          <span className="block not-italic text-amber-800">
+            Saving replaces the stored rule and drops the parts these settings
+            can&apos;t show: {unsupportedParts}.
           </span>
         )}
       </>
@@ -171,12 +185,15 @@ const EditForm: React.FC<EditFormProps> = ({
 
   return (
     <div className="flex flex-col max-h-[85vh]">
-      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-paper/50 sticky top-0 backdrop-blur-md z-10 shrink-0">
-        <h2 className="font-bold text-slate-800">Edit Task</h2>
+      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-paper/50 sticky top-0 backdrop-blur-md z-10 shrink-0">
+        {/* Names the dialog (aria-labelledby) */}
+        <DialogPrimitive.Title className="font-bold text-slate-800">
+          Edit Task
+        </DialogPrimitive.Title>
         <button
           onClick={onClose}
           aria-label="Close edit task modal"
-          className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+          className="p-2 text-slate-500 hover:text-slate-600 rounded-full hover:bg-slate-100"
         >
           <Icon name="X" size={20} />
         </button>
@@ -197,7 +214,7 @@ const EditForm: React.FC<EditFormProps> = ({
             onChange={(e) =>
               setEditedTask({ ...editedTask, title: e.target.value })
             }
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900"
           />
         </div>
 
@@ -215,7 +232,7 @@ const EditForm: React.FC<EditFormProps> = ({
             onChange={(e) =>
               setEditedTask({ ...editedTask, description: e.target.value })
             }
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-20 resize-none text-slate-900"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-20 resize-none text-slate-900"
             placeholder="Add details..."
           />
         </div>
@@ -240,13 +257,13 @@ const EditForm: React.FC<EditFormProps> = ({
                 onFocus={() => setIsCategoryOpen(true)}
                 onBlur={() => setTimeout(() => setIsCategoryOpen(false), 200)} // Delay to allow click
                 placeholder="Work, Personal..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none pl-9 text-slate-900"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none pl-9 text-slate-900"
               />
-              <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
+              <div className="absolute left-3 top-2.5 text-slate-500 pointer-events-none">
                 <Icon name="Folder" size={14} />
               </div>
               <div
-                className="absolute right-3 top-2.5 text-slate-400 pointer-events-none transition-transform duration-200"
+                className="absolute right-3 top-2.5 text-slate-500 pointer-events-none transition-transform duration-200"
                 style={{
                   transform: isCategoryOpen ? "rotate(180deg)" : "rotate(0deg)",
                 }}
@@ -278,7 +295,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         <Icon
                           name="Folder"
                           size={12}
-                          className="text-slate-400"
+                          className="text-slate-500"
                         />
                         {cat}
                       </button>
@@ -306,7 +323,7 @@ const EditForm: React.FC<EditFormProps> = ({
             <div
               role="radiogroup"
               aria-labelledby="priority-label"
-              className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700 h-9.5"
+              className="flex bg-slate-50 p-1 rounded-lg border border-slate-200 h-9.5"
             >
               {(["low", "medium", "high"] as Priority[]).map((p) => (
                 <button
@@ -317,8 +334,8 @@ const EditForm: React.FC<EditFormProps> = ({
                   className={cn(
                     "flex-1 text-xs font-medium rounded-md capitalize transition-all flex items-center justify-center",
                     editedTask.priority === p
-                      ? "bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-500"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+                      ? "bg-white shadow-sm text-slate-800 border border-slate-100"
+                      : "text-slate-500 hover:text-slate-700",
                   )}
                 >
                   {p}
@@ -328,8 +345,8 @@ const EditForm: React.FC<EditFormProps> = ({
           </div>
         </div>
 
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">
+        <div className="border-t border-slate-100 pt-4">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">
             Task Dates
           </label>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -407,7 +424,7 @@ const EditForm: React.FC<EditFormProps> = ({
           </div>
 
           {/* Recurrence Control */}
-          <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg p-3 border border-slate-200/60 dark:border-slate-700 transition-colors">
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
@@ -421,10 +438,10 @@ const EditForm: React.FC<EditFormProps> = ({
                   <Icon name="Repeat" size={16} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <span className="text-sm font-medium text-slate-700">
                     Recurrence
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-500">
                     Repeats automatically
                   </span>
                 </div>
@@ -436,9 +453,7 @@ const EditForm: React.FC<EditFormProps> = ({
                 aria-label="Toggle task recurrence"
                 className={cn(
                   "relative w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400",
-                  editedTask.isRecurring
-                    ? "bg-blue-500"
-                    : "bg-slate-200 dark:bg-slate-700",
+                  editedTask.isRecurring ? "bg-blue-500" : "bg-slate-200",
                 )}
               >
                 <motion.div
@@ -458,7 +473,7 @@ const EditForm: React.FC<EditFormProps> = ({
                   exit={{ height: 0, opacity: 0, marginTop: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700 space-y-3">
+                  <div className="pt-3 border-t border-slate-200/60 space-y-3">
                     <div className="flex items-center gap-2">
                       <label
                         htmlFor="recurrence-interval"
@@ -478,7 +493,7 @@ const EditForm: React.FC<EditFormProps> = ({
                             interval: parseInt(e.target.value) || 1,
                           })
                         }
-                        className="w-12 px-1.5 py-1 text-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-xs focus:border-blue-500 outline-none text-slate-700 dark:text-slate-200"
+                        className="w-12 px-1.5 py-1 text-center bg-white border border-slate-300 rounded-md text-xs focus:border-blue-500 outline-none text-slate-700"
                       />
                       <select
                         aria-label="Recurrence frequency"
@@ -488,7 +503,7 @@ const EditForm: React.FC<EditFormProps> = ({
                             freq: parseInt(e.target.value) as Frequency,
                           })
                         }
-                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 block p-1 outline-none"
+                        className="flex-1 bg-white border border-slate-300 text-slate-700 text-xs rounded-md focus:ring-blue-500 focus:border-blue-500 block p-1 outline-none"
                       >
                         {FREQUENCY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -502,7 +517,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       <div className="space-y-1">
                         <span
                           id="weekdays-label"
-                          className="text-[10px] font-semibold text-slate-400 uppercase"
+                          className="text-[10px] font-semibold text-slate-500 uppercase"
                         >
                           On days
                         </span>
@@ -545,8 +560,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                 className={cn(
                                   "w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-all border",
                                   isSelected
-                                    ? "bg-blue-500 text-white border-blue-600 shadow-sm"
-                                    : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-blue-300 hover:text-blue-500",
+                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                    : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-500",
                                 )}
                               >
                                 {day.label}
@@ -562,7 +577,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       <div className="space-y-3">
                         {recurrenceState.freq === RRule.YEARLY && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                            <label className="text-[10px] font-semibold text-slate-500 uppercase">
                               Months
                             </label>
                             <div className="grid grid-cols-6 gap-1">
@@ -573,6 +588,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                 return (
                                   <button
                                     key={m}
+                                    type="button"
+                                    aria-pressed={isSelected}
                                     onClick={() => {
                                       const prev = recurrenceState.byMonth;
                                       updateRecurrence({
@@ -584,8 +601,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                     className={cn(
                                       "py-1 text-[15px] rounded border transition-colors",
                                       isSelected
-                                        ? "bg-blue-500 text-white border-blue-600"
-                                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white border-slate-200 text-slate-500 hover:border-blue-300",
                                     )}
                                   >
                                     {m}
@@ -597,7 +614,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         )}
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase">
                             Days
                           </label>
                           <div className="grid grid-cols-7 gap-1">
@@ -627,8 +644,8 @@ const EditForm: React.FC<EditFormProps> = ({
                                       ? "col-span-4 text-xs"
                                       : "aspect-square",
                                     isSelected
-                                      ? "bg-blue-500 text-white border-blue-600"
-                                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-300",
+                                      ? "bg-blue-600 text-white border-blue-600"
+                                      : "bg-white border-slate-200 text-slate-500 hover:border-blue-300",
                                   )}
                                 >
                                   {d === LAST_DAY_OF_MONTH ? "Last day" : d}
@@ -640,9 +657,9 @@ const EditForm: React.FC<EditFormProps> = ({
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/50">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
                           Start Recurrence
                         </label>
                         <DatePicker
@@ -659,7 +676,7 @@ const EditForm: React.FC<EditFormProps> = ({
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400 uppercase">
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase">
                           End Recurrence
                         </label>
                         <DatePicker
@@ -677,7 +694,7 @@ const EditForm: React.FC<EditFormProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-400 italic bg-white/50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-700 text-center">
+                    <div className="text-[10px] text-slate-500 italic bg-white/50 p-2 rounded border border-slate-100 text-center">
                       {recurrencePreview}
                     </div>
                   </div>
@@ -688,15 +705,15 @@ const EditForm: React.FC<EditFormProps> = ({
         </div>
       </div>
 
-      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 sticky bottom-0 z-10 shrink-0">
+      <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 z-10 shrink-0">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
         >
           Cancel
         </button>
         {saveError && (
-          <p role="alert" className="mr-auto self-center text-xs text-rose-600">
+          <p role="alert" className="mr-auto self-center text-xs text-rose-700">
             {saveError}
           </p>
         )}
@@ -712,6 +729,59 @@ const EditForm: React.FC<EditFormProps> = ({
   );
 };
 
+/** The open editor: its backdrop and dialog. */
+const EditorDialog: React.FC<EditFormProps> = (props) => {
+  // Radix returns focus to a Dialog.Trigger, and the editor has none. Read
+  // the opener while rendering, before this commit closes a popup holding it
+  const [focusReturn] = useState(captureFocusReturn);
+  const [dialog, setDialog] = useState<HTMLElement | null>(null);
+  // Like Radix's own trap, only while open, not during the exit animation
+  const isOpen = useIsPresent();
+  useEffect(
+    () => (dialog && isOpen ? trapFocusInShadowRoot(dialog) : undefined),
+    [dialog, isOpen],
+  );
+
+  return (
+    <DialogPortal forceMount>
+      {/* Not Radix's Overlay: its scroll lock checks a document listener's
+          event.target, which in a shadow root is the shadow host, so it
+          cancelled wheel and touch scrolling inside the editor too. Clicks
+          here still close the editor (Content's pointer-down-outside). */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+        // Radix disables pointer events outside the dialog; take them here
+        style={{ pointerEvents: "auto" }}
+      />
+      <DialogPrimitive.Content
+        ref={setDialog}
+        asChild
+        forceMount
+        aria-modal="true"
+        // Named by its title; it has no description
+        aria-describedby={undefined}
+        onKeyDown={keepTabInShadowRoot}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus(focusReturn);
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
+          exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
+          className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 overflow-hidden text-slate-900"
+        >
+          <EditForm key={props.task.id} {...props} />
+        </motion.div>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+};
+
 export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   isOpen,
   onClose,
@@ -720,32 +790,27 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   availableCategories,
   recurrenceFormat = "auto",
 }) => (
-  <AnimatePresence>
-    {isOpen && task && (
-      <>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+  // A modal dialog: Escape and clicks outside close it, focus stays inside,
+  // and the rest of the page is hidden from assistive technology meanwhile.
+  // Radix keeps the parts mounted (forceMount) so framer-motion animates exit.
+  <Dialog
+    open={isOpen && task !== null}
+    onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}
+  >
+    <AnimatePresence>
+      {isOpen && task && (
+        <EditorDialog
+          task={task}
+          onSave={onSave}
+          onClose={onClose}
+          availableCategories={availableCategories}
+          recurrenceFormat={recurrenceFormat}
         />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-          animate={{ opacity: 1, scale: 1, y: "-50%", x: "-50%" }}
-          exit={{ opacity: 0, scale: 0.95, y: "-50%", x: "-50%" }}
-          className="fixed top-1/2 left-1/2 w-full max-w-lg bg-paper rounded-xl shadow-2xl z-50 border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900"
-        >
-          <EditForm
-            key={task.id}
-            task={task}
-            onSave={onSave}
-            onClose={onClose}
-            availableCategories={availableCategories}
-            recurrenceFormat={recurrenceFormat}
-          />
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
+      )}
+    </AnimatePresence>
+  </Dialog>
 );
