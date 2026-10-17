@@ -542,6 +542,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hover:bg-primary/90`, as the default button does: about 5.5:1 in the light
   theme, 5.6:1 in coffee, 5.9:1 in dark and 6.3:1 in midnight. The
   `UI/ThemeColors` stories check it in all four themes.
+- **The `destructive` token failed WCAG AA.** `destructive-foreground` on
+  `destructive` (the destructive button and badge) was rose-600, `#e11d48`,
+  in the light and coffee themes: about 4.7:1 at rest but 4.3:1 under the
+  button's `hover:bg-destructive/90` and 3.7:1 under the badge's
+  `hover:bg-destructive/80`. Dark and midnight used rose-500, `#f43f5e`, with
+  near-white text: about 3.5:1 at rest. Light and coffee now use rose-700,
+  `#be123c` (`345.3 82.7% 40.8%`): about 6.3:1 and 6.2:1 at rest, 5.5:1 and
+  5.4:1 on hover. Dark and midnight now use rose-400, `#fb7185`
+  (`351.3 94.5% 71.4%`), with their dark background colour as
+  `destructive-foreground`, as their `primary` does: about 6.6:1 and 7.2:1 at
+  rest, 5.6:1 and 6.0:1 on hover. The destructive badge now uses
+  `hover:bg-destructive/90`, as the button does. As a text colour on
+  `background`, `card` and `popover`, `destructive` is at least 5.4:1 in all
+  four themes. The `UI/ThemeColors` stories check the destructive button and
+  badge, at rest and hovered, in all four themes.
 
 ### Changed
 

@@ -47,7 +47,9 @@
   --accent-foreground: 224.3 76.3% 48%;
 
   /* Destructive (Rose) */
-  --destructive: 346.8 77.2% 49.8%; /* #e11d48 - rose-600 */
+  /* #be123c: rose-700, at least 4.5:1 (WCAG AA) on light surfaces and under
+     destructive-foreground, also under hover:bg-destructive/90 */
+  --destructive: 345.3 82.7% 40.8%;
   --destructive-foreground: 0 0% 100%;
 
   /* Border & Input */
@@ -151,8 +153,10 @@
   --accent-foreground: 213.1 93.9% 67.8%;
 
   /* Destructive (Rose - lighter in dark) */
-  --destructive: 350 89.2% 60.2%; /* #f43f5e - rose-500 */
-  --destructive-foreground: 210 40% 98%;
+  /* #fb7185: rose-400, at least 4.5:1 (WCAG AA) on dark surfaces and under
+     destructive-foreground, also under hover:bg-destructive/90 */
+  --destructive: 351.3 94.5% 71.4%;
+  --destructive-foreground: 222.2 47.4% 11.2%;
 
   /* Border & Input */
   --border: 215.3 25% 26.7%; /* #334155 */
@@ -242,8 +246,10 @@
   --accent-foreground: 213.1 93.9% 67.8%;
 
   /* Destructive */
-  --destructive: 350 89.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  /* #fb7185: rose-400, at least 4.5:1 (WCAG AA) on dark surfaces and under
+     destructive-foreground, also under hover:bg-destructive/90 */
+  --destructive: 351.3 94.5% 71.4%;
+  --destructive-foreground: 222 47% 7%;
 
   /* Border & Input */
   --border: 215.3 25% 26.7%;
@@ -333,7 +339,9 @@
   --accent-foreground: 22.7 82.5% 31.4%;
 
   /* Destructive (Rose - slightly warmer) */
-  --destructive: 346.8 77.2% 49.8%;
+  /* #be123c: rose-700, at least 4.5:1 (WCAG AA) on light surfaces and under
+     destructive-foreground, also under hover:bg-destructive/90 */
+  --destructive: 345.3 82.7% 40.8%;
   --destructive-foreground: 40 17% 99%;
 
   /* Border & Input */

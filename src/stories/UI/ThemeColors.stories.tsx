@@ -14,10 +14,11 @@ import {
 import { expectReadable, waitForOpaque } from "../test-utils";
 
 /**
- * The text the ui primitives colour with the primary and accent tokens: the
- * default button and badge (primary-foreground on primary), the link button
- * (primary) and a focused dropdown item (accent-foreground on accent, which
- * ghost and outline buttons also show on hover).
+ * The text the ui primitives colour with the primary, destructive and accent
+ * tokens: the default button and badge (primary-foreground on primary), the
+ * destructive button and badge (destructive-foreground on destructive), the
+ * link button (primary) and a focused dropdown item (accent-foreground on
+ * accent, which ghost and outline buttons also show on hover).
  */
 const meta: Meta = {
   title: "UI/ThemeColors",
@@ -43,6 +44,15 @@ const themedColorsStory = (theme: string): Story => ({
         <Badge>New</Badge>
         {/* The default badge's hover colour, for the same reason */}
         <Badge className="bg-primary/90">Hovered badge</Badge>
+        <Button variant="destructive">Delete</Button>
+        {/* The destructive button's and badge's hover colours */}
+        <Button variant="destructive" className="bg-destructive/90">
+          Hovered delete
+        </Button>
+        <Badge variant="destructive">Overdue</Badge>
+        <Badge variant="destructive" className="bg-destructive/90">
+          Hovered overdue
+        </Badge>
         <Button variant="link">Learn more</Button>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -62,6 +72,12 @@ const themedColorsStory = (theme: string): Story => ({
     await step("The hovered stand-ins use the real hover colours", () => {
       expect(buttonVariants()).toContain("hover:bg-primary/90");
       expect(badgeVariants()).toContain("hover:bg-primary/90");
+      expect(buttonVariants({ variant: "destructive" })).toContain(
+        "hover:bg-destructive/90",
+      );
+      expect(badgeVariants({ variant: "destructive" })).toContain(
+        "hover:bg-destructive/90",
+      );
     });
 
     await step(
@@ -74,6 +90,18 @@ const themedColorsStory = (theme: string): Story => ({
         await expectReadable(
           canvas.getByRole("button", { name: "Learn more" }),
         );
+      },
+    );
+
+    await step(
+      "The destructive button and badge (both also hovered) meet AA",
+      async () => {
+        await expectReadable(canvas.getByRole("button", { name: "Delete" }));
+        await expectReadable(
+          canvas.getByRole("button", { name: "Hovered delete" }),
+        );
+        await expectReadable(canvas.getByText("Overdue"));
+        await expectReadable(canvas.getByText("Hovered overdue"));
       },
     );
 
