@@ -103,7 +103,8 @@
   --amber-100: 48 96.5% 88.8%; /* #fef3c7 */
   --amber-200: 48 96.6% 76.7%; /* #fde68a */
   --amber-500: 43 96.4% 56.3%; /* #f59e0b */
-  --amber-700: 37.7 92.1% 38%; /* #b45309 */
+  /* #b45309: badge text, at least 4.5:1 (WCAG AA) on amber-50 */
+  --amber-700: 26 90.5% 37.1%;
   /* #92400e: warning text, at least 4.5:1 (WCAG AA) on light surfaces */
   --amber-800: 22.7 82.5% 31.4%;
 
