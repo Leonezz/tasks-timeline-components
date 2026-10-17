@@ -15,6 +15,7 @@ import {
   maxDaysPerWeek,
   noLaterDate,
   toList,
+  weekNumbersNeverMatch,
 } from "./day-rule-search";
 import { isSubDaily, nextSubDailyDay } from "./sub-daily-rule";
 import { timesOfDayChangeDays } from "./rule-boundaries";
@@ -180,6 +181,9 @@ function nextDayLevelDay(
     withTimes && rule.utcStartDateTime
       ? utcFrame(rule, rule.utcStartDateTime, from)
       : floatingFrame(rule, from, withTimes);
+  if (weekNumbersNeverMatch(options, frame.startDay, frame.daysAfter)) {
+    return noLaterDate(rule, from, ruleText);
+  }
 
   // The rule's own days, when a yearly rule has the same dates
   const same = withTimes ? null : asYearly(options, frame.startDay);

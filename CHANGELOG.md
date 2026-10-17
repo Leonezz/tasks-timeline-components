@@ -256,6 +256,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Saturday January 1 2022 is in week 52 of
   `FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU`; the quick yearly check numbered it in
   2022 and went on to December 31 (or ended the rule, with an `UNTIL`).
+  Likewise week -53 is week 1 of a 53-week year, which starts the year
+  before, so a weekly rule only has it in a first week starting in such a
+  year's first days: `FREQ=WEEKLY;BYWEEKNO=-53` from 2021-12-28 gave January
+  1 2026, and now fails fast with the "has no date after" error (or ends at
+  its `UNTIL` or `COUNT`).
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't

@@ -656,6 +656,70 @@ describe("nextRuleDay with BYWEEKNO around the new year", () => {
 });
 
 /**
+ * Week -53 is week 1 of a 53-week year, which starts the year before, where
+ * a weekly rule numbers it; only a first week starting in such a year's
+ * first days holds it. rrule alone scans the rest to the year 9999, past
+ * any UNTIL or COUNT.
+ */
+describe("nextRuleDay with week numbers a weekly rule never has", () => {
+  it.each([
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2021-12-28"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53;WKST=SU", "2021-12-28"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53,60", "2021-12-28"],
+    // After a first week that held it
+    ["DTSTART:20200101T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53", "2021-12-28"],
+    ["DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-10"],
+    // A first week in a year's first days that isn't week -53: 2027 has 52
+    // weeks, weeks from Sunday give 2026 52, and January 1-4 2026 are week
+    // -53 from Monday
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2027-01-02"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53;WKST=SU", "2026-01-01"],
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-04"],
+  ])("rules out %j from %s quickly", (rule, from) => {
+    const started = performance.now();
+
+    expect(() => nextRuleDay(parse(rule), from, rule)).toThrow(
+      `has no date after ${from}`,
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    "FREQ=WEEKLY;BYWEEKNO=-53;BYDAY=SA,SU;COUNT=2",
+    "FREQ=WEEKLY;BYWEEKNO=-53;UNTIL=20260105",
+  ])("ends %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2021-12-28", rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    // 2020 and 2026 have 53 weeks
+    ["FREQ=WEEKLY;BYWEEKNO=-53", "2026-01-01", "2026-01-02"],
+    [
+      "DTSTART:20200101T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53;BYDAY=SU",
+      "2019-12-31",
+      "2020-01-05",
+    ],
+    [
+      "DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53",
+      "2025-12-20",
+      "2026-01-02",
+    ],
+    [
+      "DTSTART:20260102T000000\nRRULE:FREQ=WEEKLY;BYWEEKNO=-53;UNTIL=20270101",
+      "2026-01-03",
+      "2026-01-04",
+    ],
+    ["FREQ=WEEKLY;BYWEEKNO=-53,-52", "2021-12-28", "2022-01-03"],
+  ])("%j from %s is %s", (rule, from, expected) => {
+    expect(wholeRuleTruth(rule, from)).toBe(expected);
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(expected);
+  });
+});
+
+/**
  * Hourly and minutely rules with a UTC start, which rrule steps in UTC: their
  * BYHOUR and day filters are UTC hours and days, and 24 hours is a UTC day
  * whatever the clocks do (October 25 in Europe, November 1 in America).

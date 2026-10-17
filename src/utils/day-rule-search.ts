@@ -135,6 +135,64 @@ function withYearlySteps(
 const weekNumbersDiffer = (options: Partial<Options>): boolean =>
   options.freq === RRule.WEEKLY && isSet(options.byweekno);
 
+const DAY_MS = 86_400_000;
+
+/** The week numbers rrule can give a week that starts in its own year. */
+const startsInItsYear = (week: number): boolean =>
+  (week >= 1 && week <= 53) || (week >= -52 && week <= -1);
+
+const weekStartDay = (wkst: Options["wkst"] | undefined): number =>
+  wkst === undefined || wkst === null
+    ? RRule.MO.weekday
+    : typeof wkst === "number"
+      ? wkst
+      : wkst.weekday;
+
+/**
+ * The last day of week -53 in a weekly rule's first week, or null. That
+ * week starts at the rule's start and is numbered in its year. As rrule
+ * counts, a year has 53 weeks when its first week start day is its 5th day
+ * (a leap year's 5th or 6th), and the days before it are week 1, or -53.
+ */
+function lastWeek53DayOfFirstWeek(
+  options: Partial<Options>,
+  startDay: Date,
+): number | null {
+  const year = startDay.getUTCFullYear();
+  const january1 = Date.UTC(year, 0, 1);
+  const january1Weekday = (new Date(january1).getUTCDay() + 6) % 7;
+  const firstWeekStart = (7 - january1Weekday + weekStartDay(options.wkst)) % 7;
+  const leap = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1;
+  const has53Weeks = firstWeekStart === 4 || (leap && firstWeekStart === 5);
+  const lastDay = january1 + (firstWeekStart - 1) * DAY_MS;
+  return has53Weeks && startDay.getTime() <= lastDay ? lastDay : null;
+}
+
+/**
+ * Whether a weekly rule's week numbers pick no day after `daysAfter`. Its
+ * weeks are numbered in the year they start in (see weekNumbersDiffer), and
+ * week -53 is week 1 of a 53-week year, which starts the year before, so it
+ * never matches, nor does a week past 53, except in the first week, which
+ * starts at the rule's start instead. rrule makes a rule with BYEASTER
+ * yearly.
+ */
+export function weekNumbersNeverMatch(
+  options: Partial<Options>,
+  startDay: Date,
+  daysAfter: Date,
+): boolean {
+  if (
+    options.freq !== RRule.WEEKLY ||
+    !isSet(options.byweekno) ||
+    isSet(options.byeaster) ||
+    toList(options.byweekno).some(startsInItsYear)
+  ) {
+    return false;
+  }
+  const lastDay = lastWeek53DayOfFirstWeek(options, startDay);
+  return lastDay === null || lastDay <= daysAfter.getTime();
+}
+
 /** A yearly rule with the same dates as a daily or weekly rule, or null. */
 export const asYearly = (
   options: Partial<Options>,
