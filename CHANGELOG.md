@@ -478,6 +478,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Task date badges are named like the category and priority badges, for
   example "Change due date for Write report. Current due date: Today", instead
   of by their visible label alone ("Due: Today").
+- **Task date badge text now meets WCAG AA (4.5:1) in all four themes.**
+  - Badges for a due date today or tomorrow use the themed `amber-800`
+    instead of `amber-700`, which was about 3.5:1 in the light and coffee
+    themes.
+  - Green badges (a later due date, a finished task's due date, the
+    completion date) use a new themed `emerald-700`. Tailwind's fixed
+    `emerald-700` stayed dark green in the dark and midnight themes, on a dark
+    green badge (about 3.0:1). `text-emerald-700` elsewhere, such as in the
+    agent panel, now follows the theme too.
+  - The creation date badge uses `slate-500` instead of `slate-400` (about
+    2.6:1 in the light theme).
+  - The Save button in the badges' date popovers uses the themed `blue-600`
+    instead of Tailwind's `blue-700`, which stayed dark in the dark themes
+    (about 2.5:1). On hover it changes to `blue-50` instead of `blue-100`,
+    which took it below 4.5:1 in the light and coffee themes.
+  - The colours are in one map, `DATE_BADGE_TONES` in
+    `src/components/date-badge-tones.ts`. `TaskItem` and the DateBadge stories
+    both use it, and the stories check every colour in every theme.
+- **Date popovers had no accessible name.** The calendar popovers of the task
+  date badges and of `DatePicker` are dialogs, and screen readers announced
+  them without a name. A badge's popover is now named by its heading ("Change
+  due date"). `DatePicker`'s is named by its placeholder, such as "Select due
+  date" in the task editor.
 
 ### Changed
 

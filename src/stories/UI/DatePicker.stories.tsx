@@ -1,14 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { AppProvider } from "../../components/AppContext";
 import { DatePicker } from "../../components/ui/date-picker";
 import { DateTime } from "luxon";
+import { expectReadable, waitForOpaque } from "../test-utils";
 
 const meta: Meta<typeof DatePicker> = {
   title: "UI/DatePicker",
   component: DatePicker,
   parameters: {
     layout: "centered",
+    // Fail on any axe violation (the default only reports them), such as
+    // text below WCAG AA contrast or an unnamed popover
+    a11y: { test: "error" },
   },
   tags: ["autodocs"],
 };
@@ -322,3 +327,49 @@ export const TimezoneConsistencyTest: Story = {
     </div>
   ),
 };
+
+/**
+ * The date and time picker in `theme`, opened, so axe checks the trigger's
+ * placeholder and the popover together.
+ */
+const themedPickerStory = (theme: string): Story => ({
+  render: () => <DatePickerDemo showTime={true} />,
+  decorators: [
+    (Story) => (
+      <AppProvider theme={theme}>
+        <div className="p-4">
+          <Story />
+        </div>
+      </AppProvider>
+    ),
+  ],
+  play: async ({ canvasElement, step }) => {
+    // AppProvider's portal container keeps the popover inside the canvas
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("button", { name: "Pick date and time" });
+
+    await step("The placeholder meets WCAG AA (4.5:1)", async () => {
+      await expectReadable(trigger);
+    });
+
+    await step("The popover is named by the field it sets", async () => {
+      await userEvent.click(trigger);
+      const popover = await canvas.findByRole("dialog", {
+        name: "Pick date and time",
+      });
+      // Let it finish fading in before axe checks its colours
+      await waitForOpaque(within(popover).getByText("Time"));
+    });
+
+    await step("Its Time label meets AA", async () => {
+      await expectReadable(
+        within(canvas.getByRole("dialog")).getByText("Time"),
+      );
+    });
+  },
+});
+
+export const LightTheme: Story = themedPickerStory("light");
+export const DarkTheme: Story = themedPickerStory("dark");
+export const MidnightTheme: Story = themedPickerStory("midnight");
+export const CoffeeTheme: Story = themedPickerStory("coffee");

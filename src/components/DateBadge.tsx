@@ -48,6 +48,7 @@ export const DateBadge = ({
   });
 
   const timeInputId = useId();
+  const headingId = useId();
 
   const showTime =
     type === "startAt" || type === "createdAt" || type === "completedAt";
@@ -114,6 +115,7 @@ export const DateBadge = ({
         align="start"
         sideOffset={4}
         onOpenAutoFocus={focusCalendarOnOpen}
+        aria-labelledby={headingId}
         className="z-9999 w-auto rounded-xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl shadow-slate-900/10 outline-none backdrop-blur"
       >
         <MotionDiv
@@ -123,7 +125,10 @@ export const DateBadge = ({
           transition={{ duration: 0.12 }}
         >
           <div className="flex items-center justify-between border-b border-slate-100 px-2.5 pb-2 pt-1.5">
-            <span className="text-xs font-semibold text-slate-700">
+            <span
+              id={headingId}
+              className="text-xs font-semibold text-slate-700"
+            >
               {titleMap[type]}
             </span>
             <Icon name={icon} size={13} className="text-slate-400" />
@@ -160,8 +165,9 @@ export const DateBadge = ({
               <button
                 onClick={handleDateSave}
                 className={cn(
-                  "w-full rounded-lg bg-blue-50/70 py-2 text-xs font-semibold text-blue-700",
-                  "transition-colors hover:bg-blue-100/70 focus-visible:ring-2 focus-visible:ring-blue-500/30",
+                  "w-full rounded-lg bg-blue-50/70 py-2 text-xs font-semibold text-blue-600",
+                  // Not blue-100: blue-600 on it is below 4.5:1 in light themes
+                  "transition-colors hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-500/30",
                 )}
               >
                 Save {dateLabel} date

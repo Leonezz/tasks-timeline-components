@@ -103,6 +103,8 @@ export function DatePicker({
         className="w-auto p-0"
         align="start"
         onOpenAutoFocus={focusCalendarOnOpen}
+        // The popover is a dialog: name it by what the field sets
+        aria-label={placeholder}
       >
         <Calendar
           mode="single"

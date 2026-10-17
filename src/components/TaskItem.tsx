@@ -20,6 +20,7 @@ import {
 import { Icon } from "./Icon";
 import { MotionButton, MotionDiv } from "./Motion";
 import { DateBadge } from "./DateBadge";
+import { DATE_BADGE_TONES } from "./date-badge-tones";
 import { TagBadge } from "./TagBadge";
 import { PriorityPopover } from "./PriorityPopover";
 import { CategoryPopover } from "./CategoryPopover";
@@ -159,16 +160,16 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
       },
       getDueDateColor = () => {
         if (workflowStatus === "done" || workflowStatus === "cancelled") {
-          return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
+          return DATE_BADGE_TONES.onTrack;
         }
         if (renderState.temporalStatus === "overdue") {
-          return "text-rose-700 bg-rose-50/90 border-rose-100";
+          return DATE_BADGE_TONES.overdue;
         }
         if (renderState.temporalStatus === "due") {
-          return "text-amber-700 bg-amber-50/90 border-amber-100";
+          return DATE_BADGE_TONES.due;
         }
 
-        return "text-emerald-700 bg-emerald-50/80 border-emerald-100";
+        return DATE_BADGE_TONES.onTrack;
       },
       getLineColor = (status: PrimaryVisualStatus) => {
         switch (status) {
@@ -518,7 +519,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                   icon="Plus"
                   className={cn(
                     badgeClass,
-                    "border-transparent bg-transparent text-slate-400 hover:border-slate-200 hover:bg-slate-50",
+                    DATE_BADGE_TONES.created,
                     "hidden sm:inline-flex",
                   )}
                 />
@@ -535,10 +536,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 icon="PlayCircle"
                 task={task}
                 onUpdate={onUpdateTask}
-                className={cn(
-                  badgeClass,
-                  "border-transparent bg-slate-50/70 text-slate-500 hover:border-slate-200 hover:bg-white",
-                )}
+                className={cn(badgeClass, DATE_BADGE_TONES.start)}
               />
             )}
             {isValidDate(task.dueAt) && (
@@ -570,10 +568,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                 icon="CheckCircle2"
                 task={task}
                 onUpdate={onUpdateTask}
-                className={cn(
-                  badgeClass,
-                  "border-emerald-100 bg-emerald-50/80 text-emerald-700",
-                )}
+                className={cn(badgeClass, DATE_BADGE_TONES.completed)}
               />
             )}
             {isTaskRecurring(task) && task.recurringInterval && (
