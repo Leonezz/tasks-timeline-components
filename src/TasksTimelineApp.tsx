@@ -149,6 +149,8 @@ export interface TasksTimelineAppProps {
    * Obsidian Tasks text ("every 2 weeks on Monday") for hosts that store tasks
    * as Obsidian Tasks lines. "auto" (default) writes text for tasks whose rule
    * is text or that came from the Obsidian Tasks parser, and RRULE otherwise.
+   * The built-in agent's task tools follow it too ("text": rules are stored
+   * as text, and rules a line can't hold are rejected before saving).
    */
   recurrenceFormat?: RecurrenceFormat;
   /** Additional system prompt injected by the host application */
@@ -675,6 +677,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         updateSettings: applyAgentSettings,
         onAgentEvent: handleAgentEvent,
         shouldNotifyAgentResponse: () => !agentPanelState.isOpen,
+        recurrenceFormat,
       },
     ),
     handleTopInputAICommand = async (input: string) => {

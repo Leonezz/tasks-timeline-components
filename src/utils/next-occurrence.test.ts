@@ -86,6 +86,12 @@ describe("nextOccurrence: unreadable rules", () => {
     );
   });
 
+  it("explains the manual fix for a start date left by v0.8.0", () => {
+    expect(() => nextDue("2026-10-16", "DTSTART:20261016T000000Z")).toThrow(
+      /written by v0\.8\.0 on two lines/,
+    );
+  });
+
   it("accepts the dashed UNTIL form", () => {
     expect(nextDue("2026-10-16", "FREQ=WEEKLY;UNTIL=2026-12-31")).toBe(
       "2026-10-23",
@@ -144,6 +150,31 @@ describe.each(TIME_ZONES)("nextOccurrence in %s", (zone, januaryOffset) => {
     expect(nextDue("2026-10-16", rule)).toBe("2026-10-17");
   });
 });
+
+describe.each(["Europe/Berlin", "America/New_York", "Asia/Shanghai"])(
+  "nextOccurrence for a UTC rule across a change of clocks, in %s (#46)",
+  (zone) => {
+    beforeEach(() => {
+      vi.stubEnv("TZ", zone);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("keeps the last date, at UNTIL", () => {
+      const rule =
+        "DTSTART:20261016T080000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T080000Z";
+
+      expect(nextDue("2026-11-04", rule)).toBe("2026-11-05");
+      expect(
+        nextOccurrence(
+          task({ dueAt: "2026-11-05", recurringInterval: rule }),
+          "2026-11-05",
+        ),
+      ).toBeNull();
+    });
+  },
+);
 
 describe("nextOccurrence: rules with no later date", () => {
   it.each([

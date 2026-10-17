@@ -44,6 +44,15 @@ export interface CapabilityContext {
    * Has no effect when `confirm` is provided.
    */
   confirmPolicy?: ConfirmPolicy;
+  /**
+   * How the host stores recurrence rules, as the task editor's
+   * `recurrenceFormat`. "text": the host writes Obsidian Tasks lines, so
+   * `create_task`, `update_task` and `batch_update_tasks` store rules as
+   * Obsidian Tasks text and reject rules a line can't hold (such as a start
+   * date) before saving or asking. "auto" (default): RRULE syntax is stored
+   * as given.
+   */
+  recurrenceFormat?: "auto" | "text";
   /** Resolves the chosen value, or `null` when the user cancels or closes it. */
   select?(
     title: string,

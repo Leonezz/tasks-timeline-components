@@ -115,9 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rules that can never match ended the series.** A rule without `UNTIL` or
   `COUNT` that has no later date (`FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30`) now
   makes `complete_task` fail and change nothing, instead of completing the
-  task and reporting that the recurrence ended. The search is bounded, and
-  hourly, minutely and secondly rules are computed as daily, since tasks are
-  day-based.
+  task and reporting that the recurrence ended. The search is bounded.
 - **Recurrence text with punctuation corrupted Obsidian Tasks lines.** A line
   only holds letters, digits, spaces, commas and "!" after 🔁, so
   `every month until 2026-12-31` was read back as "every month until 2026"
@@ -153,9 +151,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a task's id to a different task after reloading. The task editor now keeps
   the task as it opened it and refuses to save when the task now at that id is
   a different one or changed elsewhere ("This task changed since you opened
-  it — close and reopen it"), comparing `extra.rawText` when both have it and
-  the title and dates otherwise. Editor saves pass that opened version to
-  `onTaskUpdated` as `previous`.
+  it — close and reopen it"), comparing `extra.rawText` when both have it.
+  Otherwise (JSON or localStorage hosts) it compares every stored field the
+  save writes back: title, description, workflow status, priority, category,
+  tags (by name and color), dates, the recurrence rule and switch, and the
+  other `extra` fields, so a change the agent made while the editor was open
+  is no longer silently reverted (#45). Editor saves pass that opened version
+  to `onTaskUpdated` as `previous`.
 - **Recurrence text the parser only partly understood was saved with a
   different meaning.** rrule's text parser skips words it doesn't know
   ("every day except Sunday" read as "every day", "every year on December 25"
@@ -165,14 +167,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repetition count ("for 3 times", which never ends without a start
   date), and an end date before today or the task's date. Lines already in a vault
   are written back unchanged.
+  - Each word is checked for its meaning in the parsed rule rather than
+    against the library's wording, so text rrule reads in full is accepted:
+    abbreviations ("Mon", "Thurs", "Sept"), "Mondays", ordinals ("the first
+    Monday", "the last day"), "weekdays", seven listed days, an interval of 1,
+    and "til"/"till". Words rrule drops are still refused ("every 2 days on
+    weekdays", "every week in summer", which rrule reads as Sunday), as is an
+    end date it stops before ("every week on Mondays until …") (#44).
+    "The first/last day" only counts in a monthly rule or a yearly one in
+    given months: rrule reads "every year on the last day" and "every week on
+    the first day" as a day of every month, so they are refused.
+  - Case and spacing no longer matter: "until december 31,2026" and
+    "when  done" are read and stored as "until December 31, 2026" and
+    "when done". End dates without the comma ("December 31 2026") and with
+    "Sept" are read as rrule reads them. An end date that doesn't exist ("until February 30, 2027",
+    "until 2027-02-30") is refused as not a date instead of rolling over to
+    March (#44).
 - **Next dates for weekly rules with month days, and slow rules.** A weekly
   rule with a day of the month, day of the year, week number or Easter
   repeats on any weekday, as rrule computes it, not only its start's
   weekday; ordinal weekdays in daily and weekly rules count as plain ones;
   `COUNT` no longer limits the quick existence check of rules that skip
-  periods; hourly rules with day filters keep whole-day intervals; and daily
-  rules with `BYSETPOS` other than 1 or -1 fail fast instead of taking
-  seconds.
+  periods; and daily rules with `BYSETPOS` past the day's dates fail fast
+  instead of taking seconds.
+- **Uncommon RRULE combinations were computed on the wrong days (#46).**
+  Checked against rrule itself, including generated sweeps of hourly,
+  minutely and timed rules.
+  - An `UNTIL` time before the day's first date (`DTSTART:20261016T100000`,
+    `UNTIL=20261020T080000`) ends the series the day before for floating and
+    plain-UTC values too, as it already did with `TZID`. `BYHOUR`,
+    `BYMINUTE` and `BYSECOND` count as the day's first time. A UTC start
+    (`DTSTART:20261016T080000Z`) is compared in UTC, as rrule steps it, and
+    the last date's day is then read in local time, so a change of clocks
+    between the start and `UNTIL` no longer drops the last date, and
+    `BYHOUR` is a UTC hour whatever the machine's zone.
+  - `BYHOUR`, `BYMINUTE` and `BYSECOND` were dropped before `BYSETPOS` picked
+    a position and before `COUNT` counted, so the wrong days, or none, were
+    picked. Daily and longer rules keep them, and their start and end times,
+    when `BYSETPOS` or `COUNT` depends on them. With a UTC start they are
+    computed in UTC, and each date's day is read in local time.
+  - Hourly, minutely and secondly rules are computed day by day from their
+    real start time instead of as daily rules: day filters with a step that
+    isn't whole days (`FREQ=HOURLY;INTERVAL=36;BYDAY=MO`), `COUNT` with
+    filters (which counts each hour, not each day), `BYHOUR` the step never
+    reaches (`INTERVAL=2;BYHOUR=3`, for which rrule itself never returns) and
+    `UNTIL` times. They are searched ten years ahead, with an error beyond.
+  - Two combinations are rejected as unsupported, with an explicit error, by
+    `create_task`, `update_task`, `batch_update_tasks` and `complete_task`:
+    `BYHOUR`/`BYMINUTE`/`BYSECOND` on an hourly or shorter rule whose step
+    neither divides a day nor is whole days, and `BYMINUTE`/`BYSECOND`
+    within each hour or minute together with `COUNT`, `BYSETPOS` or an
+    `UNTIL` time.
+  - Times of day out of range (`BYHOUR=24`) make a rule unreadable instead of
+    rolling over. Obsidian Tasks text isn't written for rules whose times of
+    day change their days (one time a day with `COUNT` still counts days, so
+    `FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;COUNT=10` is written as "every week on
+    Monday for 10 times"), and the task editor lists times of day among the
+    parts it can't show.
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't
@@ -187,6 +238,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`🔁 every week on Monday`). The rule stops at the next field (🏁, ❌, 🆔,
   ⛔, ⏰, dates, priorities, `[[links]]`, `#tags`), and `🔁` followed by
   U+FE0F is read.
+  - A rule v0.8.0 wrote with a start date was split over two lines
+    (`🔁 DTSTART:…` and `RRULE:…` on the next line), which can't be joined
+    back automatically. Saving or completing such a task now fails with the
+    manual fix: delete the `RRULE:` line and replace `🔁 DTSTART:…` with the
+    rule as text (`🔁 every week`). The README documents it (#47).
 - **Block ids were duplicated when a task line was rewritten (#42).**
   `parseTasksFormatItem` read a trailing `^block-id` into the title
   (`Water plants  ^blk1`) and `taskToMarkdown` wrote it again at the end. The
@@ -387,6 +443,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   throws for a task the line can't hold. A task with `cancelledAt` (set when
   a task is cancelled in the timeline or with `cancel_task`) gets a ❌ date,
   as Obsidian Tasks writes it.
+
+### Added
+
+- **`CapabilityContext.recurrenceFormat`** (`"auto" | "text"`, #47). A host
+  that stores tasks as Obsidian Tasks lines sets `"text"`, as it sets
+  `recurrenceFormat="text"` on the editor; `TasksTimelineApp` passes its
+  `recurrenceFormat` prop to the built-in agent's context. `create_task`,
+  `update_task` and `batch_update_tasks` then store RRULE syntax as Obsidian
+  Tasks text and reject rules a line can't hold before saving anything or
+  asking for confirmation, with a message for the model ("remove DTSTART; set
+  the task's startAt instead"). Before, the rule was stored and the host's
+  write failed afterwards, after `batch_update_tasks` had asked to confirm.
 
 ## [0.8.0] - 2026-10-14
 

@@ -438,6 +438,7 @@ describe("readRecurrenceRule: parts the editor can't show", () => {
     ],
     ["FREQ=WEEKLY;INTERVAL=2;WKST=SU", "week start other than Monday"],
     ["FREQ=HOURLY;INTERVAL=48", "hourly or shorter frequency"],
+    ["FREQ=DAILY;BYHOUR=9", "times of day (BYHOUR, BYMINUTE, BYSECOND)"],
     ["FREQ=YEARLY;BYYEARDAY=100", "days of the year"],
     ["FREQ=YEARLY;BYWEEKNO=20", "week numbers"],
     ["FREQ=YEARLY;BYEASTER=0", "Easter offset"],

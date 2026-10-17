@@ -70,20 +70,97 @@ describe("persistTaskUpdate from an editor", () => {
 });
 
 describe("isSameTaskVersion", () => {
-  it("compares title and dates when there is no source line", () => {
-    const task: Task = {
+  const task: Task = {
+    id: "t",
+    title: "A",
+    description: "Notes",
+    status: "todo",
+    priority: "medium",
+    category: "Home",
+    tags: [{ id: "tag-1", name: "bills", color: "red" }],
+    dueAt: "2026-10-16",
+    isRecurring: true,
+    recurringInterval: "FREQ=WEEKLY",
+    extra: { scheduledAt: "2026-10-15", source: "json" },
+  };
+
+  it("is the same version when nothing stored changed", () => {
+    expect(isSameTaskVersion(task, structuredClone(task))).toBe(true);
+  });
+
+  it.each<[string, Partial<Task>]>([
+    ["the title", { title: "B" }],
+    ["the description", { description: "Other notes" }],
+    ["the status", { status: "doing" }],
+    ["the priority", { priority: "high" }],
+    ["the category", { category: "Work" }],
+    ["the tags", { tags: [{ id: "tag-1", name: "rent" }] }],
+    [
+      "a tag's color",
+      { tags: [{ id: "tag-1", name: "bills", color: "blue" }] },
+    ],
+    ["the recurrence rule", { recurringInterval: "FREQ=DAILY" }],
+    ["the recurrence switch", { isRecurring: false }],
+    ["the due date", { dueAt: "2026-10-17" }],
+    ["the start date", { startAt: "2026-10-01" }],
+    ["the created date", { createdAt: "2026-10-01" }],
+    ["the completion date", { completedAt: "2026-10-16" }],
+    ["the cancellation date", { cancelledAt: "2026-10-16" }],
+    [
+      "the scheduled date",
+      { extra: { ...task.extra, scheduledAt: "2026-10-14" } },
+    ],
+    ["another extra field", { extra: { ...task.extra, source: "api" } }],
+  ])("sees a change to %s when there is no source line", (_field, change) => {
+    expect(isSameTaskVersion(task, { ...task, ...change })).toBe(false);
+  });
+
+  it("ignores what doesn't change the stored task", () => {
+    expect(
+      isSameTaskVersion(task, {
+        ...task,
+        // Tag ids may be generated again when the host reloads
+        tags: [{ id: "tag-9", name: "bills", color: "red" }],
+        // A display status is stored as "todo"
+        status: "due",
+        isRecurring: undefined,
+        extra: { ...task.extra, unset: undefined },
+      }),
+    ).toBe(true);
+  });
+
+  it("compares only the source line when both have one", () => {
+    const line = { ...task, extra: { rawText: "- [ ] A 📅 2026-10-16" } };
+
+    expect(isSameTaskVersion(line, { ...line, priority: "high" })).toBe(true);
+    expect(
+      isSameTaskVersion(line, {
+        ...line,
+        extra: { rawText: "- [ ] A ⏫ 📅 2026-10-16" },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("persistTaskUpdate without source lines", () => {
+  it("refuses an editor save after the agent changed the priority", async () => {
+    const opened: Task = {
       id: "t",
-      title: "A",
+      title: "Pay rent",
       status: "todo",
       priority: "medium",
       tags: [],
-      dueAt: "2026-10-16",
     };
+    const onTaskUpdated = vi.fn();
 
-    expect(isSameTaskVersion(task, { ...task, priority: "high" })).toBe(true);
-    expect(isSameTaskVersion(task, { ...task, title: "B" })).toBe(false);
-    expect(isSameTaskVersion(task, { ...task, dueAt: "2026-10-17" })).toBe(
-      false,
-    );
+    await expect(
+      persistTaskUpdate(
+        [{ ...opened, priority: "high" }],
+        { ...opened, title: "Pay rent today" },
+        onTaskUpdated,
+        opened,
+      ),
+    ).rejects.toThrow(STALE_EDITOR_ERROR);
+    expect(onTaskUpdated).not.toHaveBeenCalled();
   });
 });

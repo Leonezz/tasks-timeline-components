@@ -1,11 +1,15 @@
 import { type Options, RRule } from "rrule";
 import { DateTime, IANAZone } from "luxon";
 import {
-  floatingCalendarDay,
   localCalendarDay,
   readRuleDates,
   type RawRuleDate,
 } from "./recurrence-dates";
+import {
+  readRuleBoundaries,
+  readTimesOfDay,
+  type TimesOfDay,
+} from "./rule-boundaries";
 
 export {
   calendarDayOf,
@@ -13,6 +17,7 @@ export {
   floatingDay,
   floatingEndOfDay,
 } from "./recurrence-dates";
+export type { TimesOfDay } from "./rule-boundaries";
 
 /**
  * Reading stored recurrence rules. A rule is either RRULE syntax
@@ -29,14 +34,32 @@ export interface ParsedRecurrenceRule {
   /** Repeat options, without start, end, time zone and time-of-day parts. */
   options: Partial<Options>;
   start?: string;
+  /**
+   * The last day a date can fall on. For daily and longer rules whose UNTIL
+   * has a time before the day's first date, the day before UNTIL's.
+   */
   end?: string;
+  /** DTSTART's wall-clock time (YYYY-MM-DDTHH:mm:ss) when not midnight. */
+  startDateTime?: string;
+  /** UNTIL's wall-clock time when it has one other than 23:59:59. */
+  endDateTime?: string;
+  /**
+   * For a rule whose DTSTART is a UTC time other than midnight (read in the
+   * machine's zone above): DTSTART and UNTIL in UTC. rrule steps such a rule
+   * in UTC, where its BYHOUR, BYMINUTE and BYSECOND are.
+   */
+  utcStartDateTime?: string;
+  utcEndDateTime?: string;
+  /** BYHOUR, BYMINUTE and BYSECOND, which `options` leaves out. */
+  timesOfDay?: TimesOfDay;
   /** Obsidian Tasks "when done": the next date counts from completion. */
   whenDone: boolean;
 }
 
 const WHEN_DONE = /\s+when done\s*$/i;
-// Tasks are day-granular: time-of-day parts would keep a rule on the same
-// day, and a time zone would move its days depending on the machine's zone
+// Tasks are day-granular: time-of-day parts only matter where they change
+// days (kept in `timesOfDay`), and a time zone would move a rule's days
+// depending on the machine's zone
 const DROPPED_KEYS = new Set(["byhour", "byminute", "bysecond", "tzid"]);
 /** What an Obsidian Tasks line can hold after 🔁 (its recurrence pattern). */
 const TASKS_TEXT = /^[a-zA-Z0-9, !]+$/;
@@ -114,53 +137,6 @@ const tryParse = (parse: () => RRule): RRule | null => {
   }
 };
 
-/** The day of a TZID rule's UTC end: in that zone, earlier if before the start's time. */
-const tzidEndDay = (end: Date, tzid: string, start: Date | undefined) => {
-  const wall = DateTime.fromJSDate(end, { zone: tzid });
-  const startTime = start
-    ? DateTime.fromJSDate(start, { zone: "utc" }).toFormat("HH:mm:ss")
-    : "00:00:00";
-  // That day's occurrence would be at the start's time, after the end
-  const last =
-    wall.toFormat("HH:mm:ss") < startTime ? wall.minus({ days: 1 }) : wall;
-  const day = last.toISODate();
-  if (!day) {
-    throw new Error(`Invalid end date in time zone ${tzid}`);
-  }
-  return day;
-};
-
-/**
- * The calendar day of an RRULE start or end date:
- * - date-only and floating (no Z) values, including TZID starts: as written
- * - a TZID rule's UTC end: the day in that zone (see tzidEndDay)
- * - UTC values in this library's encoding (start 00:00:00Z, end 23:59:59Z):
- *   as written
- * - other UTC values, which earlier versions wrote at local midnight or local
- *   end of day: the day in the local zone
- */
-function rruleDay(
-  date: Date,
-  raw: RawRuleDate | undefined,
-  kind: "start" | "end",
-  tzid: string | undefined,
-  start: Date | undefined,
-): string {
-  if (raw && (!raw.hasTime || !raw.utc)) {
-    return floatingCalendarDay(date);
-  }
-  if (tzid && kind === "end") {
-    return tzidEndDay(date, tzid, start);
-  }
-  if (tzid) {
-    return floatingCalendarDay(date);
-  }
-  const time = date.toISOString().slice(11, 19);
-  return time === "00:00:00" || (kind === "end" && time === "23:59:59")
-    ? floatingCalendarDay(date)
-    : localCalendarDay(date);
-}
-
 const usableInterval = (interval: unknown): number | null => {
   if (interval === undefined) {
     return 1;
@@ -183,26 +159,32 @@ function toParsedRule(
     Object.entries(rest).filter(([key]) => !DROPPED_KEYS.has(key)),
   );
   const interval = usableInterval(options.interval);
-  // Without FREQ rrule silently assumes yearly; interval 0 or below never ends
-  if (options.freq === undefined || interval === null) {
+  const timesOfDay = readTimesOfDay(rest);
+  // Without FREQ rrule silently assumes yearly; interval 0 or below never
+  // ends; BYHOUR=24 would roll over to the next day
+  if (options.freq === undefined || interval === null || timesOfDay === null) {
     return null;
   }
-  // rrule's text parser makes local dates
-  const dayOf = (date: Date, kind: "start" | "end"): string =>
+  // rrule's text parser makes local dates, without times
+  const boundaries =
     source === "rrule"
-      ? rruleDay(
-          date,
-          rawDates[kind],
-          kind,
-          tzid ?? undefined,
-          dtstart ?? undefined,
-        )
-      : localCalendarDay(date);
+      ? readRuleBoundaries({
+          dtstart,
+          until,
+          tzid: tzid ?? undefined,
+          raw: rawDates,
+          freq: options.freq,
+          times: timesOfDay,
+        })
+      : {
+          ...(dtstart ? { start: localCalendarDay(dtstart) } : {}),
+          ...(until ? { end: localCalendarDay(until) } : {}),
+        };
   return {
     source,
     options: { ...options, interval },
-    ...(dtstart ? { start: dayOf(dtstart, "start") } : {}),
-    ...(until ? { end: dayOf(until, "end") } : {}),
+    ...boundaries,
+    ...(timesOfDay ? { timesOfDay } : {}),
     whenDone,
   };
 }
@@ -256,8 +238,27 @@ export function parseRecurrenceRule(rule: string): ParsedRecurrenceRule | null {
 export const isReadableRecurrenceRule = (rule: string): boolean =>
   parseRecurrenceRule(rule) !== null;
 
+/**
+ * A start date and nothing else: what is left on an Obsidian Tasks line of a
+ * rule v0.8.0 wrote as "DTSTART:…" and "RRULE:…" on two lines.
+ */
+const START_ONLY = /^DTSTART[;:=][^\n]*$/i;
+const isStartOnlyRule = (rule: string): boolean =>
+  START_ONLY.test(rule.trim()) && !/\bFREQ=/i.test(rule);
+
+/**
+ * Why a rule can't be read. A start date alone gets the manual repair for
+ * lines v0.8.0 split in two, which can't be joined back automatically.
+ */
+export const unreadableRuleError = (rule: string): string =>
+  isStartOnlyRule(rule)
+    ? `Cannot read the recurrence rule "${rule}": it is only a start date. ` +
+      'Rules with a start date were written by v0.8.0 on two lines, so the rest of this rule ("RRULE:FREQ=…") is on the line below the task in the note. ' +
+      'To repair the task, edit the note: delete the "RRULE:" line below the task, and replace ' +
+      `"🔁 ${rule.trim()}" with the rule as Obsidian Tasks text, such as "🔁 every week" ` +
+      "(set the task's start date with 🛫 instead)."
+    : `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`;
+
 /** The error for a rule that can't be stored, or null when it is readable. */
 export const recurrenceRuleError = (rule: string): string | null =>
-  isReadableRecurrenceRule(rule)
-    ? null
-    : `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`;
+  isReadableRecurrenceRule(rule) ? null : unreadableRuleError(rule);

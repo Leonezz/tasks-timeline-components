@@ -81,7 +81,10 @@ const hasWeekStartOtherThanMonday = (wkst: Options["wkst"] | undefined) =>
   toWeekday(wkst as ByWeekday).weekday !== 0;
 
 /** The parts of a rule the controls (frequency, interval, days, months, dates) can't show. */
-function unsupportedRuleParts(options: Partial<Options>): string[] {
+function unsupportedRuleParts(
+  options: Partial<Options>,
+  hasTimesOfDay: boolean,
+): string[] {
   const { freq, byweekday, bymonth, bymonthday, wkst } = options;
   const weekdays = toArray(byweekday).map(toWeekday);
   const isOrdinal = (day: Weekday) => day.n !== undefined && day.n !== 0;
@@ -91,6 +94,7 @@ function unsupportedRuleParts(options: Partial<Options>): string[] {
       freq !== undefined && !EDITOR_FREQUENCIES.has(freq),
       "hourly or shorter frequency",
     ],
+    [hasTimesOfDay, "times of day (BYHOUR, BYMINUTE, BYSECOND)"],
     [isSet(options.count), "repetition count (COUNT)"],
     [isSet(options.bysetpos), "position within the period (BYSETPOS)"],
     [isSet(options.byyearday), "days of the year"],
@@ -166,7 +170,10 @@ export function readRecurrenceRule(
       end: parsed.end ?? "",
     },
     whenDone: parsed.whenDone,
-    unsupportedParts: unsupportedRuleParts(options),
+    unsupportedParts: unsupportedRuleParts(
+      options,
+      parsed.timesOfDay !== undefined,
+    ),
   };
 }
 

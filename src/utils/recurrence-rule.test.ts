@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RRule } from "rrule";
+import { RRule, rrulestr } from "rrule";
 import { DateTime } from "luxon";
 import {
   isReadableRecurrenceRule,
@@ -217,6 +217,119 @@ describe("TZID end dates", () => {
       expect(parseRecurrenceRule(rule)).toBeNull();
     },
   );
+});
+
+describe.each([
+  "UTC",
+  "America/Los_Angeles",
+  "Asia/Shanghai",
+  "Pacific/Auckland",
+])("end dates with a time, read in %s (#46)", (zone) => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", zone);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    // The 20th's date would be at 10:00, after the 8:00 end
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;UNTIL=20261020T080000",
+      "2026-10-19",
+    ],
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;UNTIL=20261020T100000",
+      "2026-10-20",
+    ],
+    [
+      "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;UNTIL=20261020T080000Z",
+      "2026-10-19",
+    ],
+    [
+      "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;UNTIL=20261020T120000Z",
+      "2026-10-20",
+    ],
+    // Dates at 7:00 (BYHOUR) come before the 8:00 end
+    [
+      "DTSTART:20261016T100000\nRRULE:FREQ=DAILY;BYHOUR=7;UNTIL=20261020T080000",
+      "2026-10-20",
+    ],
+    // Without a start, dates are at midnight
+    ["FREQ=DAILY;UNTIL=20261020T080000", "2026-10-20"],
+    // A time zone's end is compared in that zone (07:00 in Tokyo)
+    [
+      "DTSTART;TZID=Asia/Tokyo:20261016T080000\nRRULE:FREQ=DAILY;UNTIL=20261019T220000Z",
+      "2026-10-19",
+    ],
+  ])("%j ends on %s", (rule, end) => {
+    expect(parseRecurrenceRule(rule)?.end).toBe(end);
+  });
+
+  it("keeps the start and end times for computing with them", () => {
+    expect(
+      parseRecurrenceRule(
+        "DTSTART:20261016T100000\nRRULE:FREQ=HOURLY;BYMINUTE=0,30;UNTIL=20261020T080000",
+      ),
+    ).toMatchObject({
+      start: "2026-10-16",
+      startDateTime: "2026-10-16T10:00:00",
+      end: "2026-10-20",
+      endDateTime: "2026-10-20T08:00:00",
+      timesOfDay: { byminute: [0, 30] },
+    });
+  });
+});
+
+/** The day of rrule's last date for a rule, in the machine's zone. */
+const lastLocalDay = (rule: string): string | null => {
+  const dates = rrulestr(rule).all();
+  const last = dates[dates.length - 1];
+  return last ? DateTime.fromJSDate(last).toISODate() : null;
+};
+
+describe.each([
+  "Europe/Berlin",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Asia/Shanghai",
+  "Pacific/Auckland",
+  "UTC",
+])("UTC end dates checked against rrule, read in %s (#46)", (zone) => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", zone);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    // UNTIL is the last date, after the clocks change (late October in
+    // Europe and early November in America)
+    "DTSTART:20261016T080000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T080000Z",
+    "DTSTART:20261016T223000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T223000Z",
+    "DTSTART:20261016T223000Z\nRRULE:FREQ=DAILY;UNTIL=20261105T220000Z",
+    // ... and after they change in March
+    "DTSTART:20260301T120000Z\nRRULE:FREQ=DAILY;UNTIL=20260402T120000Z",
+    "DTSTART:20260301T120000Z\nRRULE:FREQ=DAILY;UNTIL=20260402T113000Z",
+    // BYHOUR is a UTC hour
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;UNTIL=20261020T083000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9;UNTIL=20261020T093000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,23;UNTIL=20261020T220000Z",
+    "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,23;UNTIL=20261020T233000Z",
+  ])("%j ends on the day of rrule's last date", (rule) => {
+    expect(parseRecurrenceRule(rule)?.end).toBe(lastLocalDay(rule));
+  });
+});
+
+describe("times of day", () => {
+  it.each([
+    "FREQ=DAILY;BYHOUR=24",
+    "FREQ=DAILY;BYMINUTE=60",
+    "FREQ=DAILY;BYSECOND=61",
+  ])("rejects %j, which rrule would roll over", (rule) => {
+    expect(parseRecurrenceRule(rule)).toBeNull();
+  });
 });
 
 describe("other start and end forms", () => {

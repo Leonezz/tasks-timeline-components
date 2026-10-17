@@ -204,6 +204,8 @@ describe("create_task tool", () => {
     ["every day except Sunday", "except sunday"],
     ["every weekend", "weekend"],
     ["every month on the 1st and the 15th", "15th"],
+    // rrule reads it as the last day of every month
+    ["every year on the last day", "last day"],
   ])(
     "rejects %j, which the parser would read with words skipped",
     async (recurrence, skipped) => {
@@ -259,6 +261,39 @@ describe("create_task tool", () => {
       success: false,
       error: expect.stringContaining("before 2099-06-01"),
     });
+  });
+
+  it("rejects a start date for a host that stores Obsidian Tasks text", async () => {
+    const result = await createCreateTaskTool({
+      ...ctx,
+      recurrenceFormat: "text",
+    }).execute({
+      title: "Report",
+      recurrence: "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+    });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "remove DTSTART; set the task's startAt instead",
+      ),
+    });
+    expect(ctx.addTask).not.toHaveBeenCalled();
+  });
+
+  it("stores natural wordings rrule reads in full", async () => {
+    const result = await createCreateTaskTool(ctx).execute({
+      title: "Report",
+      recurrence: "Every month on the first Mon until december 31,2099",
+    });
+
+    expect(result.result).toMatchObject({
+      success: true,
+      understoodAs: "every month on the 1st Monday until December 31, 2099",
+    });
+    expect(vi.mocked(ctx.addTask).mock.calls[0][0].recurringInterval).toBe(
+      "every month on the 1st Monday until December 31, 2099",
+    );
   });
 
   it("stores text in the library's words and returns understoodAs", async () => {

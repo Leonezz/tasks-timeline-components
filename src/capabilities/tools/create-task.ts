@@ -77,6 +77,7 @@ export function createCreateTaskTool(ctx: CapabilityContext): ToolSpec {
       const recurrenceArgument = readRecurrenceArgument(
         args.recurrence,
         earliestEndDate(getTodayISO(), dueAt ?? startAt),
+        ctx.recurrenceFormat,
       );
       if (!recurrenceArgument.ok) {
         return {

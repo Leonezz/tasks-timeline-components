@@ -411,6 +411,25 @@ describe("createAgentCapabilityContext", () => {
     return { ctx, onTaskUpdated, onTaskDeleted };
   };
 
+  it("tells the tools how the host stores recurrence", async () => {
+    const ctx = createAgentCapabilityContext({
+      getTasks: () => [TASK],
+      getSettings: () => DEFAULT_SETTINGS,
+      onTaskAdded: vi.fn(),
+      onTaskUpdated: vi.fn(),
+      onTaskDeleted: vi.fn(),
+      onNotify: vi.fn(),
+      recurrenceFormat: "text",
+    });
+
+    expect(ctx.recurrenceFormat).toBe("text");
+    const result = await createCapabilities(ctx).executeTool("create_task", {
+      title: "Report",
+      recurrence: "DTSTART:20261016T000000Z\nRRULE:FREQ=WEEKLY",
+    });
+    expect(result.result).toMatchObject({ success: false });
+  });
+
   it("throws when updating an unknown task", async () => {
     const { ctx, onTaskUpdated } = makeCtx();
     await expect(ctx.updateTask({ ...TASK, id: "missing" })).rejects.toThrow(

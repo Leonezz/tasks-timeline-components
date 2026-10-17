@@ -368,12 +368,31 @@ interface TasksTimelineAppProps {
   store tasks as Obsidian Tasks lines, which can't hold RRULE syntax or a start
   date. `"auto"` writes text for text rules and tasks from the Obsidian Tasks
   parser, and RRULE syntax otherwise. When the editor writes text, its preview
-  is the text that saving writes.
+  is the text that saving writes. The built-in agent's
+  task tools follow it too (see `recurrenceFormat` under AI Capabilities).
+- **Repairing lines written by v0.8.0.** v0.8.0 wrote a rule with a start
+  date on two lines, which splits the task line in the note:
+
+  ```markdown
+  - [ ] Report 📅 2026-10-16 🔁 DTSTART:20261016T000000Z
+  RRULE:FREQ=WEEKLY
+  ```
+
+  Only `DTSTART:…` stays in the task, which can't be read as a rule, so saving
+  or completing the task fails with an error that explains the fix. Repair it
+  by hand: delete the `RRULE:` line below the task and replace
+  `🔁 DTSTART:…` with the rule as Obsidian Tasks text, such as
+  `🔁 every week`. Put the start date in `🛫` if the task needs one. Lines
+  v0.8.0 wrote without a start date (`🔁 RRULE:FREQ=WEEKLY;BYDAY=MO`) are
+  repaired automatically on the next save.
 - When saving from the task editor, a rejected `onTaskUpdated` keeps the editor
   open with the error and the user's changes. The editor refuses to save when
   the task now at that id is not the one it opened (ids that are line positions
-  can move to another task after a reload), and passes the opened version as
-  `previous`.
+  can move to another task after a reload) or changed since, and passes the
+  opened version as `previous`. It compares `extra.rawText` when both versions
+  have one, and otherwise every stored field the save writes back (title,
+  description, workflow status, priority, category, tag names and colors,
+  dates, recurrence and the other `extra` fields).
 - `DEFAULT_SETTINGS` (the built-in default `AppSettings`) is exported from the main
   entry.
 - If `settingsRepository.loadSettings()` rejects, the app runs with in-memory
@@ -510,6 +529,8 @@ const ctx: CapabilityContext = {
   confirm: (title, description) => askUser(title, description),
   // What destructive tools do when `confirm` is absent (default "require")
   confirmPolicy: "require",
+  // "text" when you store tasks as Obsidian Tasks lines (default "auto")
+  recurrenceFormat: "auto",
 };
 
 const options: CreateCapabilitiesOptions = {
@@ -544,8 +565,22 @@ await capabilities.executeTool("delete_task", { id: "task-1" });
 - **Recurrence arguments.** `create_task`, `update_task` and
   `batch_update_tasks` accept RRULE syntax or Obsidian Tasks text. Text is
   stored in the library's own words and returned as `understoodAs`; text with
-  words the parser would skip, an incomplete "until" date or an end date that
-  has passed is rejected.
+  words the parser would skip, an incomplete or impossible "until" date
+  (February 30) or an end date that has passed is rejected. Abbreviations
+  ("Mon", "Sept"), ordinals ("the first Monday", "the last day" of a monthly
+  rule or a yearly one in given months), "weekdays", and any letter case or
+  spacing are accepted. Hourly, minutely and secondly
+  rules are computed by day; the few combinations that can't be (time-of-day
+  parts on a step that doesn't divide a day, or within each hour together
+  with `COUNT`, `BYSETPOS` or an `UNTIL` time) are rejected as unsupported,
+  and `complete_task` returns the same error for such a stored rule.
+- **Hosts that store Obsidian Tasks text** set `recurrenceFormat: "text"` on
+  the context (`TasksTimelineApp` sets it on the built-in agent's context from
+  its `recurrenceFormat` prop). The three tools then store RRULE syntax as
+  Obsidian Tasks text (`FREQ=WEEKLY;BYDAY=MO` → `every week on Monday`,
+  returned as `understoodAs`) and reject rules a Tasks line can't hold before
+  saving anything or asking for confirmation, with a message the model can act
+  on (for `DTSTART`: "remove DTSTART; set the task's startAt instead").
 - **`notify_user` without `showToast`.** The tool falls back to
   `ctx.notify(variant, "title: description")` and returns
   `{ success: true, degraded: true, warning }`. With neither callback it

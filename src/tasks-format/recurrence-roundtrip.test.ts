@@ -188,6 +188,17 @@ describe("lines written by v0.8.0", () => {
     },
   );
 
+  it("explains how to repair a rule v0.8.0 split over two lines", () => {
+    // v0.8.0 wrote "🔁 DTSTART:…\nRRULE:FREQ=WEEKLY", which split the line
+    const line = "- [ ] Report 📅 2026-10-16 🔁 DTSTART:20261016T000000Z";
+    const task = parseLine(line.replace(/^- \[.\] /, ""));
+
+    expect(task.recurringInterval).toBe("DTSTART:20261016T000000Z");
+    expect(() => taskToMarkdown(task, line)).toThrow(
+      /written by v0\.8\.0 on two lines[\s\S]*delete the "RRULE:" line below the task[\s\S]*"🔁 every week"/,
+    );
+  });
+
   it("stops the rule at a tag", () => {
     const { task } = rewriteLine(
       "- [ ] Pay rent 🔁 FREQ=MONTHLY;BYMONTHDAY=1 #home 📅 2026-10-01",

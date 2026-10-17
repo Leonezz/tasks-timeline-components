@@ -3,7 +3,7 @@ import type { Task } from "../types";
 import {
   calendarDayOf,
   parseRecurrenceRule,
-  RECURRENCE_RULE_HELP,
+  unreadableRuleError,
 } from "./recurrence-rule";
 import { nextRuleDay } from "./next-rule-date";
 
@@ -46,9 +46,7 @@ export function nextOccurrence(task: Task, today: string): Task | null {
   const ruleText = task.recurringInterval ?? "";
   const rule = parseRecurrenceRule(ruleText);
   if (!rule) {
-    throw new Error(
-      `Cannot read the recurrence rule "${ruleText}". ${RECURRENCE_RULE_HELP}`,
-    );
+    throw new Error(unreadableRuleError(ruleText));
   }
 
   const scheduledAt = task.extra?.scheduledAt;

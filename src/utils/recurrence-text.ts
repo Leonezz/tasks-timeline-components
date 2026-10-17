@@ -6,7 +6,11 @@ import {
   parseRecurrenceRule,
   RECURRENCE_RULE_HELP,
   type ParsedRecurrenceRule,
+  unreadableRuleError,
 } from "./recurrence-rule";
+import { timesOfDayChangeDays } from "./rule-boundaries";
+import { isSet } from "./day-rule-search";
+import { isSubDaily } from "./sub-daily-rule";
 
 /**
  * Writing rules as rrule's English text, the form Obsidian Tasks lines hold
@@ -228,6 +232,17 @@ function textCandidates(options: Partial<Options>, until: string): string[] {
 }
 
 /**
+ * Whether a rule without a start date has its days changed by its times of
+ * day. One time a day on a daily or longer rule without BYSETPOS puts a date
+ * on each of its days (from the first day's midnight), so COUNT counts days.
+ */
+const timesChangeDaysWithoutStart = (rule: ParsedRecurrenceRule): boolean =>
+  timesOfDayChangeDays(rule) &&
+  (isSubDaily(rule.options.freq) ||
+    isSet(rule.options.bysetpos) ||
+    Object.values(rule.timesOfDay ?? {}).some((values) => values.length > 1));
+
+/**
  * Writes a rule as Obsidian Tasks text. Throws when no text reads back as
  * the same rule, or when the rule has a start date, which Obsidian Tasks
  * text can't hold.
@@ -236,6 +251,11 @@ export function recurrenceRuleToText(rule: ParsedRecurrenceRule): string {
   if (rule.start) {
     throw new Error(
       "Obsidian Tasks recurrence rules can't store a start date. Clear Start Recurrence (the task's own start date still works) to save this rule.",
+    );
+  }
+  if (timesChangeDaysWithoutStart(rule)) {
+    throw new Error(
+      "This recurrence can't be written as Obsidian Tasks text: its times of day (BYHOUR, BYMINUTE, BYSECOND) change which days it has, and a Tasks line can't hold them.",
     );
   }
   const options = toTextFriendly(rule.options);
@@ -281,9 +301,7 @@ export function toTasksRecurrenceText(rule: string): string {
   }
   const parsed = parseRecurrenceRule(rule);
   if (!parsed) {
-    throw new Error(
-      `Cannot read the recurrence rule "${rule}". ${RECURRENCE_RULE_HELP}`,
-    );
+    throw new Error(unreadableRuleError(rule));
   }
   return recurrenceRuleToText(parsed);
 }

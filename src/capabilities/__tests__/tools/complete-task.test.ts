@@ -361,6 +361,24 @@ describe("complete_task when the next occurrence can't be made", () => {
     expect(ctx.addTask).not.toHaveBeenCalled();
   });
 
+  it("changes nothing for a rule it can't compute by day", async () => {
+    const ctx = makeContext({
+      getTask: vi.fn().mockResolvedValue({
+        ...recurring,
+        recurringInterval: "FREQ=HOURLY;INTERVAL=5;BYHOUR=3",
+      }),
+    });
+
+    const result = await createCompleteTaskTool(ctx).execute({ id: "task-2" });
+
+    expect(result.result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("isn't supported"),
+    });
+    expect(ctx.updateTask).not.toHaveBeenCalled();
+    expect(ctx.addTask).not.toHaveBeenCalled();
+  });
+
   it("says the task is done and returns the next occurrence when adding it fails", async () => {
     const ctx = makeContext({
       getTask: vi.fn().mockResolvedValue({
