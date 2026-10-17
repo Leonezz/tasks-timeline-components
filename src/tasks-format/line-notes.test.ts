@@ -104,6 +104,8 @@ describe("an edit next to notes reads back as the edit", () => {
     "- [ ] Call Bob 📅 2026-10-16 #work about the plan",
     "- [ ] Call Bob 🛫 2026-10-01 notes 📅 2026-10-16 more notes",
     "- [ ] Call mom 📅 2026-10-16 ⏰ 2026-10-16 09:00 about birthday",
+    "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
+    "- [ ] Water plants 🔁 every week—see notes",
   ];
   const EDITS: Partial<Task>[] = [
     { priority: "high" },
@@ -395,6 +397,12 @@ describe("the next occurrence complete_task adds", () => {
       "- [ ] Call Bob 🔁 every week 📅 2026-10-16 about the plan",
       "- [x] Call Bob 🔁 every week 📅 2026-10-16 ✅ 2026-10-17 about the plan",
       "- [ ] Call Bob 🔁 every week 📅 2026-10-23 ➕ 2026-10-17 about the plan",
+    ],
+    // A "when done" rule with text glued to it advances from the completion
+    [
+      "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
+      "- [x] Water plants 📅 2026-10-10 ✅ 2026-10-17 🔁 every week when done—check soil",
+      "- [ ] Water plants 📅 2026-10-24 ➕ 2026-10-17 🔁 every week when done —check soil",
     ],
     // A word right after the rule stays whole on both lines
     [

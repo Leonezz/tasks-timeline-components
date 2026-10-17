@@ -59,15 +59,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   task wrote `🔁 every month https ✅ 2026-10-18 ://billing.example.com`,
   un-completing it left `https ://…`, a rule change dropped `https`, and the
   next occurrence got the broken notes. The same happened to `9:30` and
-  `don't`. A rule now ends before a word it stops inside, so that word stays
-  whole in the notes (`every month`, then `https://billing.example.com`). A
-  rule followed by `.`, a `[[link]]` or CJK text is read as before.
+  `don't`. When the text after the rule carries its last word on (letters,
+  or `'`, `:`, `.`, `-`, `_` before letters), that word now goes to the notes
+  and stays whole (`every month`, then `https://billing.example.com`).
+  - A word rules are written with is never cut: `every week's chores`,
+    `every week-ish` and `every week when done—check soil` keep their rule
+    (`every week`, `every week when done`). Separators (`—`, `;`, `…`, `/`,
+    `#`, `%%`), brackets, `[[links]]`, and CJK or Hangul text end the rule,
+    as before.
   - A rule whose only word is cut off this way (`🔁 https://…`) is title
     text, not a rule.
-  - `🔁 every day at 9:30` now has the rule `every day at`, which can't be
-    read, so `complete_task` reports it instead of repeating the task daily
-    at 9:00. Obsidian Tasks rules can't hold a time, and Obsidian Tasks does
-    not read that line as recurring.
+  - `🔁 every day at 9:30` now has the rule `every day at` instead of
+    `every day at 9` (daily at 9:00), so the time stays whole. The task is
+    still recurring (the **Recurring** badge shows `every day at`), but
+    `complete_task` can't read the rule and reports an error. Obsidian Tasks
+    rules can't hold a time, and Obsidian Tasks does not read that line as
+    recurring at all.
   - `taskToMarkdown` never adds a field between a field and text written
     right after it (`📅 2026-10-16, then lunch`); the field goes before
     another field or at the end instead.
@@ -78,7 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keep `completedAt` only while a task is done and `cancelledAt` only while it
   is cancelled, as Obsidian Tasks does. A done task that is cancelled loses
   its done date, and the reverse. A change that keeps the status keeps both
-  dates.
+  dates, and `cancel_task` on a task that is already cancelled keeps its ❌
+  date instead of setting it to today.
 - **Obsidian recurring tasks were not treated as recurring.** The Obsidian
   Tasks parser set `recurringInterval` (`🔁 every week`) but not
   `isRecurring`, so `complete_task` created no next occurrence, the

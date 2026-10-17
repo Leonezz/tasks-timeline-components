@@ -340,6 +340,54 @@ describe("a 🔁 rule the rule characters stop inside a word", () => {
   });
 });
 
+/** Rules whose last word is a rule word, with text glued to it. */
+const RULE_WORD_LINES = [
+  [
+    "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
+    "every week when done",
+  ],
+  ["- [ ] Water plants 🔁 every week—see notes", "every week"],
+  ["- [ ] Clean 🔁 every week's chores", "every week"],
+  ["- [ ] Clean 🔁 every week’s chores", "every week"],
+  ["- [ ] Standup 🔁 every weekday's standup", "every weekday"],
+  ["- [ ] Water plants 🔁 every week%%comment%%", "every week"],
+  ["- [ ] Water plants 🔁 every week/biweekly", "every week"],
+  ["- [ ] Water plants 🔁 every week#garden", "every week"],
+  ["- [ ] Water plants 🔁 every week-ish", "every week"],
+  ["- [ ] Water plants 🔁 every week_garden", "every week"],
+  ["- [ ] Water plants 🔁 every week.Notes", "every week"],
+  ["- [ ] Water plants 🔁 every week; see notes", "every week"],
+  ["- [ ] Water plants 🔁 every week… or so", "every week"],
+  [
+    "- [ ] Pay rent 🔁 every month on the 1st's morning",
+    "every month on the 1st",
+  ],
+  ["- [ ] 물주기 🔁 every week마다", "every week"],
+] as const;
+
+describe("a 🔁 rule word with text glued to it stays in the rule", () => {
+  it.each(RULE_WORD_LINES)("reads %j with the rule %j", (line, rule) => {
+    expect(parseLine(line).recurringInterval).toBe(rule);
+  });
+
+  it.each(RULE_WORD_LINES)("writes %j back unchanged", (line) => {
+    expect(rewrite(line)).toBe(line);
+  });
+
+  it.each(RULE_WORD_LINES)(
+    "keeps the rule of %j and the text after it when the due date changes",
+    (line, rule) => {
+      const edited = rewrite(line, { dueAt: "2026-11-20" });
+
+      expect(edited).toContain(line.slice(line.indexOf("🔁")));
+      expect(parseLine(edited)).toMatchObject({
+        recurringInterval: rule,
+        dueAt: "2026-11-20",
+      });
+    },
+  );
+});
+
 /** Real Obsidian Tasks lines, written back as they are when nothing changed. */
 const REAL_LINES = [
   "- [ ] Plain task",
