@@ -499,6 +499,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `accent`. The real `#b45309` would have reached only 4.2:1 on hover and
   4.4:1 on `accent`. A new `UI/ThemeColors` story checks the default button,
   badge, link button and a focused dropdown item in the coffee theme.
+- **The light theme's `primary` and `accent-foreground` failed WCAG AA.**
+  Light set `--primary`, `--accent-foreground` and `--ring` to blue-500,
+  `#3b82f6`. White `primary-foreground` on `primary` (the default button and
+  badge) was about 3.7:1, and 3.2:1 under the default button's
+  `hover:bg-primary/90`. The link button's `primary` text was about 3.7:1.
+  `accent-foreground` on `accent` (ghost and outline buttons on hover, such as
+  `DatePicker`'s field and the calendar's month buttons, and focused dropdown
+  items) was about 3.4:1. All three are now blue-700, `#1d4ed8`
+  (`224.3 76.3% 48%`): about 6.7:1 under `primary-foreground`, 5.5:1 on hover
+  and 6.2:1 on `accent`. Blue-600 (`#2563eb`) would have reached only 4.3:1 on
+  hover. The `UI/ThemeColors` stories now cover all four themes and also check
+  the default button's hover colour.
 
 ### Changed
 
