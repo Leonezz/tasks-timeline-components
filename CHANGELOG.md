@@ -501,6 +501,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   them without a name. A badge's popover is now named by its heading ("Change
   due date"). `DatePicker`'s is named by its placeholder, such as "Select due
   date" in the task editor.
+- **The light theme's `amber-700` was not `#b45309`.** Its comment said
+  `#b45309`, but its value (`37.7 92.1% 38%`) was about `#ba7808`, so
+  `text-amber-700` on `amber-50` was about 3.5:1 in the light and coffee
+  themes (coffee uses the light theme's amber colours). It is now
+  `26 90.5% 37.1%`, the real `#b45309`, at about 4.8:1. This brings the task
+  row's **No dates** badge, the medium priority badge and the priority menu's
+  selected "medium" option to WCAG AA (4.5:1). Medium priority chips in toast
+  task lists (`amber-700` on `amber-100`) go from about 3.3:1 to 4.5:1. The
+  dark and midnight themes set their own `amber-700` and are unchanged. The
+  TaskItem stories check the No dates and medium priority labels in all four
+  themes.
 
 ### Changed
 

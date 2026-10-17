@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import React, { useState } from "react";
-import { expect, spyOn, userEvent } from "storybook/test";
-import { delay, withinShadow } from "../test-utils";
+import { expect, spyOn, userEvent, within } from "storybook/test";
+import { delay, expectReadable, withinShadow } from "../test-utils";
 import { TaskItem } from "../../components/TaskItem";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
 import type { DateValidationState } from "../../utils";
@@ -105,7 +105,7 @@ const meta: Meta<TaskItemStoryArgs> = {
         };
 
       return (
-        <AppProvider>
+        <AppProvider theme={context.parameters.theme as string | undefined}>
           <TasksProvider value={tasksContextValue}>
             <SettingsProvider value={settingsContextValue}>
               <div className="p-4 bg-white min-w-80">
@@ -392,6 +392,37 @@ export const MissingDatesWarning: Story = {
     },
   },
 };
+
+/**
+ * The "No dates" badge in `theme`. Its label, like the medium priority
+ * badge's beside it, is text-amber-700 on bg-amber-50/90.
+ */
+const missingDatesInTheme = (theme: string): Story => ({
+  args: MissingDatesWarning.args,
+  parameters: { theme },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("The No dates label meets WCAG AA (4.5:1)", async () => {
+      const badge = canvas.getByRole("img", {
+        name: "This task has no dates set",
+      });
+      await expectReadable(within(badge).getByText("No dates"));
+    });
+
+    await step("So does the medium priority label", async () => {
+      const priority = canvas.getByRole("button", {
+        name: /Current priority: medium$/,
+      });
+      await expectReadable(within(priority).getByText("medium"));
+    });
+  },
+});
+
+export const MissingDatesLightTheme: Story = missingDatesInTheme("light");
+export const MissingDatesDarkTheme: Story = missingDatesInTheme("dark");
+export const MissingDatesMidnightTheme: Story = missingDatesInTheme("midnight");
+export const MissingDatesCoffeeTheme: Story = missingDatesInTheme("coffee");
 
 export const InvalidDateWarning: Story = {
   args: {
