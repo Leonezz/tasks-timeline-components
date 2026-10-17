@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent } from "storybook/test";
+import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { DateBadge } from "../../components/DateBadge";
 import type { Task } from "../../types";
 import { AppProvider } from "../../components/AppContext";
@@ -243,7 +243,7 @@ export const DateTimeInput: Story = {
 // Interaction Testing
 // ========================================
 
-// Fixed dates keep calendar day buttons unique: March 2026 starts on a Sunday
+// Fixed dates keep calendar day names unique: March 2026 starts on a Sunday
 export const ChangeDueDate: Story = {
   args: {
     ...DueDate.args,
@@ -261,16 +261,16 @@ export const ChangeDueDate: Story = {
     });
 
     await step("Pick a new date", async () => {
-      const current = canvas.getByRole("button", {
+      const current = canvas.getByRole("gridcell", {
           name: "Tuesday, March 10, 2026",
         }),
-        next = canvas.getByRole("button", { name: "Friday, March 20, 2026" });
-      expect(current).toHaveAttribute("aria-pressed", "true");
-      expect(next).toHaveAttribute("aria-pressed", "false");
+        next = canvas.getByRole("gridcell", { name: "Friday, March 20, 2026" });
+      expect(current).toHaveAttribute("aria-selected", "true");
+      expect(next).not.toHaveAttribute("aria-selected");
       await userEvent.click(next);
       await delay(100);
-      expect(next).toHaveAttribute("aria-pressed", "true");
-      expect(current).toHaveAttribute("aria-pressed", "false");
+      expect(next).toHaveAttribute("aria-selected", "true");
+      expect(current).not.toHaveAttribute("aria-selected");
     });
 
     await step("Save new date", async () => {
@@ -302,7 +302,7 @@ export const ChangeStartDate: Story = {
 
     await step("Pick a new date and time", async () => {
       await userEvent.click(
-        canvas.getByRole("button", { name: "Friday, March 20, 2026" }),
+        canvas.getByRole("gridcell", { name: "Friday, March 20, 2026" }),
       );
       const timeInput = canvas.getByLabelText("Time");
       expect(timeInput).toHaveValue("09:30");
@@ -343,13 +343,13 @@ export const ClearDate: Story = {
     await step("Deselect the current date", async () => {
       // Calendar's onSelect takes Date | undefined, like react-day-picker's
       // single mode: clicking the selected day again clears the selection
-      const day = canvas.getByRole("button", {
+      const day = canvas.getByRole("gridcell", {
         name: "Tuesday, March 10, 2026",
       });
-      expect(day).toHaveAttribute("aria-pressed", "true");
+      expect(day).toHaveAttribute("aria-selected", "true");
       await userEvent.click(day);
       await delay(100);
-      expect(day).toHaveAttribute("aria-pressed", "false");
+      expect(day).not.toHaveAttribute("aria-selected");
     });
 
     await step("Save empty date (removes date)", async () => {
@@ -428,6 +428,108 @@ export const KeyboardNavigation: Story = {
       const saveButton = canvas.getByRole("button", { name: "Save due date" });
       expect(saveButton).toBeInTheDocument();
     });
+  },
+};
+
+// The calendar opens with focus on the selected day; arrow keys move through
+// the days and Enter picks one
+export const KeyboardPicksADay: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Enter opens the calendar on the selected day", async () => {
+      canvas.getByTitle("Change due date").focus();
+      await userEvent.keyboard("{Enter}");
+      const selected = await canvas.findByRole("gridcell", {
+        name: "Tuesday, March 10, 2026",
+      });
+      await waitFor(() => expect(selected).toHaveFocus());
+    });
+
+    await step("Arrow keys move to another day", async () => {
+      await userEvent.keyboard("{ArrowDown}{ArrowRight}");
+      expect(
+        canvas.getByRole("gridcell", { name: "Wednesday, March 18, 2026" }),
+      ).toHaveFocus();
+    });
+
+    await step("Enter picks it", async () => {
+      await userEvent.keyboard("{Enter}");
+      expect(
+        canvas.getByRole("gridcell", { name: "Wednesday, March 18, 2026" }),
+      ).toHaveAttribute("aria-selected", "true");
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Save due date" }),
+      );
+      expect(args.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ dueAt: "2026-03-18" }),
+      );
+    });
+  },
+};
+
+// The calendar opens on the selected day, and Enter there keeps it, so
+// Enter, Enter, Tab, Tab, Enter (on Save) changes nothing
+export const EnterTwiceKeepsTheDate: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = withinShadow(canvasElement);
+
+    canvas.getByTitle("Change due date").focus();
+    await userEvent.keyboard("{Enter}");
+    const selected = await canvas.findByRole("gridcell", {
+      name: "Tuesday, March 10, 2026",
+    });
+    await waitFor(() => expect(selected).toHaveFocus());
+    await userEvent.keyboard("{Enter}");
+    expect(selected).toHaveAttribute("aria-selected", "true");
+    // Past Today to Save
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(canvas.getByRole("button", { name: "Save due date" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(args.onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ dueAt: "2026-03-10" }),
+    );
+  },
+};
+
+// Delete on the selected day clears it from the keyboard
+export const DeleteClearsTheDate: Story = {
+  args: {
+    ...DueDate.args,
+    date: "2026-03-10",
+    label: "Mar 10",
+    onUpdate: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = withinShadow(canvasElement);
+
+    canvas.getByTitle("Change due date").focus();
+    await userEvent.keyboard("{Enter}");
+    const selected = await canvas.findByRole("gridcell", {
+      name: "Tuesday, March 10, 2026",
+    });
+    await waitFor(() => expect(selected).toHaveFocus());
+    await userEvent.keyboard("{Delete}");
+    expect(selected).not.toHaveAttribute("aria-selected");
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Save due date" }),
+    );
+    expect(args.onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ dueAt: "" }),
+    );
   },
 };
 

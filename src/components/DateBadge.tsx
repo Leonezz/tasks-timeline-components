@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
+import { focusCalendarOnOpen } from "./ui/calendar-focus";
 import { cn } from "../utils";
 
 interface DateBadgeProps {
@@ -112,6 +113,7 @@ export const DateBadge = ({
         side="bottom"
         align="start"
         sideOffset={4}
+        onOpenAutoFocus={focusCalendarOnOpen}
         className="z-9999 w-auto rounded-xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl shadow-slate-900/10 outline-none backdrop-blur"
       >
         <MotionDiv
