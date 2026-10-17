@@ -417,12 +417,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single mode); saving then writes `""`. The edit modal's Created field still
   keeps its date when cleared, as before.
 - **Calendar picker accessibility.** Day buttons were announced by their
-  number alone and didn't expose which day was selected. They are now named
-  by the full date (for example "Tuesday, March 10, 2026") and set
-  `aria-pressed`, since clicking the selected day clears it. The month
-  buttons are named "Previous month" and "Next month". The **Time** label in
-  the task badges' date popovers and in `DatePicker` is now associated with
-  its input.
+  number alone and didn't expose which day was selected, and every day was
+  its own Tab stop with no arrow keys, so moving through a month took up to
+  about 44 presses of Tab. The days are now a grid, as in the WAI-ARIA date
+  picker dialog pattern: it is named by its month ("March 2026") and has
+  weekday column headers, and each day is a grid cell named by the full date
+  (for example "Tuesday, March 10, 2026") with `aria-selected` when it is
+  selected. Clicking the selected day still clears it.
+  - Tab reaches one day: the selected day if the month has it, else today,
+    else the 1st, until a key or a click moves it. Arrow keys move by a day
+    or a week, Home and End to the start and end of the week, Page Up and
+    Page Down by a month, and with Shift by a year. Moving past the month's
+    edge shows the new month and keeps focus on the new day. Enter and Space
+    pick the focused day, or clear it when it is the selected day, as a
+    click does.
+  - The task badges' date popovers and the task editor's date fields open
+    with focus on that day, in a shadow root too. Radix focused the
+    popover's first control ("Previous month"), or in a shadow root the
+    popover itself. The calendar's `initialFocus` prop, which was ignored,
+    now focuses that day as the calendar mounts.
+  - The month heading is announced when it changes, and disabled days stay
+    focusable (`aria-disabled`), so arrow keys can move past them.
+  - The month buttons are named "Previous month" and "Next month". The
+    **Time** label in the task badges' date popovers and in `DatePicker` is
+    now associated with its input.
 - Task date badges are named like the category and priority badges, for
   example "Change due date for Write report. Current due date: Today", instead
   of by their visible label alone ("Due: Today").

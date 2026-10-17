@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Calendar } from "./calendar";
+import { focusCalendarOnOpen } from "./calendar-focus";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Button } from "./button";
 import { CalendarIcon } from "lucide-react";
@@ -98,12 +99,15 @@ export function DatePicker({
           {displayValue}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent
+        className="w-auto p-0"
+        align="start"
+        onOpenAutoFocus={focusCalendarOnOpen}
+      >
         <Calendar
           mode="single"
           selected={selectedDate}
           onSelect={handleDateSelect}
-          initialFocus
         />
         {showTime && (
           <div className="border-t border-border p-3">

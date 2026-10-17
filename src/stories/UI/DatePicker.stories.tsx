@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DatePicker } from "../../components/ui/date-picker";
 import { DateTime } from "luxon";
 
@@ -71,6 +71,19 @@ function DatePickerDemo({
  */
 export const DateOnly: Story = {
   render: () => <DatePickerDemo showTime={false} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body);
+
+    await userEvent.click(canvas.getByRole("button", { name: "Pick a date" }));
+
+    // Without a date, the calendar opens on today
+    const today = await page.findByRole("gridcell", {
+      name: DateTime.now().setLocale("en-US").toFormat("cccc, LLLL d, yyyy"),
+    });
+    await waitFor(() => expect(today).toHaveFocus());
+  },
 };
 
 /**
@@ -121,13 +134,64 @@ export const PrePopulatedDate: Story = {
     });
 
     await step("Days are named by full date and expose selection", async () => {
-      const selected = await page.findByRole("button", {
+      const selected = await page.findByRole("gridcell", {
         name: "Thursday, February 5, 2026",
       });
-      expect(selected).toHaveAttribute("aria-pressed", "true");
+      expect(selected).toHaveAttribute("aria-selected", "true");
       expect(
-        page.getByRole("button", { name: "Friday, February 6, 2026" }),
-      ).toHaveAttribute("aria-pressed", "false");
+        page.getByRole("gridcell", { name: "Friday, February 6, 2026" }),
+      ).not.toHaveAttribute("aria-selected");
+    });
+  },
+};
+
+/**
+ * Keyboard use
+ *
+ * The calendar opens with focus on the selected day. Arrow keys move through
+ * the days, into other months too, and Enter picks one.
+ */
+export const KeyboardPicksADay: Story = {
+  render: () => <DatePickerDemo showTime={false} initialValue="2026-02-05" />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement),
+      // Without AppProvider, popovers portal to document.body
+      page = within(canvasElement.ownerDocument.body),
+      trigger = canvas.getByRole("button", {
+        name: DateTime.fromISO("2026-02-05").toFormat("MMM dd, yyyy"),
+      });
+
+    await step("Enter opens the calendar on the selected day", async () => {
+      trigger.focus();
+      await userEvent.keyboard("{Enter}");
+      const selected = await page.findByRole("gridcell", {
+        name: "Thursday, February 5, 2026",
+      });
+      await waitFor(() => expect(selected).toHaveFocus());
+    });
+
+    await step("Arrow keys move into the previous month", async () => {
+      await userEvent.keyboard("{ArrowUp}");
+      expect(
+        page.getByRole("gridcell", { name: "Thursday, January 29, 2026" }),
+      ).toHaveFocus();
+      expect(
+        page.getByRole("grid", { name: "January 2026" }),
+      ).toBeInTheDocument();
+      await userEvent.keyboard("{ArrowRight}");
+      expect(
+        page.getByRole("gridcell", { name: "Friday, January 30, 2026" }),
+      ).toHaveFocus();
+    });
+
+    await step("Enter picks the day and closes the calendar", async () => {
+      await userEvent.keyboard("{Enter}");
+      expect(canvas.getByText("2026-01-30")).toBeInTheDocument();
+      await waitFor(() => expect(page.queryByRole("grid")).toBeNull());
+      await waitFor(() => expect(trigger).toHaveFocus());
+      expect(trigger).toHaveTextContent(
+        DateTime.fromISO("2026-01-30").toFormat("MMM dd, yyyy"),
+      );
     });
   },
 };
