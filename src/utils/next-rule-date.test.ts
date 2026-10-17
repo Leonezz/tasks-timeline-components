@@ -499,6 +499,70 @@ describe("nextRuleDay with BYSETPOS and day filters that never match", () => {
   });
 });
 
+describe("nextRuleDay with BYSETPOS past a week's dates", () => {
+  // rrule alone scans these to the year 9999, past any UNTIL or COUNT:
+  // about a second for one position, several for twenty
+  const positionsFrom = (first: number) =>
+    Array.from({ length: 20 }, (_, i) => i + first).join(",");
+
+  it.each([
+    // One Monday a week
+    "FREQ=WEEKLY;BYDAY=MO;BYSETPOS=2",
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)}`,
+    `FREQ=WEEKLY;BYDAY=+1MO,+2MO;BYSETPOS=${positionsFrom(2)}`,
+    // Without days, the start's weekday
+    `FREQ=WEEKLY;BYSETPOS=${positionsFrom(2)}`,
+    // A day of the month or year falls at most once a week
+    "FREQ=WEEKLY;BYSETPOS=3;BYMONTH=2;BYMONTHDAY=28",
+    `FREQ=WEEKLY;BYSETPOS=${positionsFrom(2)};BYMONTH=2;BYMONTHDAY=28`,
+    `FREQ=WEEKLY;BYMONTHDAY=1,15;BYDAY=SA,SU;BYSETPOS=${positionsFrom(3)}`,
+    `FREQ=WEEKLY;BYYEARDAY=1,-1;BYDAY=MO,TU,WE;BYSETPOS=${positionsFrom(3)}`,
+    // Each of a week's days has its times of day
+    "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYSETPOS=2",
+    `FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9,17;BYSETPOS=${positionsFrom(5)}`,
+    `DTSTART:20261016T100000Z\nRRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9,23;BYSETPOS=${positionsFrom(3)}`,
+  ])("rules out %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(() => nextRuleDay(parse(rule), "2026-10-17", rule)).toThrow(
+      "has no date after 2026-10-17",
+    );
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)};UNTIL=20271231`,
+    `FREQ=WEEKLY;BYDAY=MO;BYSETPOS=${positionsFrom(2)};COUNT=3`,
+  ])("ends %j quickly", (rule) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it.each([
+    ["FREQ=WEEKLY;BYDAY=MO,TU;BYSETPOS=2", "2026-10-20"],
+    ["FREQ=WEEKLY;BYDAY=+1MO,+2MO,TU;BYSETPOS=2", "2026-10-20"],
+    ["FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9,17;BYSETPOS=4", "2026-10-22"],
+    // rrule picks a week's first date for a negative position past its dates
+    ["FREQ=WEEKLY;BYDAY=MO;BYSETPOS=-2", "2026-10-19"],
+    // A week number picks all its days, not the start's weekday
+    ["FREQ=WEEKLY;BYWEEKNO=1;BYSETPOS=7", "2027-01-10"],
+    // Days of the month or year across a month's or year's end
+    ["FREQ=WEEKLY;BYMONTHDAY=1,-1;BYSETPOS=2", "2026-11-01"],
+    ["FREQ=WEEKLY;BYMONTHDAY=28,29,30,31,1;BYSETPOS=5", "2026-11-01"],
+    ["FREQ=WEEKLY;BYYEARDAY=1,-1;BYSETPOS=2", "2027-01-01"],
+    // Weeks from Sunday: Saturday is second
+    ["FREQ=WEEKLY;WKST=SU;BYDAY=SA,SU;BYSETPOS=2", "2026-10-24"],
+    ["FREQ=WEEKLY;BYMONTH=2;BYSETPOS=1", "2027-02-06"],
+    // rrule makes a rule with BYEASTER yearly
+    ["FREQ=WEEKLY;BYEASTER=0;BYSETPOS=1", "2027-03-28"],
+  ])("%j from 2026-10-17 is %s", (rule, expected) => {
+    expect(wholeRuleTruth(rule, "2026-10-17")).toBe(expected);
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBe(expected);
+  });
+});
+
 /**
  * Hourly and minutely rules with a UTC start, which rrule steps in UTC: their
  * BYHOUR and day filters are UTC hours and days, and 24 hours is a UTC day

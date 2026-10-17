@@ -62,6 +62,38 @@ const plainWeekdays = (value: Options["byweekday"] | undefined): Weekday[] =>
   );
 
 /**
+ * As rrule's own defaults: a weekly rule without days repeats on its start's
+ * weekday, unless a day of the month or year, a week number or Easter picks
+ * the days.
+ */
+const repeatsOnStartWeekday = (options: Partial<Options>): boolean =>
+  options.freq === RRule.WEEKLY &&
+  !isSet(options.byweekday) &&
+  !isSet(options.bymonthday) &&
+  !isSet(options.byyearday) &&
+  !isSet(options.byweekno) &&
+  !isSet(options.byeaster);
+
+/**
+ * The most days a week of a weekly rule can have: its weekdays (its start's
+ * without any), and no more than the days of the month or year it names,
+ * since each of those falls at most once a week.
+ */
+export function maxDaysPerWeek(options: Partial<Options>): number {
+  const weekdays = isSet(options.byweekday)
+    ? new Set(plainWeekdays(options.byweekday).map((day) => day.weekday)).size
+    : repeatsOnStartWeekday(options)
+      ? 1
+      : ALL_WEEKDAYS.length;
+  return Math.min(
+    weekdays,
+    ...(["bymonthday", "byyearday"] as const)
+      .filter((key) => isSet(options[key]))
+      .map((key) => new Set(toList(options[key])).size),
+  );
+}
+
+/**
  * A daily or weekly rule limited by month or day of month produces the same
  * dates as a yearly rule with those filters, which rrule steps through a year
  * at a time instead of a day at a time. That keeps a rule that never matches
@@ -82,20 +114,13 @@ export function asYearly(
   const weekdays = isSet(options.byweekday)
     ? plainWeekdays(options.byweekday)
     : null;
-  // As rrule's own defaults: a weekly rule without days repeats on its
-  // start's weekday, unless a day of the month or year, a week number or
-  // Easter picks the days
-  const onStartWeekday =
-    options.freq === RRule.WEEKLY &&
-    !isSet(options.bymonthday) &&
-    !isSet(options.byyearday) &&
-    !isSet(options.byweekno) &&
-    !isSet(options.byeaster);
   const startWeekday = ALL_WEEKDAYS[(dtstart.getUTCDay() + 6) % 7];
   return {
     ...options,
     freq: RRule.YEARLY,
-    byweekday: weekdays ?? (onStartWeekday ? [startWeekday] : ALL_WEEKDAYS),
+    byweekday:
+      weekdays ??
+      (repeatsOnStartWeekday(options) ? [startWeekday] : ALL_WEEKDAYS),
   };
 }
 
