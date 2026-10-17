@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-18
+
 ### Added
 
 - **`VoiceRuntime.browserSpeechSupported` (#51).** A host that knows browser
@@ -49,6 +51,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onCompletionSymbol`, `idSymbol` and `dependsOnSymbol`, and
   `TaskRegularExpressions` has `cancelledDateRegex`, `onCompletionRegex`,
   `idRegex` and `dependsOnRegex`.
+
+- **`CapabilityContext.recurrenceFormat`** (`"auto" | "text"`, #47). A host
+  that stores tasks as Obsidian Tasks lines sets `"text"`, as it sets
+  `recurrenceFormat="text"` on the editor; `TasksTimelineApp` passes its
+  `recurrenceFormat` prop to the built-in agent's context. `create_task`,
+  `update_task` and `batch_update_tasks` then store RRULE syntax as Obsidian
+  Tasks text and reject rules a line can't hold before saving anything or
+  asking for confirmation, with a message for the model ("remove DTSTART; set
+  the task's startAt instead"). Before, the rule was stored and the host's
+  write failed afterwards, after `batch_update_tasks` had asked to confirm.
+
+### Changed
+
+- `notify_user` without `ctx.showToast` falls back to
+  `ctx.notify(variant, "title: description")` and returns
+  `{ success: true, degraded: true, warning }`. With neither callback it
+  returns `{ success: false, error }` instead of `{ success: true }`.
+- The system prompt no longer says `notify_user` can show detail blocks; it
+  never accepted them.
+- The system prompt documents end dates as `UNTIL=YYYYMMDD` and tells the
+  model not to use `COUNT`, which never ends a series that restarts on each
+  completion.
+- Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
+  Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
+- `taskToMarkdown` edits lines in place (see Fixed): a rule it repairs
+  (`🔁 RRULE:…`, `until 2026-12-31`) stays where it was instead of moving to
+  the end, and fields a line gains are added after its last field, in
+  `formatTasksMetadata` order (or where they read back, see Fixed). It
+  throws for a task the line can't hold. A task with `cancelledAt` (set when
+  a task is cancelled in the timeline or with `cancel_task`) gets a ❌ date,
+  as Obsidian Tasks writes it.
 
 ### Fixed
 
@@ -602,39 +635,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `background`, `card` and `popover`, `destructive` is at least 5.4:1 in all
   four themes. The `UI/ThemeColors` stories check the destructive button and
   badge, at rest and hovered, in all four themes.
-
-### Changed
-
-- `notify_user` without `ctx.showToast` falls back to
-  `ctx.notify(variant, "title: description")` and returns
-  `{ success: true, degraded: true, warning }`. With neither callback it
-  returns `{ success: false, error }` instead of `{ success: true }`.
-- The system prompt no longer says `notify_user` can show detail blocks; it
-  never accepted them.
-- The system prompt documents end dates as `UNTIL=YYYYMMDD` and tells the
-  model not to use `COUNT`, which never ends a series that restarts on each
-  completion.
-- Inline `MarkdownText` (`inline` prop) inherits white-space from its parent.
-  Pass `paragraphClassName="whitespace-pre-wrap"` to keep line breaks.
-- `taskToMarkdown` edits lines in place (see Fixed): a rule it repairs
-  (`🔁 RRULE:…`, `until 2026-12-31`) stays where it was instead of moving to
-  the end, and fields a line gains are added after its last field, in
-  `formatTasksMetadata` order (or where they read back, see Fixed). It
-  throws for a task the line can't hold. A task with `cancelledAt` (set when
-  a task is cancelled in the timeline or with `cancel_task`) gets a ❌ date,
-  as Obsidian Tasks writes it.
-
-### Added
-
-- **`CapabilityContext.recurrenceFormat`** (`"auto" | "text"`, #47). A host
-  that stores tasks as Obsidian Tasks lines sets `"text"`, as it sets
-  `recurrenceFormat="text"` on the editor; `TasksTimelineApp` passes its
-  `recurrenceFormat` prop to the built-in agent's context. `create_task`,
-  `update_task` and `batch_update_tasks` then store RRULE syntax as Obsidian
-  Tasks text and reject rules a line can't hold before saving anything or
-  asking for confirmation, with a message for the model ("remove DTSTART; set
-  the task's startAt instead"). Before, the rule was stored and the host's
-  write failed afterwards, after `batch_update_tasks` had asked to confirm.
 
 ## [0.8.0] - 2026-10-14
 
