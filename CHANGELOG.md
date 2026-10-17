@@ -512,6 +512,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dark and midnight themes set their own `amber-700` and are unchanged. The
   TaskItem stories check the No dates and medium priority labels in all four
   themes.
+- **The coffee theme's `primary` and `accent-foreground` failed WCAG AA.**
+  Coffee set `--primary`, `--accent-foreground` and `--ring` to the same
+  `37.7 92.1% 38%` (about `#ba7808`) under a `#b45309` comment.
+  `primary-foreground` on `primary` (the default button and badge) and the
+  link button's `primary` text were about 3.6:1, and `accent-foreground` on
+  `accent` (ghost and outline buttons on hover, such as `DatePicker`'s field,
+  and focused dropdown items) was about 3.2:1. All three are now amber-800,
+  `#92400e` (`22.7 82.5% 31.4%`): about 7.0:1 under `primary-foreground`,
+  5.6:1 under the default button's `hover:bg-primary/90`, and 6.3:1 on
+  `accent`. The real `#b45309` would have reached only 4.2:1 on hover and
+  4.4:1 on `accent`. A new `UI/ThemeColors` story checks the default button,
+  badge, link button and a focused dropdown item in the coffee theme.
 
 ### Changed
 
