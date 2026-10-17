@@ -224,6 +224,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;COUNT=10` is written as "every week on
     Monday for 10 times"), and the task editor lists times of day among the
     parts it can't show.
+- **Rules with `BYSETPOS` froze the app, and hourly rules with a UTC start
+  failed.**
+  - A daily or weekly rule with `BYSETPOS` whose day filters never match
+    (`FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30`) fails fast
+    again with the "has no date after" error, or ends at its `UNTIL`. rrule
+    scanned such rules to the year 9999, past any `UNTIL`, which blocked
+    `complete_task` for seconds (about 30 seconds with 24 hours and
+    positions).
+  - Hourly, minutely and secondly rules with a UTC start
+    (`DTSTART:20261016T220000Z`) are stepped in UTC, as rrule steps them, so
+    `BYHOUR` and day filters are UTC hours and days, and each date's day is
+    read in local time. `FREQ=HOURLY;INTERVAL=6;BYHOUR=22;BYDAY=SA` from that
+    start threw "has no date after" outside UTC, and steps of whole days
+    kept their local time across a change of clocks. Minutes and seconds
+    within each step (`FREQ=HOURLY;BYMINUTE=45`) count on their own day,
+    which differs from the hour's in zones whose offset isn't whole hours
+    (18:45 UTC is the next day in India).
+- **Weekly rules with `BYWEEKNO` skipped the days around the new year.**
+  rrule numbers a weekly rule's weeks in the year each week starts in, so
+  Saturday January 1 2022 is in week 52 of
+  `FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU`; the quick yearly check numbered it in
+  2022 and went on to December 31 (or ended the rule, with an `UNTIL`).
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't
