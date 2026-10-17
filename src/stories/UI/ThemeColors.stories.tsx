@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { AppProvider } from "../../components/AppContext";
 import { Badge } from "../../components/ui/badge";
+import { badgeVariants } from "../../components/ui/badge-variants";
 import { Button } from "../../components/ui/button";
+import { buttonVariants } from "../../components/ui/button-variants";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +41,8 @@ const themedColorsStory = (theme: string): Story => ({
             pointer event doesn't show */}
         <Button className="bg-primary/90">Hovered</Button>
         <Badge>New</Badge>
+        {/* The default badge's hover colour, for the same reason */}
+        <Badge className="bg-primary/90">Hovered badge</Badge>
         <Button variant="link">Learn more</Button>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -55,12 +59,18 @@ const themedColorsStory = (theme: string): Story => ({
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
 
+    await step("The hovered stand-ins use the real hover colours", () => {
+      expect(buttonVariants()).toContain("hover:bg-primary/90");
+      expect(badgeVariants()).toContain("hover:bg-primary/90");
+    });
+
     await step(
-      "The default button (also hovered), badge and link meet WCAG AA (4.5:1)",
+      "The default button and badge (both also hovered) and link meet WCAG AA (4.5:1)",
       async () => {
         await expectReadable(canvas.getByRole("button", { name: "Save" }));
         await expectReadable(canvas.getByRole("button", { name: "Hovered" }));
         await expectReadable(canvas.getByText("New"));
+        await expectReadable(canvas.getByText("Hovered badge"));
         await expectReadable(
           canvas.getByRole("button", { name: "Learn more" }),
         );
