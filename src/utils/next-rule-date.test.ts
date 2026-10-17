@@ -480,6 +480,9 @@ describe("nextRuleDay with BYSETPOS and day filters that never match", () => {
     "FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30",
     "DTSTART:20261016T100000Z\nRRULE:FREQ=DAILY;BYHOUR=9,10;BYSETPOS=2;BYMONTH=2;BYMONTHDAY=30",
     "FREQ=WEEKLY;BYSETPOS=1;BYMONTH=2;BYMONTHDAY=30",
+    // Week 53 is at the end of December or the start of January
+    "FREQ=WEEKLY;BYWEEKNO=53;BYMONTH=6",
+    "FREQ=WEEKLY;BYWEEKNO=53;BYMONTH=6;BYSETPOS=1",
     `FREQ=WEEKLY;BYHOUR=${EVERY_HOUR};BYSETPOS=${EVERY_POSITION};BYMONTH=2;BYMONTHDAY=30`,
   ])("rules out %j quickly", (rule) => {
     const started = performance.now();
@@ -560,6 +563,95 @@ describe("nextRuleDay with BYSETPOS past a week's dates", () => {
   ])("%j from 2026-10-17 is %s", (rule, expected) => {
     expect(wholeRuleTruth(rule, "2026-10-17")).toBe(expected);
     expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBe(expected);
+  });
+});
+
+describe("nextRuleDay's quick check with many times of day", () => {
+  const list = (first: number, last: number) =>
+    Array.from({ length: last - first + 1 }, (_, i) => first + i).join(",");
+  const EVERY_SECOND_OF_DAY = `BYHOUR=${list(0, 23)};BYMINUTE=${list(0, 59)};BYSECOND=${list(0, 59)}`;
+
+  // The check only needs days: with the times of day, rrule makes each
+  // day's every time from the start, which takes seconds
+  it.each([
+    [
+      `FREQ=DAILY;${EVERY_SECOND_OF_DAY};BYSETPOS=1;BYMONTH=${list(1, 12)}`,
+      "2026-10-18",
+    ],
+    [
+      `DTSTART:20200101T000000\nRRULE:FREQ=DAILY;BYHOUR=${list(0, 23)};BYMINUTE=${list(0, 59)};BYSECOND=0,15,30,45;BYSETPOS=-1;BYMONTH=${list(1, 12)}`,
+      "2026-10-18",
+    ],
+  ])("finds the next date of %j quickly", (rule, expected) => {
+    const started = performance.now();
+
+    expect(nextRuleDay(parse(rule), "2026-10-17", rule)).toBe(expected);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+/**
+ * rrule numbers a weekly rule's weeks by the year each week starts in, and a
+ * daily or yearly rule's days by their own year, so January 1 2022 is in
+ * week 52 of a weekly rule and not of a daily one.
+ */
+describe("nextRuleDay with BYWEEKNO around the new year", () => {
+  it.each([
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYSETPOS=-1;UNTIL=20220105",
+      "2021-12-31",
+      "2022-01-02",
+    ],
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU;BYSETPOS=1;UNTIL=20220109",
+      "2021-12-28",
+      "2022-01-01",
+    ],
+    ["FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU", "2021-12-28", "2022-01-01"],
+    [
+      "FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU;UNTIL=20220109",
+      "2021-12-28",
+      "2022-01-01",
+    ],
+  ])("%j from %s", (rule, from, expected) => {
+    expect(wholeRuleTruth(rule, from)).toBe(expected);
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(expected);
+  });
+
+  // 2020 and 2026 have 53 weeks
+  const WEEK_NUMBER_SWEEP = ["WEEKLY", "DAILY"]
+    .flatMap((freq) =>
+      ["52", "53", "1", "2", "-1", "-52"].map(
+        (week) => `FREQ=${freq};BYWEEKNO=${week}`,
+      ),
+    )
+    .flatMap((rule) =>
+      ["", ";BYDAY=SA,SU", ";BYDAY=MO"].map((days) => `${rule}${days}`),
+    )
+    .flatMap((rule) =>
+      ["", ";BYSETPOS=1", ";BYSETPOS=-1"].map((pick) => `${rule}${pick}`),
+    )
+    .flatMap((rule) =>
+      ["", ";UNTIL=20210103", ";UNTIL=20220109", ";UNTIL=20270103"].map(
+        (end) => `${rule}${end}`,
+      ),
+    )
+    .flatMap((rule) => [rule, `DTSTART:20201221T000000\nRRULE:${rule}`])
+    .flatMap((rule) =>
+      [
+        "2020-12-24",
+        "2020-12-31",
+        "2021-12-28",
+        "2021-12-31",
+        "2026-12-24",
+        "2026-12-31",
+      ].map((from) => [rule, from] as const),
+    );
+
+  it.each(WEEK_NUMBER_SWEEP)("matches rrule for %j from %s", (rule, from) => {
+    expect(nextRuleDay(parse(rule), from, rule)).toBe(
+      wholeRuleTruth(rule, from),
+    );
   });
 });
 

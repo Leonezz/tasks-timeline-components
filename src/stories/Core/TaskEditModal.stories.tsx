@@ -880,7 +880,7 @@ export const RendersInPlaceWithoutAppProvider: Story = {
     appProvider: false,
     theme: "midnight",
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, step }) => {
     const wrapper = canvasElement.querySelector<HTMLElement>(
       '.tasks-timeline-app[data-theme="midnight"]',
     );
@@ -889,15 +889,55 @@ export const RendersInPlaceWithoutAppProvider: Story = {
     }
     const dialog = await findEditor(canvasElement.ownerDocument.body);
 
-    expect(wrapper.contains(dialog)).toBe(true);
-    // The consumer's midnight card, not the light one on :root
-    expect(getComputedStyle(dialog).getPropertyValue("--card")).toBe(
-      getComputedStyle(wrapper).getPropertyValue("--card"),
-    );
+    await step("The editor renders in the themed wrapper", async () => {
+      expect(wrapper.contains(dialog)).toBe(true);
+      // The consumer's midnight card, not the light one on :root
+      expect(getComputedStyle(dialog).getPropertyValue("--card")).toBe(
+        getComputedStyle(wrapper).getPropertyValue("--card"),
+      );
+    });
+
+    await step("So does a date picker's calendar, beside it", async () => {
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: /Select due date/ }),
+      );
+      const calendar = await waitFor(() => {
+        const found = wrapper.querySelector('[data-slot="calendar"]');
+        if (!found) {
+          throw new Error("No calendar has opened in the wrapper");
+        }
+        return found;
+      });
+      // The editor's transform and overflow would clip it
+      expect(dialog.contains(calendar)).toBe(false);
+      // The modal editor hides what was outside it as it opened
+      expect(calendar.closest('[aria-hidden="true"]')).toBeNull();
+      expect(getComputedStyle(calendar).getPropertyValue("--popover")).toBe(
+        getComputedStyle(wrapper).getPropertyValue("--popover"),
+      );
+    });
   },
 };
 
-// ...and inside the consumer's own shadow root
+/** The focused element, inside shadow roots too. */
+const deepFocusedElement = (): Element | null => {
+  let focused = document.activeElement;
+  while (focused?.shadowRoot?.activeElement) {
+    focused = focused.shadowRoot.activeElement;
+  }
+  return focused;
+};
+
+/** The open date picker holding focus, if focus is in one. */
+const focusedDatePicker = (): HTMLElement | null =>
+  deepFocusedElement()?.closest<HTMLElement>(
+    "[data-radix-popper-content-wrapper]",
+  ) ?? null;
+
+// ...and inside the consumer's own shadow root. Its date pickers' calendars
+// render next to it there: in document.body they had none of the shadow
+// root's styles, and the editor's focus trap, which keeps focus in the shadow
+// root, sent focus from a calendar straight back to its date field.
 export const RendersInPlaceInConsumerShadowRoot: Story = {
   args: {
     ...Default.args,
@@ -906,13 +946,65 @@ export const RendersInPlaceInConsumerShadowRoot: Story = {
     appProvider: false,
     shadowRoot: true,
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, step }) => {
     const content = await waitFor(() => storyContent(canvasElement));
+    const dialog = await findEditor(content);
+    const dueDate = within(dialog).getByRole("button", {
+      name: /Select due date/,
+    });
 
-    await findEditor(content);
-    expect(
-      canvasElement.ownerDocument.body.querySelector('[role="dialog"]'),
-    ).toBeNull();
+    await step("The editor renders in the shadow root", async () => {
+      expect(
+        canvasElement.ownerDocument.body.querySelector('[role="dialog"]'),
+      ).toBeNull();
+    });
+
+    await step(
+      "Enter on a date field moves focus to its calendar",
+      async () => {
+        dueDate.focus();
+        await userEvent.keyboard("{Enter}");
+        await waitFor(() => expect(focusedDatePicker()).not.toBeNull());
+        // The editor's focus trap sent it back to the date field
+        await delay(100);
+        expect(focusedDatePicker()).not.toBeNull();
+      },
+    );
+
+    await step("The calendar renders in the consumer's wrapper", async () => {
+      const picker = focusedDatePicker();
+      expect(content.contains(picker)).toBe(true);
+      // The editor's transform and overflow would clip it
+      expect(dialog.contains(picker)).toBe(false);
+    });
+
+    await step("The keyboard reaches the calendar's controls", async () => {
+      const picker = focusedDatePicker();
+      if (!picker) {
+        throw new Error("Focus has left the date picker");
+      }
+      // Wraps to the time field, the last control, and on to the first
+      await userEvent.tab({ shift: true });
+      await userEvent.tab();
+      expect(deepFocusedElement()).toBe(
+        within(picker).getByRole("button", { name: "Previous month" }),
+      );
+      await userEvent.keyboard("{Enter}");
+      expect(
+        within(picker).getByText(
+          DateTime.now()
+            .setLocale("en-US")
+            .minus({ months: 1 })
+            .toFormat("LLLL yyyy"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    await step("Escape closes it and returns to its date field", async () => {
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(deepFocusedElement()).toBe(dueDate));
+      expect(dialog.isConnected).toBe(true);
+    });
   },
 };
 

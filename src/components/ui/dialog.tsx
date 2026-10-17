@@ -4,9 +4,31 @@ import { X } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 import {
+  PortalContext,
   useHasPortalProvider,
   usePortalContainer,
 } from "../../hooks/usePortalContainer";
+
+/**
+ * Renders a dialog in place, and is the portal container for popovers opened
+ * over it (a date picker's calendar), as AppProvider's container is. In
+ * document.body they had none of the consumer's styles or theme, and the task
+ * editor's focus trap, which keeps focus in its shadow root, sent focus
+ * straight back out of them. Inside the dialog its transform and overflow
+ * would clip them.
+ */
+const InPlaceDialogPortal = ({ children }: { children: React.ReactNode }) => {
+  const [portalContainer, setPortalContainer] =
+    React.useState<HTMLDivElement | null>(null);
+  return (
+    // No box of its own: popovers portal in after the dialog, as its siblings
+    <div ref={setPortalContainer} style={{ display: "contents" }}>
+      <PortalContext.Provider value={{ portalContainer }}>
+        {children}
+      </PortalContext.Provider>
+    </div>
+  );
+};
 
 /**
  * Portals into the app's portal container, inside its shadow root when it has
@@ -24,7 +46,7 @@ const DialogPortal = ({
   const hasPortalProvider = useHasPortalProvider();
   if (!container && !hasPortalProvider) {
     // Overlay and Content mount and unmount themselves (Presence)
-    return <>{children}</>;
+    return <InPlaceDialogPortal>{children}</InPlaceDialogPortal>;
   }
   return (
     <DialogPrimitive.Portal container={container ?? portalContainer} {...props}>

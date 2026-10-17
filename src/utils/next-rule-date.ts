@@ -9,6 +9,7 @@ import {
 import { localCalendarDay } from "./recurrence-dates";
 import {
   asYearly,
+  asYearlySuperset,
   hasFilters,
   isSet,
   maxDaysPerWeek,
@@ -180,16 +181,13 @@ function nextDayLevelDay(
       ? utcFrame(rule, rule.utcStartDateTime, from)
       : floatingFrame(rule, from, withTimes);
 
-  // Cheap check first: a rule that skips periods, counts times of day or
-  // picks positions can only match where the plain daily or weekly rule
-  // does (whose COUNT would mean other dates). Without it, rrule scans a rule
-  // whose day filters never match to the year 9999, past any UNTIL.
-  const exact =
-    (options.interval ?? 1) === 1 && !withTimes && !isSet(options.bysetpos);
-  const yearly = asYearly(
-    exact ? options : { ...options, interval: 1, count: null, bysetpos: null },
-    frame.startDay,
-  );
+  // The rule's own days, when a yearly rule has the same dates
+  const same = withTimes ? null : asYearly(options, frame.startDay);
+  // Else a cheap check first: a rule that skips periods, counts times of day
+  // or picks positions can only match on the plain daily or weekly rule's
+  // days. Without it, rrule scans a rule whose day filters never match to
+  // the year 9999, past any UNTIL.
+  const yearly = same ?? asYearlySuperset(options, frame.startDay);
   if (yearly) {
     const candidate = new RRule({
       ...yearly,
@@ -199,7 +197,7 @@ function nextDayLevelDay(
     if (!candidate) {
       return noLaterDate(rule, from, ruleText);
     }
-    if (exact) {
+    if (same) {
       return floatingCalendarDay(candidate);
     }
   }
