@@ -241,6 +241,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     within each step (`FREQ=HOURLY;BYMINUTE=45`) count on their own day,
     which differs from the hour's in zones whose offset isn't whole hours
     (18:45 UTC is the next day in India).
+- **Weekly rules with `BYWEEKNO` skipped the days around the new year.**
+  rrule numbers a weekly rule's weeks in the year each week starts in, so
+  Saturday January 1 2022 is in week 52 of
+  `FREQ=WEEKLY;BYWEEKNO=52;BYDAY=SA,SU`; the quick yearly check numbered it in
+  2022 and went on to December 31 (or ended the rule, with an `UNTIL`).
 - **"Last day of the month" in the task editor.** The day buttons now include
   "Last day", so "every month on the last" can be shown and edited; other
   days counted from the month's end are flagged as parts the editor can't

@@ -67,7 +67,7 @@ const plainWeekdays = (value: Options["byweekday"] | undefined): Weekday[] =>
  * at a time instead of a day at a time. That keeps a rule that never matches
  * (February 30th) from taking seconds to rule out.
  */
-export function asYearly(
+function withYearlySteps(
   options: Partial<Options>,
   dtstart: Date,
 ): Partial<Options> | null {
@@ -97,6 +97,56 @@ export function asYearly(
     freq: RRule.YEARLY,
     byweekday: weekdays ?? (onStartWeekday ? [startWeekday] : ALL_WEEKDAYS),
   };
+}
+
+/**
+ * Whether a weekly rule's BYWEEKNO can pick other days than a yearly rule's.
+ * rrule numbers a weekly rule's weeks in the year each week starts in, and a
+ * yearly rule's days in their own year, where the days of last year's last
+ * week get 52 or 53, sometimes the wrong one (January 1 2022 is in week 52
+ * of a weekly rule only), and a negative number can count from the end of
+ * either year.
+ */
+const weekNumbersDiffer = (options: Partial<Options>): boolean =>
+  options.freq === RRule.WEEKLY && isSet(options.byweekno);
+
+/** A yearly rule with the same dates as a daily or weekly rule, or null. */
+export const asYearly = (
+  options: Partial<Options>,
+  dtstart: Date,
+): Partial<Options> | null =>
+  weekNumbersDiffer(options) ? null : withYearlySteps(options, dtstart);
+
+/**
+ * A yearly rule whose days include every day a daily or weekly rule's dates
+ * fall on, to rule such a rule out quickly, or null when it has no date
+ * filter. It leaves out what only picks among those days (INTERVAL, COUNT,
+ * BYSETPOS, and times of day, for which rrule would make every time of each
+ * day). A weekly rule with week 52 or 53 gets both, since a yearly rule can
+ * give last year's last week the other number (see weekNumbersDiffer); its
+ * other week numbers pick the weekly rule's days and maybe more.
+ */
+export function asYearlySuperset(
+  options: Partial<Options>,
+  dtstart: Date,
+): Partial<Options> | null {
+  const weeks = toList(options.byweekno);
+  const lastWeeks =
+    weekNumbersDiffer(options) &&
+    weeks.some((week) => week === 52 || week === 53);
+  return withYearlySteps(
+    {
+      ...options,
+      interval: 1,
+      count: null,
+      bysetpos: null,
+      byhour: null,
+      byminute: null,
+      bysecond: null,
+      ...(lastWeeks ? { byweekno: [...new Set([...weeks, 52, 53])] } : {}),
+    },
+    dtstart,
+  );
 }
 
 /**
