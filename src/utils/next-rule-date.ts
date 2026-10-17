@@ -158,10 +158,12 @@ function nextDayLevelDay(
 
   // Cheap check first: a rule that skips periods, counts times of day or
   // picks positions can only match where the plain daily or weekly rule
-  // does (whose COUNT would mean other dates)
-  const exact = (options.interval ?? 1) === 1 && !withTimes;
+  // does (whose COUNT would mean other dates). Without it, rrule scans a rule
+  // whose day filters never match to the year 9999, past any UNTIL.
+  const exact =
+    (options.interval ?? 1) === 1 && !withTimes && !isSet(options.bysetpos);
   const yearly = asYearly(
-    { ...options, interval: 1, ...(exact ? {} : { count: null }) },
+    exact ? options : { ...options, interval: 1, count: null, bysetpos: null },
     frame.startDay,
   );
   if (yearly) {
