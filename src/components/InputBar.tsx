@@ -35,7 +35,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
     [value, setValue] = useState(""),
     [isLoading, setIsLoading] = useState(false),
     // Use shared voice hook
-    { isListening, start, stop } = useVoiceInput(
+    { isListening, start, stop, unavailableMessage } = useVoiceInput(
       settings.voiceConfig,
       (text) => setValue((prev) => (prev ? `${prev} ${text}` : text)),
       onVoiceError,
@@ -226,10 +226,15 @@ export const InputBar: React.FC<InputBarProps> = () => {
                     ? "text-rose-500 bg-rose-50 animate-pulse"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
                 )}
-                title={isListening ? "Stop recording" : "Start voice input"}
+                title={
+                  isListening
+                    ? "Stop recording"
+                    : (unavailableMessage ?? "Start voice input")
+                }
                 aria-label={
                   isListening ? "Stop voice input" : "Start voice input"
                 }
+                aria-description={unavailableMessage ?? undefined}
                 aria-pressed={isListening}
               >
                 <Icon name={isListening ? "Square" : "Mic"} size={16} />

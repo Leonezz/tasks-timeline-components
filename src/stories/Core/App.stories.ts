@@ -126,6 +126,20 @@ const firstRunSettingsRepository: SettingsRepository = {
   saveSettings: async () => undefined,
 };
 
+const geminiHelloResponse = () =>
+  new Response(
+    JSON.stringify({
+      candidates: [
+        {
+          content: { role: "model", parts: [{ text: "Hello" }] },
+          finishReason: "STOP",
+          index: 0,
+        },
+      ],
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+
 /** Settings "Test Connection" in the app goes through the `aiFetch` prop. */
 export const TestConnectionWithAIFetch: Story = {
   args: {
@@ -135,21 +149,7 @@ export const TestConnectionWithAIFetch: Story = {
     onTaskDeleted: handleTaskDeleted,
     apiKey: "test-gemini-api-key",
     settingsRepository: firstRunSettingsRepository,
-    aiFetch: fn<typeof fetch>(
-      async () =>
-        new Response(
-          JSON.stringify({
-            candidates: [
-              {
-                content: { role: "model", parts: [{ text: "Hello" }] },
-                finishReason: "STOP",
-                index: 0,
-              },
-            ],
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
-    ),
+    aiFetch: fn<typeof fetch>(async () => geminiHelloResponse()),
   },
   play: async ({ args, canvasElement, step }) => {
     const canvas = withinShadow(canvasElement);
@@ -162,6 +162,53 @@ export const TestConnectionWithAIFetch: Story = {
     });
 
     await step("Test the connection through aiFetch", async () => {
+      await userEvent.click(
+        await canvas.findByRole("button", { name: /test connection/i }),
+      );
+      await expect(await canvas.findByRole("status")).toHaveTextContent(
+        'Connected to gemini-2.0-flash. Response: "Hello"',
+      );
+      await expect(args.aiFetch).toHaveBeenCalledOnce();
+    });
+  },
+};
+
+/**
+ * The app hands both host runtime props to Settings → AI: `voiceRuntime`
+ * disables the Browser voice provider, and "Test Connection" still goes
+ * through `aiFetch`.
+ */
+export const SettingsWithVoiceRuntimeAndAIFetch: Story = {
+  args: {
+    ...TestConnectionWithAIFetch.args,
+    aiFetch: fn<typeof fetch>(async () => geminiHelloResponse()),
+    voiceRuntime: { browserSpeechSupported: false },
+  },
+  play: async ({ args, canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+
+    await step("Open the AI settings", async () => {
+      await userEvent.click(
+        await canvas.findByRole("button", { name: "Open settings and docs" }),
+      );
+      await userEvent.click(await canvas.findByRole("button", { name: "AI" }));
+    });
+
+    await step("voiceRuntime disables the Browser voice provider", async () => {
+      await expect(
+        await canvas.findByRole("button", {
+          name: "Use Browser voice provider",
+        }),
+      ).toBeDisabled();
+      await expect(
+        canvas.getByText(/speech recognition isn.t available here/i),
+      ).toBeInTheDocument();
+      await expect(
+        canvas.getByRole("button", { name: "Use OpenAI voice provider" }),
+      ).toBeEnabled();
+    });
+
+    await step("Test Connection still goes through aiFetch", async () => {
       await userEvent.click(
         await canvas.findByRole("button", { name: /test connection/i }),
       );

@@ -7,6 +7,7 @@ import type {
 } from "../../types";
 import type { AIProviderFactory } from "../../providers/types";
 import { cn } from "../../utils";
+import type { VoiceRuntime } from "../../utils/voice-providers";
 import { SettingsPageGeneral } from "./SettingsPageGeneral";
 import { SettingsPageAI } from "./SettingsPageAI";
 import { SettingsPageFilters } from "./SettingsPageFilters";
@@ -30,6 +31,8 @@ interface SettingsPageProps {
   customTabs?: CustomSettingsTab[];
   /** Host-provided renderer for secret selector controls. */
   renderSecretField?: SecretFieldRenderer;
+  /** Host voice runtime; `browserSpeechSupported: false` disables the Browser voice provider. */
+  voiceRuntime?: VoiceRuntime;
   /**
    * Host provider factory for "Test Connection". Pass the same one given to
    * `TasksTimelineApp` so the test checks what the agent will use.
@@ -54,6 +57,7 @@ export const SettingsPage = ({
   inDarkMode,
   customTabs = [],
   renderSecretField,
+  voiceRuntime,
   aiProviderFactory,
   aiFetch,
 }: SettingsPageProps) => {
@@ -218,6 +222,7 @@ export const SettingsPage = ({
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             renderSecretField={renderSecretField}
+            voiceRuntime={voiceRuntime}
             aiProviderFactory={aiProviderFactory}
             aiFetch={aiFetch}
           />

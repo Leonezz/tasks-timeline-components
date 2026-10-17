@@ -48,6 +48,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
       isListening,
       start: startVoice,
       stop: stopVoice,
+      unavailableMessage: voiceUnavailableMessage,
     } = useVoiceInput(
       settings.voiceConfig,
       (text) => setNewTaskTitle((prev) => (prev ? `${prev} ${text}` : text)),
@@ -388,12 +389,17 @@ export const DaySection: React.FC<DaySectionProps> = ({
                             isListening && "text-rose-500 animate-pulse",
                           )}
                           title={
-                            isListening ? "Stop Recording" : "Start Voice Input"
+                            isListening
+                              ? "Stop Recording"
+                              : (voiceUnavailableMessage ?? "Start Voice Input")
                           }
                           aria-label={
                             isListening
                               ? "Stop voice input for new task"
                               : "Start voice input for new task"
+                          }
+                          aria-description={
+                            voiceUnavailableMessage ?? undefined
                           }
                           aria-pressed={isListening}
                         >

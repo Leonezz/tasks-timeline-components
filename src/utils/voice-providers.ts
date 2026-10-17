@@ -45,6 +45,29 @@ export interface VoiceRuntime {
    * to avoid browser CORS restrictions for OpenAI/Gemini transcription calls.
    */
   request?: (request: VoiceRuntimeRequest) => Promise<VoiceRuntimeResponse>;
+  /**
+   * Whether browser speech recognition (Web Speech API) works in this host.
+   * Leave unset to detect support from the window. Set to `false` when the host
+   * exposes `SpeechRecognition` without a speech service behind it (for example
+   * some Electron apps): the Browser provider then reports itself unavailable,
+   * the settings UI disables it, and the voice button asks the user to choose
+   * OpenAI or Gemini instead of starting and failing.
+   */
+  browserSpeechSupported?: boolean;
+}
+
+/**
+ * Shown when browser speech recognition can't be used: the host set
+ * `VoiceRuntime.browserSpeechSupported` to `false`, or recognition failed with
+ * the Web Speech `network` error. It doesn't blame the connection, because in
+ * embedded hosts that error means there is no speech service at all.
+ */
+export const BROWSER_SPEECH_UNAVAILABLE_MESSAGE =
+  "Browser speech recognition isn't available here. Choose OpenAI or Gemini as the voice provider in Settings → AI.";
+
+/** True only when the host explicitly declared browser speech unsupported. */
+export function isBrowserSpeechDisabledByHost(runtime?: VoiceRuntime): boolean {
+  return runtime?.browserSpeechSupported === false;
 }
 
 /**
@@ -221,6 +244,9 @@ export class BrowserVoiceProvider implements IVoiceProvider {
   }
 
   isAvailable(): boolean {
+    if (isBrowserSpeechDisabledByHost(this.runtime)) {
+      return false;
+    }
     const win = getRuntimeWindow(this.runtime) as
       | WindowWithSpeech
       | undefined;
@@ -233,6 +259,15 @@ export class BrowserVoiceProvider implements IVoiceProvider {
     onError: (error: VoiceInputError) => void,
     onEnd?: () => void,
   ): () => void {
+    if (isBrowserSpeechDisabledByHost(this.runtime)) {
+      onError({
+        code: "not-supported",
+        message: BROWSER_SPEECH_UNAVAILABLE_MESSAGE,
+      });
+      onEnd?.();
+      return () => {};
+    }
+
     const win = getRuntimeWindow(this.runtime) as
       | WindowWithSpeech
       | undefined;
@@ -299,8 +334,7 @@ export class BrowserVoiceProvider implements IVoiceProvider {
         } else if (errorCode === "network") {
           onError({
             code: "network",
-            message:
-              "Network error. Browser voice input requires internet connection.",
+            message: BROWSER_SPEECH_UNAVAILABLE_MESSAGE,
           });
         } else {
           onError({
