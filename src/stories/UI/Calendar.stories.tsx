@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import React, { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DateTime } from "luxon";
+import { AppProvider } from "../../components/AppContext";
 import { Calendar } from "../../components/ui/calendar";
+import { contrastRatio, expectReadable } from "../test-utils";
 
 const meta: Meta<typeof Calendar> = {
   title: "UI/Calendar",
@@ -10,12 +12,8 @@ const meta: Meta<typeof Calendar> = {
   parameters: {
     layout: "centered",
     // axe fails these stories if the grid's roles don't nest as they must
-    // (grid, row, gridcell). The calendar's colours (outside-month days,
-    // today, the selected day) fail contrast, which is a separate fix.
-    a11y: {
-      test: "error",
-      config: { rules: [{ id: "color-contrast", enabled: false }] },
-    },
+    // (grid, row, gridcell), or if a day's text fails contrast
+    a11y: { test: "error" },
   },
   tags: ["autodocs"],
 };
@@ -241,3 +239,112 @@ export const GridSemantics: Story = {
     }
   },
 };
+
+/** The day a gridcell names. */
+const dateOf = (day: HTMLElement) =>
+  DateTime.fromFormat(
+    day.getAttribute("aria-label") ?? "",
+    "cccc, LLLL d, yyyy",
+    { locale: "en-US" },
+  );
+
+/** A day of this month other than today. */
+const notToday = () => {
+  const today = DateTime.now().startOf("day");
+  return today.set({ day: today.day === 1 ? 2 : 1 });
+};
+
+/**
+ * This month in `theme`, with another day than today selected, so today
+ * shows its own indicator.
+ */
+const themedCalendarStory = (theme: string): Story => ({
+  render: (args) => (
+    <SelectingCalendar {...args} selected={notToday().toJSDate()} />
+  ),
+  args: {
+    mode: "single",
+  },
+  decorators: [
+    (Story) => (
+      <AppProvider theme={theme}>
+        <Story />
+      </AppProvider>
+    ),
+  ],
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    const today = DateTime.now();
+    const days = () => canvas.getAllByRole("gridcell");
+    const inThisMonth = (day: HTMLElement) =>
+      dateOf(day).hasSame(today, "month");
+    // A day of this month that is neither today nor selected
+    const plainDay = days().find(
+      (day) =>
+        inThisMonth(day) &&
+        !dateOf(day).hasSame(today, "day") &&
+        day.getAttribute("aria-selected") !== "true",
+    );
+    if (!plainDay) {
+      throw new Error("No day of the month is neither today nor selected");
+    }
+    const plainContrast = contrastRatio(plainDay);
+
+    await step("Days of the month meet WCAG AA (4.5:1)", async () => {
+      await expectReadable(plainDay);
+    });
+
+    await step("Today meets AA", async () => {
+      await expectReadable(
+        canvas.getByRole("gridcell", { name: dayName(today) }),
+      );
+    });
+
+    await step("The selected day meets AA", async () => {
+      const selected = canvas.getByRole("gridcell", {
+        name: dayName(notToday()),
+      });
+      expect(selected).toHaveAttribute("aria-selected", "true");
+      await expectReadable(selected);
+    });
+
+    await step("Days of other months are muted but meet AA", async () => {
+      // Only a 28-day February that starts on a Sunday shows none: then
+      // check the next month's
+      const noneShown = days().every(inThisMonth);
+      if (noneShown) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Next month" }),
+        );
+      }
+      const shown = noneShown ? today.plus({ months: 1 }) : today;
+      const otherMonthDay = days().find(
+        (day) => !dateOf(day).hasSame(shown, "month"),
+      );
+      if (!otherMonthDay) {
+        throw new Error(`No day outside ${monthName(shown)} is shown`);
+      }
+      await expectReadable(otherMonthDay);
+      // Muted: less contrast than a plain day of the month
+      expect(contrastRatio(otherMonthDay)).toBeLessThan(plainContrast);
+      if (noneShown) {
+        // axe, which runs next, checks this month
+        await userEvent.click(
+          canvas.getByRole("button", { name: "Previous month" }),
+        );
+      }
+    });
+
+    await step("Weekday names and the Today button meet AA", async () => {
+      for (const weekday of canvas.getAllByRole("columnheader")) {
+        await expectReadable(weekday);
+      }
+      await expectReadable(canvas.getByRole("button", { name: "Today" }));
+    });
+  },
+});
+
+export const LightTheme: Story = themedCalendarStory("light");
+export const DarkTheme: Story = themedCalendarStory("dark");
+export const MidnightTheme: Story = themedCalendarStory("midnight");
+export const CoffeeTheme: Story = themedCalendarStory("coffee");
