@@ -128,11 +128,15 @@ const ruleValue = (value: string): string => {
   return THROUGH_WHEN_DONE.exec(rule)?.[0] ?? rule;
 };
 
-/** The field written at `index` of `text`, or null. */
+/**
+ * The field written at `index` of `text`, or null. `readEnd` is where the
+ * characters its pattern read end: after a rule, past the spaces and the
+ * words after "when done" that are not part of it.
+ */
 export function matchFieldAt(
   text: string,
   index: number,
-): { field: FieldText; end: number } | null {
+): { field: FieldText; end: number; readEnd: number } | null {
   for (const [key, pattern] of Object.entries(PATTERNS)) {
     pattern.lastIndex = index;
     const match = pattern.exec(text);
@@ -148,7 +152,11 @@ export function matchFieldAt(
       return null;
     }
     const field = { key: key as TasksFieldKey, symbol, gap, value };
-    return { field, end: index + fieldText(field).length };
+    return {
+      field,
+      end: index + fieldText(field).length,
+      readEnd: index + match[0].length,
+    };
   }
   return null;
 }

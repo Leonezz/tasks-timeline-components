@@ -1,7 +1,7 @@
 import type { Tag } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { generateTimestampId, getTodayISO } from "../../utils/date-helpers";
-import { deriveWorkflowStatus } from "../../utils/task";
+import { deriveWorkflowStatus, withStatusDates } from "../../utils/task";
 import {
   earliestEndDate,
   readRecurrenceArgument,
@@ -149,7 +149,10 @@ export function createUpdateTaskTool(ctx: CapabilityContext): ToolSpec {
       }
 
       // Apply updates immutably
-      const merged = { ...existingTask, ...fieldUpdates };
+      const merged = withStatusDates(existingTask, {
+        ...existingTask,
+        ...fieldUpdates,
+      });
 
       const finalTask = { ...merged, status: deriveWorkflowStatus(merged) };
 

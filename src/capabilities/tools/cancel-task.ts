@@ -1,6 +1,7 @@
 import type { Task } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
 import { getNowISO } from "../../utils/date-helpers";
+import { deriveWorkflowStatus, withStatusDates } from "../../utils/task";
 
 export function createCancelTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -29,11 +30,16 @@ export function createCancelTaskTool(ctx: CapabilityContext): ToolSpec {
         };
       }
 
-      const cancelledTask: Task = {
+      // A task that is already cancelled keeps the date it was cancelled on
+      const alreadyCancelled =
+        deriveWorkflowStatus(existingTask) === "cancelled";
+      const cancelledTask: Task = withStatusDates(existingTask, {
         ...existingTask,
         status: "cancelled",
-        cancelledAt: getNowISO(),
-      };
+        cancelledAt:
+          (alreadyCancelled ? existingTask.cancelledAt : undefined) ??
+          getNowISO(),
+      });
 
       await ctx.updateTask(cancelledTask);
       ctx.notify?.("info", `Cancelled task: ${existingTask.title}`);

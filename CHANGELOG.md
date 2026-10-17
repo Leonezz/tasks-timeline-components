@@ -52,6 +52,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A 🔁 that runs into other text was read as a rule, and edits split the
+  text.** The rule characters stop at `:`, `'`, `/`, `—` or a non-ASCII
+  letter, and the parser took what came before as the rule:
+  `🔁 every month https://billing.example.com` had the rule
+  `every month https` and the notes `://billing.example.com`. Completing the
+  task wrote `🔁 every month https ✅ 2026-10-18 ://billing.example.com`,
+  un-completing it left `https ://…`, a rule change dropped `https`, and the
+  next occurrence got the broken notes. Now, as in Obsidian Tasks, a 🔁 whose
+  rule runs straight into other text is not a rule: `🔁 every day at 9:30`,
+  `🔁 every week don't forget`, `🔁 every week—see notes`,
+  `🔁 every week's chores`, `🔁 every week.` and `🔁 every week마다` stay in
+  the title as written, and the task does not recur (no **Recurring** badge;
+  `complete_task` completes it without a next occurrence). Edits keep that
+  text byte for byte.
+  - A rule followed by whitespace, the end of the line, another field (also
+    written right against it, `🔁 every week📅 2026-10-16`) or a tag is read
+    as before, as are notes after whitespace
+    (`🔁 every week when done see [[Garden]]`).
+  - `taskToMarkdown` never adds a field between a field and text written
+    right after it (`📅 2026-10-16, then lunch`); the field goes before
+    another field or at the end instead.
+- **Reopening a task left its ❌ or ✅ date on the line.** A task cancelled
+  and then set back to todo was written as `- [ ] Task ❌ 2026-10-17`, and a
+  done task reopened kept its `✅` date. Status changes in the timeline and in
+  `update_task`, `batch_update_tasks`, `complete_task` and `cancel_task` now
+  keep `completedAt` only while a task is done and `cancelledAt` only while it
+  is cancelled, as Obsidian Tasks does. A done task that is cancelled loses
+  its done date, and the reverse. A change that keeps the status keeps both
+  dates, and `cancel_task` on a task that is already cancelled keeps its ❌
+  date instead of setting it to today.
 - **Obsidian recurring tasks were not treated as recurring.** The Obsidian
   Tasks parser set `recurringInterval` (`🔁 every week`) but not
   `isRecurring`, so `complete_task` created no next occurrence, the

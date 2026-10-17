@@ -171,16 +171,23 @@ function withoutMisread(
   };
 }
 
+/** Text written right after the part before it ("📅 2026-10-16, then lunch"). */
+const isGluedText = (part: TailPart | undefined): boolean =>
+  part?.kind === "text" && part.lead === "";
+
 /**
  * Where new fields may go, best first: after the last field, before a field
- * (the last one first), at the end.
+ * (the last one first), at the end. Never right before glued text: a field
+ * there would split it from what it is written against.
  */
 function positions(parts: readonly TailPart[]): number[] {
   const fieldIndexes = parts.flatMap((part, index) =>
     isField(part) ? [index] : [],
   );
   const last = fieldIndexes[fieldIndexes.length - 1] ?? -1;
-  return [...new Set([last + 1, ...[...fieldIndexes].reverse(), parts.length])];
+  return [
+    ...new Set([last + 1, ...[...fieldIndexes].reverse(), parts.length]),
+  ].filter((at) => !isGluedText(parts[at]));
 }
 
 /**

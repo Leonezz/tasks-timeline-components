@@ -104,6 +104,7 @@ describe("an edit next to notes reads back as the edit", () => {
     "- [ ] Call Bob 📅 2026-10-16 #work about the plan",
     "- [ ] Call Bob 🛫 2026-10-01 notes 📅 2026-10-16 more notes",
     "- [ ] Call mom 📅 2026-10-16 ⏰ 2026-10-16 09:00 about birthday",
+    "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
   ];
   const EDITS: Partial<Task>[] = [
     { priority: "high" },
@@ -132,6 +133,32 @@ describe("an edit next to notes reads back as the edit", () => {
       );
     },
   );
+
+  /** Lines with text right after a field or a 🔁, and that text as it must stay. */
+  const GLUED_LINES = [
+    [
+      "- [ ] Pay bill 🔁 every month https://billing.example.com",
+      "https://billing.example.com",
+    ],
+    ["- [ ] Standup 🔁 every day at 9:30", "9:30"],
+    ["- [ ] Water plants 🔁 every week don't forget", "don't forget"],
+    ["- [ ] Call Bob 📅 2026-10-16, then lunch", "2026-10-16, then lunch"],
+  ];
+
+  it.each(
+    GLUED_LINES.flatMap(([line, text]) =>
+      [
+        ...EDITS,
+        { status: "done", completedAt: "2026-10-18" } as Partial<Task>,
+      ].map((edit) => [line, edit, text]),
+    ),
+  )("%j with %j keeps %j whole", (line, edit, text) => {
+    const task = { ...parseLine(line as string), ...(edit as Partial<Task>) };
+    const written = taskToMarkdown(task, line as string);
+
+    expect(written).toContain(text as string);
+    expect(meaning(parseLine(written))).toEqual(meaning(task));
+  });
 });
 
 describe("a 🔁 rule never takes in the notes after it", () => {
@@ -352,11 +379,7 @@ describe("the next occurrence complete_task adds", () => {
     const { result } = await createCompleteTaskTool(ctx).execute({
       id: "note.md:0:0",
     });
-    expect(result).toMatchObject({
-      success: true,
-      createdNextOccurrence: true,
-    });
-    return written;
+    return { result, written };
   };
 
   it.each([
@@ -370,6 +393,12 @@ describe("the next occurrence complete_task adds", () => {
       "- [x] Call Bob 🔁 every week 📅 2026-10-16 ✅ 2026-10-17 about the plan",
       "- [ ] Call Bob 🔁 every week 📅 2026-10-23 ➕ 2026-10-17 about the plan",
     ],
+    // A link in the notes stays whole, and the new rule stays apart from it
+    [
+      "- [ ] Pay bill 🔁 every month 📅 2026-10-16 https://billing.example.com",
+      "- [x] Pay bill 🔁 every month 📅 2026-10-16 ✅ 2026-10-17 https://billing.example.com",
+      "- [ ] Pay bill 🔁 every month 📅 2026-11-16 ➕ 2026-10-17 https://billing.example.com",
+    ],
     [
       "- [ ] ⛔ Don't touch prod 🔁 every week 📅 2026-10-16",
       "- [x] ⛔ Don't touch prod 🔁 every week 📅 2026-10-16 ✅ 2026-10-17",
@@ -382,6 +411,32 @@ describe("the next occurrence complete_task adds", () => {
       "- [ ] Call Bob 📅 2026-10-23 ➕ 2026-10-17 🔁 every week",
     ],
   ])("of %j keeps its text", async (line, updated, added) => {
-    expect(await complete(line)).toEqual({ updated, added });
+    const { result, written } = await complete(line);
+
+    expect(result).toMatchObject({
+      success: true,
+      createdNextOccurrence: true,
+    });
+    expect(written).toEqual({ updated, added });
+  });
+
+  // Obsidian Tasks does not read a 🔁 that runs into other text as a rule
+  it.each([
+    [
+      "- [ ] Water plants 📅 2026-10-10 🔁 every week when done—check soil",
+      "- [x] Water plants 📅 2026-10-10 ✅ 2026-10-17 🔁 every week when done—check soil",
+    ],
+    [
+      "- [ ] Standup 🔁 every day at 9:30",
+      "- [x] Standup 🔁 every day at 9:30 ✅ 2026-10-17",
+    ],
+  ])("completes %j as a task that does not recur", async (line, updated) => {
+    const { result, written } = await complete(line);
+
+    expect(result).toMatchObject({
+      success: true,
+      createdNextOccurrence: false,
+    });
+    expect(written).toEqual({ updated });
   });
 });

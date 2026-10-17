@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import React, { useState } from "react";
-import { expect, spyOn, userEvent, within } from "storybook/test";
+import { expect, fn, spyOn, userEvent, within } from "storybook/test";
 import { delay, expectReadable, withinShadow } from "../test-utils";
 import { TaskItem } from "../../components/TaskItem";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
@@ -202,11 +202,21 @@ export const VeryLongTitle: Story = {
 };
 
 /** Keeps the task in state so removals show up in the rendered item. */
-const StatefulTaskItem = ({ task: initialTask }: { task: Task }) => {
+const StatefulTaskItem = ({
+  task: initialTask,
+  onUpdate,
+}: {
+  task: Task;
+  onUpdate?: (task: Task) => void;
+}) => {
   const [task, setTask] = useState(initialTask),
-    tasksContext = useTasksContext();
+    tasksContext = useTasksContext(),
+    onUpdateTask = (updated: Task) => {
+      onUpdate?.(updated);
+      setTask(updated);
+    };
   return (
-    <TasksProvider value={{ ...tasksContext, onUpdateTask: setTask }}>
+    <TasksProvider value={{ ...tasksContext, onUpdateTask }}>
       <TaskItem task={task} />
     </TasksProvider>
   );
@@ -624,6 +634,53 @@ export const StatusTransitionToCancelled: Story = {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const cancelledOption = canvas.getByText(/^cancelled$/i);
       await userEvent.click(cancelledOption);
+    });
+  },
+};
+
+const reopenUpdates = fn();
+
+export const StatusTransitionReopensCancelled: Story = {
+  args: {
+    task: taskBuilder.cancelled({
+      id: "cancelled-for-reopen-test",
+      title: "Cancelled task to reopen",
+      cancelledAt: DateTime.now().toISO() ?? undefined,
+    }),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Reopening a cancelled task clears its cancelledAt date, as Obsidian Tasks does, so its task line loses the ❌ date.",
+      },
+    },
+  },
+  render: (args) => (
+    <StatefulTaskItem task={args.task} onUpdate={reopenUpdates} />
+  ),
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement);
+    reopenUpdates.mockClear();
+
+    await step("Open status popover", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /Change Status/i }),
+      );
+    });
+
+    await step("Select Todo status", async () => {
+      await delay(300);
+      await userEvent.click(
+        canvas.getByRole("button", { name: /status to todo$/ }),
+      );
+    });
+
+    await step("The reopened task has no cancelled date", async () => {
+      expect(reopenUpdates).toHaveBeenCalledOnce();
+      const [reopened] = reopenUpdates.mock.calls[0] as [Task];
+      expect(reopened.status).toBe("todo");
+      expect(reopened.cancelledAt).toBeUndefined();
     });
   },
 };

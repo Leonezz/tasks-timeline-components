@@ -6,7 +6,11 @@ import {
   getTodayISO,
 } from "../../utils/date-helpers";
 import { nextOccurrence } from "../../utils/next-occurrence";
-import { deriveWorkflowStatus, isTaskRecurring } from "../../utils/task";
+import {
+  deriveWorkflowStatus,
+  isTaskRecurring,
+  withStatusDates,
+} from "../../utils/task";
 
 export function createCompleteTaskTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -71,11 +75,11 @@ export function createCompleteTaskTool(ctx: CapabilityContext): ToolSpec {
       }
 
       const now = getNowISO();
-      const completedTask: Task = {
+      const completedTask: Task = withStatusDates(existingTask, {
         ...existingTask,
         status: "done",
         completedAt: now,
-      };
+      });
 
       await ctx.updateTask(completedTask);
 

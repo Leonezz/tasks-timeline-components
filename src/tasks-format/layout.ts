@@ -96,7 +96,8 @@ type Token =
 /**
  * The field or reminder written at `index`, or null. A reminder, and a
  * field in RUN_ONLY_FIELDS, counts only when the fields go on after it
- * ("Call mom ⏰ 2026-10-16 09:00 about her birthday" is one sentence).
+ * ("Call mom ⏰ 2026-10-16 09:00 about her birthday" is one sentence). A 🔁
+ * rule counts only when it stands apart from the text after it.
  */
 function tokenAt(text: string, index: number): Token | null {
   const codePoint = text.codePointAt(index) ?? 0;
@@ -113,11 +114,29 @@ function tokenAt(text: string, index: number): Token | null {
   const match = matchFieldAt(text, index);
   if (
     !match ||
-    (RUN_ONLY_FIELDS.has(match.field.key) && !endsFieldRun(text, match.end))
+    (RUN_ONLY_FIELDS.has(match.field.key) && !endsFieldRun(text, match.end)) ||
+    (match.field.key === "recurrence" && !standsApart(text, match.readEnd))
   ) {
     return null;
   }
-  return { kind: "field", ...match };
+  return { kind: "field", field: match.field, end: match.end };
+}
+
+/**
+ * Whether the rule characters that end at `end` stand apart from the text
+ * after them: they end at whitespace, at the end of the text or at the next
+ * field, where Obsidian Tasks reads a rule once it takes the fields after
+ * it off the line. A 🔁 whose rule runs straight into other text ("🔁 every
+ * day at 9:30", "🔁 every week—see notes") is text, and the task does not
+ * recur, as in Obsidian Tasks.
+ */
+function standsApart(text: string, end: number): boolean {
+  return (
+    end >= text.length ||
+    SPACE.test(text[end]) ||
+    SPACE.test(text[end - 1]) ||
+    tokenAt(text, end) !== null
+  );
 }
 
 /**
