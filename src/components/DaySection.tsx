@@ -6,8 +6,7 @@ import { TaskChunkList } from "./TaskChunkList";
 import { Icon } from "./Icon";
 import { cn, deriveTaskRenderState, formatRelativeDate } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
-import { useTasksContext } from "../contexts/TasksContext";
-import { useSettingsContext } from "../contexts/SettingsContext";
+import { useTimelineSectionContext } from "../contexts/TimelineSectionContext";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 
 interface DaySectionProps {
@@ -22,8 +21,15 @@ export const DaySection: React.FC<DaySectionProps> = ({
   lazy = true,
   addTaskButtonRef,
 }) => {
-  const { onAddTask, onAICommand, availableCategories } = useTasksContext(),
-    { settings, isAiMode, onVoiceError, voiceRuntime } = useSettingsContext(),
+  const {
+      onAddTask,
+      onAICommand,
+      availableCategories,
+      settings,
+      isAiMode,
+      onVoiceError,
+      voiceRuntime,
+    } = useTimelineSectionContext(),
     [isOpen, setIsOpen] = useState(true),
     [isAdding, setIsAdding] = useState(false),
     [newTaskTitle, setNewTaskTitle] = useState(""),

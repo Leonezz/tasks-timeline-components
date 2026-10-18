@@ -8,6 +8,7 @@ import React, {
   useRef,
 } from "react";
 import type { AppSettings, Task } from "../types";
+import { useStableArray } from "../hooks/useStableArray";
 import { SettingsContext, TasksContext } from "./context-objects";
 import type { TasksContextType } from "./TasksContext";
 
@@ -75,7 +76,9 @@ export function TaskRowBridge({ children }: { children: ReactNode }) {
     hasTasksContext = tasksContext !== undefined,
     hasEditTask = Boolean(tasksContext?.onEditTask),
     hasItemClick = Boolean(tasksContext?.onItemClick),
-    availableCategories = tasksContext?.availableCategories,
+    // Rebuilt from the tasks on every change; keep it while its items match
+    stableCategories = useStableArray(tasksContext?.availableCategories ?? []),
+    availableCategories = tasksContext ? stableCategories : undefined,
     renderTitle = tasksContext?.renderTitle,
     value = useMemo<TaskRowContextType | undefined>(
       () =>

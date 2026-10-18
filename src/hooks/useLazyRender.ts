@@ -33,7 +33,7 @@ interface UseLazyRenderResult {
   placeholderHeight: number;
 }
 
-const ESTIMATED_ITEM_HEIGHT = 52;
+export const ESTIMATED_ITEM_HEIGHT = 52;
 const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 
 /**

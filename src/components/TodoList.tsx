@@ -4,6 +4,7 @@ import { partitionTimeline } from "../utils/timeline";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
 import { BacklogSection } from "./BacklogSection";
+import { FrozenSubtree } from "./FrozenSubtree";
 import { Icon } from "./Icon";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
@@ -60,19 +61,24 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
       </div>
 
       {/* Timeline and backlog: hidden, not unmounted, in focus mode, so
-          leaving it shows them at once with their open/closed state intact */}
+          leaving it shows them at once with their open/closed state intact.
+          Frozen meanwhile, so changes while hidden do not render them;
+          leaving focus mode renders every section once, and each lazy list
+          checks what is in view before that frame paints. */}
       <div hidden={isFocusMode} data-timeline-body="">
-        {otherYearGroups.map((group) => (
-          <YearSection key={group.year} group={group} />
-        ))}
+        <FrozenSubtree frozen={isFocusMode}>
+          {otherYearGroups.map((group) => (
+            <YearSection key={group.year} group={group} />
+          ))}
 
-        {backlogTasks.length > 0 && (
-          <BacklogSection
-            tasks={backlogTasks}
-            open={isBacklogOpen}
-            onOpenChange={setIsBacklogOpen}
-          />
-        )}
+          {backlogTasks.length > 0 && (
+            <BacklogSection
+              tasks={backlogTasks}
+              open={isBacklogOpen}
+              onOpenChange={setIsBacklogOpen}
+            />
+          )}
+        </FrozenSubtree>
       </div>
 
       {isFocusMode && backlogTasks.length > 0 && (

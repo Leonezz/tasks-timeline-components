@@ -31,7 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   expands it; the choice lasts until the timeline is closed.
 - **No blank period after turning focus mode off.** Focus mode now hides the
   timeline instead of unmounting it, so it comes back at once with every
-  section open or closed as before. Sections in view render their rows before
+  section open or closed as before. While hidden the timeline is frozen:
+  stat cards, filters and task updates in focus mode still render only
+  Today, and leaving focus mode renders the timeline once with the changes
+  made meanwhile. Sections in view render their rows before
   the first paint (no placeholder frame, no fade-in, no chevrons swinging back
   from "collapsed"), collapsed sections reserve no space, and lazy rendering
   measures against the scroll container the timeline sits in (Obsidian's
@@ -40,11 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the backlog expanded and in view, a filter change went from 0.35-0.77 s
   to 15-75 ms from click to paint, and React's render work from 190-370 ms to
   5-18 ms (production React 18 build; with the backlog collapsed, the new
-  default, 10-61 ms and 4-15 ms). The backlog
-  renders its rows in chunks of 25 that mount only near the viewport, rows no
-  longer re-render when a filter changes unless their task changed, rows no
-  longer use framer-motion, and titles without Markdown syntax skip the
-  Markdown parser.
+  default, 10-61 ms and 4-15 ms). The backlog renders its rows in chunks of
+  25 that mount only near the viewport (a row that moves into another chunk,
+  because a task above it was added or removed, keeps its state: an inline
+  title edit, an open popover, focus). Rows no longer re-render when a filter
+  changes or another task changes, unless their own task changed; year, day
+  and backlog sections no longer re-render on every context change either.
+  Rows no longer use framer-motion, and titles without Markdown syntax skip
+  the Markdown parser.
 
 ### Changed
 

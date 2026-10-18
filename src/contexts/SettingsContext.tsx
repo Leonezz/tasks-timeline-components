@@ -3,6 +3,7 @@ import type { AppSettings, FilterState, SortState } from "../types";
 import type { VoiceRuntime } from "../utils/voice-providers";
 import { SettingsContext } from "./context-objects";
 import { TaskRowBridge } from "./TaskRowContext";
+import { TimelineSectionBridge } from "./TimelineSectionContext";
 
 /* eslint-disable react-refresh/only-export-components */
 export interface SettingsContextType {
@@ -43,8 +44,10 @@ export function SettingsProvider({
 }) {
   return (
     <SettingsContext.Provider value={value}>
-      {/* Task rows read a narrower, stable context (see TaskRowContext) */}
-      <TaskRowBridge>{children}</TaskRowBridge>
+      {/* Rows and sections read narrower, stable contexts */}
+      <TaskRowBridge>
+        <TimelineSectionBridge>{children}</TimelineSectionBridge>
+      </TaskRowBridge>
     </SettingsContext.Provider>
   );
 }

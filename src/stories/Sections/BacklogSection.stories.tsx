@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { useEffect, useMemo, useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { BacklogSection } from "../../components/BacklogSection";
 import type { FilterState, SortState, Task, AppSettings } from "../../types";
 import { SettingsProvider } from "../../contexts/SettingsContext";
-import { TasksProvider } from "../../contexts/TasksContext";
+import { TasksProvider, useTasksContext } from "../../contexts/TasksContext";
 import { edgeCaseTasks, settingsBuilder, taskBuilder } from "../fixtures";
 import { DateTime } from "luxon";
 import { delay } from "../test-utils";
@@ -456,5 +456,114 @@ export const TaskInteractions: Story = {
       expect(task1).toBeInTheDocument();
       expect(task2).toBeInTheDocument();
     });
+  },
+};
+
+// ========================================
+// Rows keep their state when the list shifts
+// ========================================
+
+const REMOVE_TASK_EVENT = "backlog-story:remove-task";
+
+const SHIFT_TASKS: Task[] = Array.from({ length: 30 }, (_, i) =>
+  createUndatedTask({ id: `r${i}`, title: `Undated ${i + 1}` }),
+);
+
+// Owns the tasks like a host: the play function removes one through an event,
+// as a vault reload or a sync would, without touching the focused input.
+const ShiftingBacklog = ({ lazy }: { lazy: boolean }) => {
+  const outer = useTasksContext(),
+    [tasks, setTasks] = useState(SHIFT_TASKS);
+
+  useEffect(() => {
+    const remove = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      setTasks((prev) => prev.filter((task) => task.id !== id));
+    };
+    window.addEventListener(REMOVE_TASK_EVENT, remove);
+    return () => window.removeEventListener(REMOVE_TASK_EVENT, remove);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      ...outer,
+      tasks,
+      onUpdateTask: (task: Task) =>
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t))),
+    }),
+    [outer, tasks],
+  );
+
+  return (
+    <TasksProvider value={value}>
+      <BacklogSection tasks={tasks} lazy={lazy} defaultOpen />
+    </TasksProvider>
+  );
+};
+
+const expectEditSurvivesShift = async (canvasElement: HTMLElement) => {
+  const canvas = within(canvasElement);
+  // Row 26 is the first row of the second chunk of 25
+  const editButton = await waitFor(
+    () => canvas.getByRole("button", { name: "Edit Undated 26" }),
+    { timeout: 3000 },
+  );
+  await userEvent.click(editButton);
+  const input = canvas.getByRole<HTMLInputElement>("textbox", {
+    name: "Edit title for Undated 26",
+  });
+  await userEvent.type(input, " EDITED");
+  expect(input).toHaveFocus();
+
+  // A task above it disappears: row 26 moves into the first chunk
+  window.dispatchEvent(new CustomEvent(REMOVE_TASK_EVENT, { detail: "r0" }));
+  await waitFor(() =>
+    expect(
+      canvas.queryByRole("button", { name: "Edit task title: Undated 1" }),
+    ).toBeNull(),
+  );
+  await delay(400);
+
+  // The same input, with the typed text and the focus
+  expect(input.isConnected).toBe(true);
+  expect(input).toHaveValue("Undated 26 EDITED");
+  expect(input).toHaveFocus();
+
+  // And it still saves
+  await userEvent.keyboard("{Enter}");
+  await waitFor(() =>
+    expect(
+      canvas.getByRole("button", {
+        name: "Edit task title: Undated 26 EDITED",
+      }),
+    ).toBeInTheDocument(),
+  );
+};
+
+/**
+ * An inline title edit survives a row moving into another chunk of 25 (here
+ * a task above it disappears while the user is typing).
+ */
+export const EditSurvivesChunkShift: Story = {
+  args: { tasks: [] },
+  render: () => <ShiftingBacklog lazy={false} />,
+  play: async ({ canvasElement }) => expectEditSurvivesShift(canvasElement),
+};
+
+/** The same with lazy chunks, as the timeline renders the backlog. */
+export const EditSurvivesChunkShiftLazy: Story = {
+  args: { tasks: [] },
+  render: () => <ShiftingBacklog lazy />,
+  play: async ({ canvasElement }) => {
+    // Bring the end of the list into view so the second chunk mounts
+    await waitFor(() =>
+      expect(
+        within(canvasElement).getByRole("button", {
+          name: /^Collapse backlog/,
+        }),
+      ).toBeInTheDocument(),
+    );
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await expectEditSurvivesShift(canvasElement);
   },
 };

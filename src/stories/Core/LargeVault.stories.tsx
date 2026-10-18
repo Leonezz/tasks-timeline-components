@@ -2,6 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import React, { Profiler, useEffect, useState } from "react";
 import { expect, waitFor } from "storybook/test";
 import { TasksTimelineApp } from "../../TasksTimelineApp";
+import { BacklogSection } from "../../components/BacklogSection";
+import { DaySection } from "../../components/DaySection";
+import { YearSection } from "../../components/YearSection";
 import { DEFAULT_SETTINGS } from "../../defaultSettings";
 import type { SettingsRepository, Task } from "../../types";
 import { getTodayISO } from "../../utils/date-helpers";
@@ -88,11 +91,23 @@ interface VaultPaneProps {
   loadTasksLater?: boolean;
 }
 
+/** Changes a task in the host's state, as a vault edit or a sync would. */
+const UPDATE_TASK_EVENT = "large-vault:update-task";
+
+const updateHostTask = (patch: Partial<Task> & { id: string }) =>
+  window.dispatchEvent(new CustomEvent(UPDATE_TASK_EVENT, { detail: patch }));
+
 const VaultPane: React.FC<VaultPaneProps> = ({
   startInFocusMode = false,
   loadTasksLater = false,
 }) => {
-  const [tasks, setTasks] = useState<Task[]>(loadTasksLater ? [] : TASKS);
+  const [tasks, setTasks] = useState<Task[]>(loadTasksLater ? [] : TASKS),
+    applyPatch = (patch: Partial<Task> & { id: string }) =>
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === patch.id ? { ...task, ...patch } : task,
+        ),
+      );
   useEffect(() => {
     if (!loadTasksLater) {
       return;
@@ -100,6 +115,12 @@ const VaultPane: React.FC<VaultPaneProps> = ({
     const timer = setTimeout(() => setTasks(TASKS), 500);
     return () => clearTimeout(timer);
   }, [loadTasksLater]);
+  useEffect(() => {
+    const onUpdate = (event: Event) =>
+      applyPatch((event as CustomEvent<Partial<Task> & { id: string }>).detail);
+    window.addEventListener(UPDATE_TASK_EVENT, onUpdate);
+    return () => window.removeEventListener(UPDATE_TASK_EVENT, onUpdate);
+  }, []);
 
   return (
     <div
@@ -110,7 +131,7 @@ const VaultPane: React.FC<VaultPaneProps> = ({
         <TasksTimelineApp
           tasks={tasks}
           onTaskAdded={() => undefined}
-          onTaskUpdated={() => undefined}
+          onTaskUpdated={(task) => applyPatch(task)}
           onTaskDeleted={() => undefined}
           settingsRepository={
             startInFocusMode ? REPOSITORIES.focus : REPOSITORIES.timeline
@@ -362,6 +383,27 @@ const isDayOpen = (section: Element) =>
     .querySelector("button[aria-expanded]")
     ?.getAttribute("aria-expanded") === "true";
 
+const getDaySection = (pane: HTMLElement, date: string) =>
+  pane.querySelector<HTMLElement>(
+    `[data-timeline-body] [data-day-section="${date}"]`,
+  )!;
+
+/** Scrolls the pane so the element's top sits `offset` px below the pane's. */
+const scrollPaneTo = (pane: HTMLElement, element: Element, offset: number) => {
+  pane.scrollTop +=
+    element.getBoundingClientRect().top -
+    pane.getBoundingClientRect().top -
+    offset;
+};
+
+const toggleFocus = async (root: HTMLElement, title: string) => {
+  getFocusButton(root).click();
+  await waitFor(() => expect(getFocusButton(root).title).toBe(title), {
+    timeout: 2000,
+    interval: 1,
+  });
+};
+
 /**
  * Leaving focus mode shows the timeline at once: sections in view have
  * their rows (no placeholders) by the next frame, open/closed state is
@@ -372,19 +414,61 @@ export const FocusToggleHasNoBlankFrames: Story = {
     await waitForApp(canvasElement);
     const pane = getPane(canvasElement);
 
-    // Collapse the second day section of the timeline
-    const days = [
-        ...pane.querySelectorAll<HTMLElement>(
-          "[data-timeline-body] [data-day-section]",
-        ),
-      ],
-      collapsedDate = days[1].getAttribute("data-day-section")!;
-    days[1].querySelector<HTMLButtonElement>("button[aria-expanded]")!.click();
-    await waitFor(() => expect(isDayOpen(days[1])).toBe(false));
+    // Collapse a timeline section the user can see: scroll to the second one
+    const second = pane.querySelectorAll<HTMLElement>(
+        "[data-timeline-body] [data-day-section]",
+      )[1],
+      collapsedDate = second.getAttribute("data-day-section")!;
+    scrollPaneTo(pane, second, 100);
+    await waitFor(() =>
+      expect(daySectionsInView(pane)).toContain(
+        getDaySection(pane, collapsedDate),
+      ),
+    );
+    second.querySelector<HTMLButtonElement>("button[aria-expanded]")!.click();
+    await waitFor(() => expect(isDayOpen(second)).toBe(false));
     await sleep(400);
+
+    const expandBacklogAndScrollToEnd = async () => {
+      const trigger = getBacklogTrigger(canvasElement)!;
+      if (trigger.getAttribute("aria-expanded") !== "true") {
+        trigger.click();
+        await waitFor(() =>
+          expect(trigger).toHaveAttribute("aria-expanded", "true"),
+        );
+        await sleep(400);
+      }
+      pane.scrollTop = pane.scrollHeight;
+      await waitFor(() => {
+        expect(backlogRows(canvasElement)).toBeGreaterThan(0);
+        expect(
+          pane.querySelectorAll("[data-day-section] [data-lazy-placeholder]")
+            .length,
+        ).toBeGreaterThan(0);
+      });
+    };
+
+    const expectCollapsed = () => {
+      const section = getDaySection(pane, collapsedDate);
+      expect(isDayOpen(section)).toBe(false);
+      expect(
+        section.querySelectorAll('button[aria-label^="Change status for "]')
+          .length,
+      ).toBe(0);
+      expect(section.querySelector("[data-lazy-placeholder]")).toBeNull();
+    };
 
     for (let round = 0; round < 3; round++) {
       await step(`Focus on, then off (round ${round + 1})`, async () => {
+        // Look at the collapsed section, or in round 2 at the end of the
+        // expanded backlog, where the day sections are far and unmounted,
+        // then hide the timeline
+        if (round === 1) {
+          await expandBacklogAndScrollToEnd();
+        } else {
+          scrollPaneTo(pane, getDaySection(pane, collapsedDate), 100);
+        }
+        await sleep(100);
         await clickAndSettle(getFocusButton(canvasElement), () =>
           expect(getFocusButton(canvasElement).title).toBe(
             "Turn Off Focus Mode",
@@ -392,32 +476,30 @@ export const FocusToggleHasNoBlankFrames: Story = {
         );
         await sleep(200);
 
-        getFocusButton(canvasElement).click();
-        await waitFor(
-          () =>
-            expect(getFocusButton(canvasElement).title).toBe(
-              "Turn On Focus Mode",
-            ),
-          { timeout: 2000, interval: 1 },
-        );
+        await toggleFocus(canvasElement, "Turn On Focus Mode");
         // Already right after the commit, before the browser paints
         expect(placeholdersInView(pane)).toEqual([]);
+        expectCollapsed();
         // And still within two frames of it
         await nextFrame();
         await nextFrame();
 
         expect(placeholdersInView(pane)).toEqual([]);
+        expectCollapsed();
+        // Bring it back into view: still collapsed, and the rest unchanged
+        scrollPaneTo(pane, getDaySection(pane, collapsedDate), 100);
+        await nextFrame();
+        await nextFrame();
+        expect(placeholdersInView(pane)).toEqual([]);
         const inView = daySectionsInView(pane);
-        expect(inView.length).toBeGreaterThan(0);
+        expect(inView).toContain(getDaySection(pane, collapsedDate));
         for (const section of inView) {
           const date = section.getAttribute("data-day-section"),
             rows = section.querySelectorAll(
               'button[aria-label^="Change status for "]',
             ).length;
           if (date === collapsedDate) {
-            expect(isDayOpen(section)).toBe(false);
-            expect(rows).toBe(0);
-            expect(section.querySelector("[data-lazy-placeholder]")).toBeNull();
+            expectCollapsed();
           } else {
             expect(isDayOpen(section)).toBe(true);
             expect(rows).toBe(countOf(section));
@@ -435,6 +517,146 @@ export const FocusToggleHasNoBlankFrames: Story = {
         }
       });
     }
+  },
+};
+
+// ---------- Render tracking (React internals, test-only) ----------
+
+interface FiberNode {
+  type: unknown;
+  child: FiberNode | null;
+  sibling: FiberNode | null;
+  memoizedState: unknown;
+  memoizedProps: Record<string, unknown> | null;
+}
+
+const findFiberRoot = (element: HTMLElement): { current: FiberNode } => {
+  const candidates = [
+    ...(function* ancestors() {
+      for (
+        let node: Element | null = element;
+        node;
+        node = node.parentElement
+      ) {
+        yield node;
+      }
+    })(),
+    ...element.querySelectorAll("*"),
+  ];
+  for (const node of candidates) {
+    const key = Object.keys(node).find((k) =>
+      k.startsWith("__reactContainer$"),
+    );
+    if (key) {
+      return (
+        node as unknown as Record<string, { stateNode: { current: FiberNode } }>
+      )[key].stateNode;
+    }
+  }
+  throw new Error("No React root found around the story canvas");
+};
+
+const collectFibers = (
+  root: { current: FiberNode },
+  matches: (fiber: FiberNode) => boolean,
+): FiberNode[] => {
+  const found: FiberNode[] = [],
+    stack: FiberNode[] = [root.current];
+  while (stack.length) {
+    const fiber = stack.pop()!;
+    if (matches(fiber)) {
+      found.push(fiber);
+    }
+    if (fiber.sibling) {
+      stack.push(fiber.sibling);
+    }
+    if (fiber.child) {
+      stack.push(fiber.child);
+    }
+  }
+  return found;
+};
+
+const TIMELINE_TYPES: unknown[] = [YearSection, DaySection, BacklogSection];
+
+/** Year, day (not Today) and backlog sections of the timeline. */
+const isTimelineSection = (fiber: FiberNode) =>
+  TIMELINE_TYPES.includes(fiber.type) && fiber.memoizedProps?.lazy !== false;
+
+const describeFiber = (fiber: FiberNode) => {
+  const props = fiber.memoizedProps ?? {},
+    group = props.group as { date?: string; year?: number } | undefined;
+  return group?.date ?? String(group?.year ?? "backlog");
+};
+
+/**
+ * A function component's first hook object is replaced each time it renders,
+ * so a section whose hook object is unchanged did not render.
+ */
+const trackRenders = (canvasElement: HTMLElement) => {
+  const root = findFiberRoot(canvasElement),
+    before = new Set(
+      collectFibers(root, isTimelineSection).map((f) => f.memoizedState),
+    );
+  return {
+    sectionCount: before.size,
+    renderedSince: () =>
+      collectFibers(root, isTimelineSection)
+        .filter((fiber) => !before.has(fiber.memoizedState))
+        .map(describeFiber),
+  };
+};
+
+const FUTURE_TASK = TASKS.find((task) => task.title === "Future due item")!;
+
+/**
+ * In focus mode the hidden timeline does no work: stat cards, filters and
+ * task updates render only what focus mode shows. Leaving focus mode shows
+ * the changes made meanwhile.
+ */
+export const FocusModeLeavesHiddenTimelineAlone: Story = {
+  play: async ({ canvasElement, step }) => {
+    await waitForApp(canvasElement);
+    await clickAndSettle(getFocusButton(canvasElement), () =>
+      expect(getFocusButton(canvasElement).title).toBe("Turn Off Focus Mode"),
+    );
+    await sleep(300);
+    const tracker = trackRenders(canvasElement);
+    expect(tracker.sectionCount).toBeGreaterThan(10);
+
+    await step("Stat cards", async () => {
+      for (const pressed of ["true", "false"]) {
+        await clickAndSettle(getCard(canvasElement, "Unplanned"), () =>
+          expect(getCard(canvasElement, "Unplanned")).toHaveAttribute(
+            "aria-pressed",
+            pressed,
+          ),
+        );
+      }
+      await sleep(200);
+      expect(tracker.renderedSince()).toEqual([]);
+    });
+
+    await step("Task updates", async () => {
+      updateHostTask({ id: "today-due", status: "done" });
+      await waitFor(() =>
+        expect(cardNumber(canvasElement, "Due & OD")).toBe(0),
+      );
+      updateHostTask({ id: FUTURE_TASK.id, title: "Renamed while hidden" });
+      await sleep(300);
+      expect(tracker.renderedSince()).toEqual([]);
+    });
+
+    await step("Leaving focus mode shows the changes", async () => {
+      await toggleFocus(canvasElement, "Turn On Focus Mode");
+      await waitFor(() =>
+        expect(
+          canvasElement.querySelector(
+            `[data-timeline-body] button[aria-label="Edit task title: Renamed while hidden"]`,
+          ),
+        ).not.toBeNull(),
+      );
+    });
   },
 };
 
@@ -512,11 +734,10 @@ export const StartsInFocusMode: Story = {
       () => {
         expect(getFocusButton(canvasElement).title).toBe("Turn Off Focus Mode");
         // The tasks arrived while the timeline was hidden
+        expect(cardNumber(canvasElement, "Unplanned")).toBe(1);
         expect(
-          canvasElement.querySelector(
-            "[data-timeline-body] [data-day-section]",
-          ),
-        ).not.toBeNull();
+          canvasElement.querySelector('[role="note"]')?.textContent,
+        ).toMatch(/^504 backlog tasks hidden/);
       },
       { timeout: 10000 },
     );

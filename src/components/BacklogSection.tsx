@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import type { Task } from "../types";
 import { Icon } from "./Icon";
-import { useSettingsContext } from "../contexts/SettingsContext";
+import { useTimelineSectionContext } from "../contexts/TimelineSectionContext";
 import { computeDateValidation } from "../utils";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 import { TaskChunkList } from "./TaskChunkList";
@@ -53,7 +53,7 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
   defaultOpen = false,
   onOpenChange,
 }) => {
-  const { settings } = useSettingsContext(),
+  const { settings } = useTimelineSectionContext(),
     [isOpen, setIsOpen] = useOpenState(open, defaultOpen, onOpenChange),
     { groupingStrategy } = settings,
     getDateValidation = useCallback(

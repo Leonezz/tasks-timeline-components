@@ -5,7 +5,7 @@ import { DaySection } from "./DaySection";
 import { cn } from "../utils";
 import { countActiveDays } from "../utils/timeline";
 import { Icon } from "./Icon";
-import { useSettingsContext } from "../contexts/SettingsContext";
+import { useTimelineSectionContext } from "../contexts/TimelineSectionContext";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 
 interface YearSectionProps {
@@ -13,7 +13,7 @@ interface YearSectionProps {
 }
 
 export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
-  const { settings } = useSettingsContext(),
+  const { settings } = useTimelineSectionContext(),
     [isOpen, setIsOpen] = useState(true),
     progressPercent =
       Math.round((group.completedTasks / group.totalTasks) * 100) || 0,

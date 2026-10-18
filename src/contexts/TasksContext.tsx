@@ -2,6 +2,7 @@ import React, { type ReactNode, useContext } from "react";
 import type { Task } from "../types";
 import { TasksContext } from "./context-objects";
 import { TaskRowBridge } from "./TaskRowContext";
+import { TimelineSectionBridge } from "./TimelineSectionContext";
 
 /* eslint-disable react-refresh/only-export-components */
 export interface TasksContextType {
@@ -34,8 +35,10 @@ export function TasksProvider({
 }) {
   return (
     <TasksContext.Provider value={value}>
-      {/* Task rows read a narrower, stable context (see TaskRowContext) */}
-      <TaskRowBridge>{children}</TaskRowBridge>
+      {/* Rows and sections read narrower, stable contexts */}
+      <TaskRowBridge>
+        <TimelineSectionBridge>{children}</TimelineSectionBridge>
+      </TaskRowBridge>
     </TasksContext.Provider>
   );
 }
