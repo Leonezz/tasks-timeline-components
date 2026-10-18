@@ -56,7 +56,7 @@ import {
   InputBar,
   type Task,
 } from "@tasks-timeline/components";
-import "@tasks-timeline/components/styles";
+import "@tasks-timeline/components/index.css";
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -186,6 +186,23 @@ function MyComponent({ tasks }) {
 }
 ```
 
+### Entry Points
+
+| Import                                    | Contents                                         | Formats                  |
+| ----------------------------------------- | ------------------------------------------------ | ------------------------ |
+| `@tasks-timeline/components`              | Everything: components, hooks, types, utilities  | ESM, CommonJS (UMD)      |
+| `@tasks-timeline/components/components`   | Components only                                  | ESM, CommonJS            |
+| `@tasks-timeline/components/hooks`        | Hooks only                                       | ESM, CommonJS            |
+| `@tasks-timeline/components/types`        | Types only (the runtime modules are empty)       | ESM, CommonJS            |
+| `@tasks-timeline/components/capabilities` | AI capabilities layer, no React or DOM           | ESM                      |
+| `@tasks-timeline/components/tasks-format` | Obsidian Tasks parse/serialize, no React or DOM  | ESM                      |
+| `@tasks-timeline/components/index.css`    | Stylesheet                                       | CSS                      |
+
+`/components` and `/hooks` re-export from the main bundle rather than shipping
+their own copy, so mixing them with the main entry is safe: a component or hook
+is the same object whichever path you import it from, and React contexts are
+shared.
+
 ## Components
 
 | Component        | Description                                 |
@@ -290,7 +307,7 @@ interface AppSettings {
 ### Import Styles
 
 ```typescript
-import "@tasks-timeline/components/styles";
+import "@tasks-timeline/components/index.css";
 ```
 
 ### Tailwind CSS
@@ -632,6 +649,14 @@ pnpm exec playwright install chromium-headless-shell
 ```bash
 pnpm build:lib
 ```
+
+This writes `dist/`: the main bundle (`index.js`, `index.umd.cjs`,
+`index.css`), the standalone `capabilities/` and `tasks-format/` modules, the
+`.d.ts` declarations, and the `index.js`/`index.cjs` entries of
+`components/`, `hooks/` and `types/` (see [Entry Points](#entry-points)). The
+build fails if a declaration has a specifier consumers can't resolve
+(`pnpm check:declarations`) or if any `package.json` entry point points at a
+missing file (`pnpm check:exports`).
 
 ### Build Demo App
 

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`@tasks-timeline/components/components`, `/hooks` and `/types` failed to
+  import at runtime.** Their `exports` entries pointed at
+  `dist/<subpath>/index.js` and `index.umd.cjs`, which the build never
+  produced (since the package was first set up, including 0.8.0 and 0.9.0).
+  Only the `.d.ts` files shipped, so `import { useTaskStats } from
+  "@tasks-timeline/components/hooks"` type-checked and then failed with
+  `ERR_MODULE_NOT_FOUND` or "Failed to resolve entry". The build now emits
+  `dist/components/index.js` and `dist/components/index.cjs`, and the same for
+  `hooks`. They re-export from the main bundle (`dist/index.js`,
+  `dist/index.umd.cjs`) instead of bundling a second copy, so a component or
+  hook from a subpath is the same object as the one from the main entry and
+  shares its React contexts. `./types` has no runtime exports and gets empty
+  modules, so `import { type Task } from "@tasks-timeline/components/types"`,
+  which `verbatimModuleSyntax` keeps as a runtime import, resolves without
+  loading the UI bundle. The `require` targets are now
+  `dist/<subpath>/index.cjs`.
+- `pnpm build:lib` now fails if any entry point in `package.json` (every
+  `exports` condition, plus `main`, `module` and `types`) points at a file
+  that does not exist (`scripts/check-exports.ts`, also `pnpm check:exports`).
+- The README's stylesheet import used `@tasks-timeline/components/styles`,
+  which is not exported. It is `@tasks-timeline/components/index.css`.
+
 ## [0.9.0] - 2026-10-18
 
 ### Added
