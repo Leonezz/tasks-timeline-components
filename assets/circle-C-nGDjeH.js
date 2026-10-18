@@ -1,0 +1,1 @@
+import{c}from"./chevron-right-Bsvfh4yW.js";const e={name:"check",size:24,node:[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]]};e.node;const n=c(e);const o={name:"circle",size:24,node:[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}]]};o.node;const t=c(o);export{n as C,t as a};
