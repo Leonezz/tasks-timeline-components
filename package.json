@@ -35,17 +35,17 @@
     "./components": {
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js",
-      "require": "./dist/components/index.umd.cjs"
+      "require": "./dist/components/index.cjs"
     },
     "./hooks": {
       "types": "./dist/hooks/index.d.ts",
       "import": "./dist/hooks/index.js",
-      "require": "./dist/hooks/index.umd.cjs"
+      "require": "./dist/hooks/index.cjs"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
-      "require": "./dist/types/index.umd.cjs"
+      "require": "./dist/types/index.cjs"
     },
     "./index.css": "./dist/index.css",
     "./capabilities": {
@@ -62,11 +62,12 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
-    "build": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
-    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
+    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
+    "build": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
+    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
     "dev:lib": "tsc -p tsconfig.build.json --watch",
     "check:declarations": "tsx scripts/check-declarations.ts",
+    "check:exports": "tsx scripts/check-exports.ts",
     "preview": "vite preview",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
