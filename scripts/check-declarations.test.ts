@@ -20,10 +20,10 @@ beforeEach(() => {
   root = mkdtempSync(path.join(os.tmpdir(), "check-declarations-"));
   dist = path.join(root, "dist");
   write("dist/types.d.ts", "export interface Task { id: string }\n");
-  write("dist/components/index.d.ts", 'export * from "./TaskItem";\n');
+  write("dist/components/index.d.ts", 'export * from "./TaskItem.js";\n');
   write(
     "dist/components/TaskItem.d.ts",
-    'import type { Task } from "../types";\nexport declare const TaskItem: (task: Task) => import("react/jsx-runtime").JSX.Element;\n',
+    'import type { Task } from "../types.js";\nexport declare const TaskItem: (task: Task) => import("react/jsx-runtime").JSX.Element;\n',
   );
 });
 
@@ -36,17 +36,69 @@ describe("checkDeclarations", () => {
     write(
       "dist/index.d.ts",
       [
-        'export * from "./components/index";',
-        'export * from "./components";',
+        'export * from "./components/index.js";',
         'export type { Task } from "./types.js";',
         'import type { ReactNode } from "react";',
-        'export type Alias = import("./types").Task;',
+        'import type { JSX } from "react/jsx-runtime";',
+        'export type Alias = import("./types.js").Task;',
         "export type Node = ReactNode;",
+        "export type Element = JSX.Element;",
         "",
       ].join("\n"),
     );
 
     expect(checkDeclarations(dist)).toEqual([]);
+  });
+
+  it("flags relative specifiers without an extension, which node16/nodenext consumers can't resolve", () => {
+    write(
+      "dist/types/index.d.ts",
+      'export type { Task } from "../types.js";\n',
+    );
+    write(
+      "dist/index.d.ts",
+      [
+        'export * from "./components/index";',
+        'export * from "./components";',
+        'export type { Task } from "./types";',
+        'export type Alias = import("./types").Task;',
+        'import Types = require("./types");',
+        "export type Again = Types.Task;",
+        "",
+      ].join("\n"),
+    );
+    write(
+      "dist/components/settings/index.d.ts",
+      'import type { Task } from "../../types";\nexport type T = Task;\nexport * from "..";\n',
+    );
+    write(
+      "dist/components/augment.d.ts",
+      'declare module "./TaskItem" {\n  interface Extra { x: 1 }\n}\nexport {};\n',
+    );
+
+    const problems = checkDeclarations(dist);
+    const suggestions = problems.map(({ file, specifier, reason }) => [
+      file,
+      specifier,
+      reason.match(/use "([^"]+)"/)?.[1],
+    ]);
+
+    expect(suggestions).toEqual([
+      [path.join("components", "augment.d.ts"), "./TaskItem", "./TaskItem.js"],
+      [
+        path.join("components", "settings", "index.d.ts"),
+        "../../types",
+        "../../types.js",
+      ],
+      [path.join("components", "settings", "index.d.ts"), "..", "../index.js"],
+      ["index.d.ts", "./components/index", "./components/index.js"],
+      ["index.d.ts", "./components", "./components/index.js"],
+      // types.d.ts wins over types/index.d.ts, as it does for tsc
+      ["index.d.ts", "./types", "./types.js"],
+      ["index.d.ts", "./types", "./types.js"],
+      ["index.d.ts", "./types", "./types.js"],
+    ]);
+    expect(problems[0].reason).toMatch(/node16|nodenext/);
   });
 
   it('flags the "@/" path alias', () => {
@@ -90,12 +142,21 @@ describe("checkDeclarations", () => {
   });
 
   it("flags relative paths with no declaration file behind them", () => {
-    write("dist/index.d.ts", 'export * from "./missing";\n');
+    write(
+      "dist/index.d.ts",
+      'export * from "./missing.js";\nexport * from "./gone";\n',
+    );
 
     const problems = checkDeclarations(dist);
 
-    expect(specifiersOf(problems)).toEqual(["index.d.ts -> ./missing"]);
-    expect(problems[0].reason).toMatch(/does not resolve/);
+    expect(specifiersOf(problems)).toEqual([
+      "index.d.ts -> ./missing.js",
+      "index.d.ts -> ./gone",
+    ]);
+    expect(problems.map(({ reason }) => reason)).toEqual([
+      expect.stringMatching(/does not resolve/),
+      expect.stringMatching(/does not resolve/),
+    ]);
   });
 
   it("checks /// <reference path> directives", () => {
