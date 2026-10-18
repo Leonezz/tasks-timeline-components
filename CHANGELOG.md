@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: `LucideIconName` now lists only the 67 Lucide icon names the
+  library itself uses, not every Lucide icon.** `<Icon name>` and `CustomSettingsTab.icon`
+  take a `LucideIconName`, so a name outside that list (for example
+  `"Rocket"`) is now a type error. For any other icon, import it from
+  `lucide-react` yourself: render it directly, or pass the component as
+  `CustomSettingsTab.icon`, which now accepts `LucideIconName | IconComponent`:
+
+  ```tsx
+  import { Rocket } from "lucide-react";
+
+  const tab: CustomSettingsTab = { id: "launch", label: "Launch", icon: Rocket, content };
+  ```
+
+- **Smaller bundle.** `Icon` used to look names up in the whole `lucide-react`
+  namespace, which put all 1,892 Lucide icons in the bundle. It now uses an
+  explicit map of the icons the library renders, so the bundle carries only
+  those. Sizes with lucide-react 1.59, before → after:
+
+  | File                 | Raw               | Gzip              |
+  | -------------------- | ----------------- | ----------------- |
+  | `dist/index.js`      | 2.46 MB → 1.51 MB | 553 kB → 351 kB   |
+  | `dist/index.umd.cjs` | 1.70 MB → 0.96 MB | 460 kB → 271 kB   |
+
+  That is also smaller than 0.9.0 (`dist/index.js` 2.04 MB raw, 466 kB gzip).
+  lucide-react stays bundled, so the UMD build needs no `lucide-react`
+  global (Lucide 1 ships no UMD build).
+
+- **`lucide-react` upgraded from 0.330 to 1.x (`^1.59.0`).**
+  - Lucide 1 removed its brand icons (`Chromium`, `Codepen`, `Codesandbox`,
+    `Dribbble`, `Facebook`, `Figma`, `Framer`, `Github`, `Gitlab`,
+    `Instagram`, `LinkedIn`, `Pocket`, `RailSymbol`, `Slack`). Settings →
+    About shows `FolderGit2` instead of the removed `Github` icon next to
+    **GitHub Repository**.
+  - Lucide 1 adds `aria-hidden="true"` to an icon unless it gets an
+    `aria-*` prop, `role`, `title` or children.
+  - Lucide 1 made `Trash2` an alias of `Trash`, so a task's delete button
+    looked the same before and after the first click arms it. The armed
+    button now shows `OctagonX` instead of `Trash2`. Its label still
+    changes to "Confirm delete …" and its tooltip to "Click again to confirm
+    delete".
+
 ### Fixed
 
 - **`@tasks-timeline/components/components`, `/hooks` and `/types` failed to
@@ -63,46 +106,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   have a different module format from the file it loads
   (`scripts/check-exports.ts`), or if a CommonJS declaration loads an ES
   module under `"module": "node16"` (`scripts/check-declarations.ts`).
-### Changed
-
-- **Breaking: `LucideIconName` now lists only the 66 Lucide icon names the
-  library itself uses, not every Lucide icon.** `<Icon name>` and `CustomSettingsTab.icon`
-  take a `LucideIconName`, so a name outside that list (for example
-  `"Rocket"`) is now a type error. For any other icon, import it from
-  `lucide-react` yourself: render it directly, or pass the component as
-  `CustomSettingsTab.icon`, which now accepts `LucideIconName | IconComponent`:
-
-  ```tsx
-  import { Rocket } from "lucide-react";
-
-  const tab: CustomSettingsTab = { id: "launch", label: "Launch", icon: Rocket, content };
-  ```
-
-- **Smaller bundle.** `Icon` used to look names up in the whole `lucide-react`
-  namespace, which put all 1,892 Lucide icons in the bundle. It now uses an
-  explicit map of the icons the library renders, so the bundle carries 66.
-  Sizes with lucide-react 1.59, before → after:
-
-  | File                 | Raw               | Gzip              |
-  | -------------------- | ----------------- | ----------------- |
-  | `dist/index.js`      | 2.46 MB → 1.51 MB | 553 kB → 351 kB   |
-  | `dist/index.umd.cjs` | 1.70 MB → 0.96 MB | 460 kB → 271 kB   |
-
-  That is also smaller than 0.9.0 (`dist/index.js` 2.04 MB raw, 466 kB gzip).
-  lucide-react stays bundled, so the UMD build needs no `lucide-react`
-  global (Lucide 1 ships no UMD build).
-
-- **`lucide-react` upgraded from 0.330 to 1.x (`^1.59.0`).**
-  - Lucide 1 removed its brand icons (`Chromium`, `Codepen`, `Codesandbox`,
-    `Dribbble`, `Facebook`, `Figma`, `Framer`, `Github`, `Gitlab`,
-    `Instagram`, `LinkedIn`, `Pocket`, `RailSymbol`, `Slack`). Settings →
-    About shows `FolderGit2` instead of the removed `Github` icon next to
-    **GitHub Repository**.
-  - Lucide 1 adds `aria-hidden="true"` to an icon unless it gets an
-    `aria-*` prop, `role`, `title` or children.
-
-### Fixed
-
 - **React 19 consumers can type-check with `skipLibCheck: false`.**
   lucide-react 0.330's declarations import `ReactSVG`, which `@types/react` 19
   no longer exports, so `tsc` failed inside `lucide-react.d.ts`. npm also

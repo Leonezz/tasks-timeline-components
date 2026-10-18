@@ -714,7 +714,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               : `Delete ${task.title}`
           }
         >
-          <Icon name={deleteConfirm ? "Trash2" : "Trash"} size={14} />
+          <Icon name={deleteConfirm ? "OctagonX" : "Trash"} size={14} />
         </MotionButton>
       </MotionDiv>
     );
