@@ -30,6 +30,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that does not exist (`scripts/check-exports.ts`, also `pnpm check:exports`).
 - The README's stylesheet import used `@tasks-timeline/components/styles`,
   which is not exported. It is `@tasks-timeline/components/index.css`.
+- **The type declarations failed under `"moduleResolution": "node16"` and
+  `"nodenext"`.** The published `.d.ts` files kept the source's extensionless
+  relative imports (`export * from "./components/index"`). The package is
+  `"type": "module"`, so TypeScript reads them as ES modules and reported
+  TS2834/TS2835 for each one, on every entry point including the main one
+  (0.9.0 and earlier). An `export *` of such a file exported nothing, so the
+  main entry had no components or hooks (`TaskItem`, `useTaskStats`, ...) and
+  `./components` had no `SettingsModal` or other settings components. Named
+  re-exports were typed `any`. After `tsc`, the build now rewrites each of
+  these specifiers to the file it resolves to (`"./components/index.js"`,
+  `"../types.js"`) with `scripts/rewrite-declaration-specifiers.ts`, and
+  `scripts/check-declarations.ts` fails the build on any relative specifier
+  left without an extension. `"moduleResolution": "bundler"` consumers are
+  unaffected.
 
 ## [0.9.0] - 2026-10-18
 

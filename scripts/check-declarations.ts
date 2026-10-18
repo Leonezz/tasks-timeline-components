@@ -3,7 +3,12 @@
  *
  * tsc copies module specifiers into .d.ts output verbatim. A specifier that
  * only resolves inside this repo (the "@/" path alias, a stylesheet, a file
- * outside dist/) breaks the type-check of every consumer of the package.
+ * outside dist/) breaks the type-check of every consumer of the package. So
+ * does a relative specifier without an extension ("./components/index"):
+ * the package is `"type": "module"`, and `"moduleResolution": "node16"` or
+ * `"nodenext"` consumers can't resolve it (TS2834/TS2835), which also turns
+ * an `export *` of it into nothing. scripts/rewrite-declaration-specifiers.ts
+ * adds the extensions after tsc; this guards that it did.
  * This scans the imports, exports, import() types and `/// <reference path>`
  * directives of each declaration file and exits non-zero on any such
  * specifier. Runs at the end of `pnpm build:lib`.
@@ -31,13 +36,18 @@ const JS_EXTENSION_TO_DECLARATION: Record<string, string> = {
   ".mjs": ".d.mts",
   ".cjs": ".d.cts",
 };
+const DECLARATION_TO_JS_EXTENSION = /\.d\.([mc]?)ts$/;
+/** "." and "..", or a trailing "/": only a directory can match. */
+const DIRECTORY_ONLY = /(^|\/)\.\.?$|\/$/;
 
 const listDeclarationFiles = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) return listDeclarationFiles(fullPath);
-    return DECLARATION_FILE.test(entry.name) ? [fullPath] : [];
-  });
+  readdirSync(dir, { withFileTypes: true })
+    .flatMap((entry) => {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) return listDeclarationFiles(fullPath);
+      return DECLARATION_FILE.test(entry.name) ? [fullPath] : [];
+    })
+    .sort();
 
 const isInside = (dir: string, target: string) => {
   const relative = path.relative(dir, target);
@@ -46,14 +56,31 @@ const isInside = (dir: string, target: string) => {
   );
 };
 
-/** Files a consumer's TypeScript would look for behind an import specifier. */
-const declarationCandidates = (target: string): string[] => {
+/**
+ * Files a consumer's TypeScript would look for behind an import specifier, in
+ * order. Extensionless specifiers get the bundler-resolution candidates, so
+ * the problem report can name the file they were meant to point at.
+ */
+const declarationCandidates = (specifier: string, target: string): string[] => {
   const extension = path.extname(target);
   const declarationExtension = JS_EXTENSION_TO_DECLARATION[extension];
   if (declarationExtension) {
     return [target.slice(0, -extension.length) + declarationExtension];
   }
-  return [`${target}.d.ts`, path.join(target, "index.d.ts")];
+  const directoryIndex = path.join(target, "index.d.ts");
+  return DIRECTORY_ONLY.test(specifier)
+    ? [directoryIndex]
+    : [`${target}.d.ts`, directoryIndex];
+};
+
+/** The relative specifier, with a .js extension, that a consumer resolves to `declaration`. */
+const specifierFor = (file: string, declaration: string) => {
+  const relative = path
+    .relative(path.dirname(file), declaration)
+    .split(path.sep)
+    .join("/")
+    .replace(DECLARATION_TO_JS_EXTENSION, ".$1js");
+  return relative.startsWith("../") ? relative : `./${relative}`;
 };
 
 const findProblem = (
@@ -79,10 +106,17 @@ const findProblem = (
     return "points outside dist/, which is not published";
   }
   const candidates =
-    kind === "reference" ? [target] : declarationCandidates(target);
-  return candidates.some((candidate) => existsSync(candidate))
-    ? null
-    : "does not resolve to a declaration file in dist/";
+    kind === "reference" ? [target] : declarationCandidates(specifier, target);
+  const resolved = candidates.find((candidate) => existsSync(candidate));
+  if (!resolved) return "does not resolve to a declaration file in dist/";
+  const hasExtension = Object.hasOwn(
+    JS_EXTENSION_TO_DECLARATION,
+    path.extname(target),
+  );
+  if (kind === "module" && !hasExtension) {
+    return `has no extension, so "moduleResolution": "node16"/"nodenext" consumers can't resolve it (TS2834); use "${specifierFor(file, resolved)}"`;
+  }
+  return null;
 };
 
 export const checkDeclarations = (distDir: string): DeclarationProblem[] => {
