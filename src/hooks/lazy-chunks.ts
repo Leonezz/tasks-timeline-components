@@ -30,7 +30,7 @@ export const splitIntoChunks = <T>(
   );
 };
 
-interface Span {
+export interface Span {
   top: number;
   bottom: number;
 }
@@ -101,3 +101,36 @@ export const placeholderHeightFor = (
     ? measured.height
     : itemCount * ESTIMATED_ITEM_HEIGHT;
 };
+
+/** How much further out a mounted chunk may go before it unmounts (px). */
+export const KEEP_NEAR_SLACK = 100;
+
+/** One measurement of a chunked list, in viewport coordinates. */
+export interface ChunkGeometry {
+  /** Each chunk's start marker, then the end marker. */
+  tops: readonly number[];
+  /** The visible part of the scroll container. */
+  bounds: Span;
+  /** The margins around it (px). */
+  margins: Span;
+  /** Rows per chunk. */
+  chunkSizes: readonly number[];
+}
+
+/**
+ * One check of a chunked list: the state for this measurement, or `prev`
+ * itself when no chunk changes. A pure function of its arguments, so the
+ * caller must pass the measurement it just took and set the result as a
+ * value: a state updater closing over a measurement can be replayed by React
+ * against another state, long after the measurement went stale.
+ */
+export const checkChunks = (
+  prev: ChunkState,
+  { tops, bounds, margins, chunkSizes }: ChunkGeometry,
+): ChunkState =>
+  nextChunkState(
+    prev,
+    chunkNearness(tops, bounds, margins, prev.near, KEEP_NEAR_SLACK),
+    tops,
+    chunkSizes,
+  );

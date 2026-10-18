@@ -96,6 +96,40 @@ export default defineConfig({
             ],
           },
           setupFiles: [".storybook/vitest.setup.ts"],
+          // The plugin-host stress stories run many scenarios each
+          testTimeout: 60_000,
+        },
+      },
+      {
+        // The stress stories again on React 18.3.1, which the Obsidian
+        // plugin bundles: React 18 replays queued state updaters in ways
+        // React 19 does not (PR #79's update-depth crash only showed there)
+        extends: true,
+        plugins: [
+          storybookTest({
+            configDir: path.join(dirname, ".storybook-react18"),
+          }),
+        ],
+        resolve: {
+          alias: {
+            react: path.resolve(dirname, "node_modules/react-18"),
+            "react-dom": path.resolve(dirname, "node_modules/react-dom-18"),
+          },
+        },
+        test: {
+          name: "storybook-react18",
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({}),
+            instances: [
+              {
+                browser: "chromium",
+              },
+            ],
+          },
+          setupFiles: [".storybook/vitest.setup.ts"],
+          testTimeout: 60_000,
         },
       },
     ],

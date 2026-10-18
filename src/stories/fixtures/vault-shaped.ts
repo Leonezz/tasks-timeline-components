@@ -16,6 +16,8 @@ import { getDaysFromNowISO } from "../../utils/date-helpers";
 export interface VaultShapedOptions {
   seed?: number;
   undatedHaveCreatedAt?: boolean;
+  /** Size of the unplanned bulk (default: 505 with createdAt, else 504). */
+  bulkCount?: number;
 }
 
 const mulberry32 = (seed: number) => {
@@ -36,7 +38,7 @@ const TAGS = ["work", "home", "read", "idea", "errand", "study", "health"];
 export const buildVaultShapedTasks = (
   options: VaultShapedOptions = {},
 ): Task[] => {
-  const { seed = 20261018, undatedHaveCreatedAt = false } = options,
+  const { seed = 20261018, undatedHaveCreatedAt = false, bulkCount } = options,
     rand = mulberry32(seed),
     pick = <T>(items: readonly T[]): T =>
       items[Math.floor(rand() * items.length)],
@@ -59,7 +61,7 @@ export const buildVaultShapedTasks = (
 
   let n = 0;
   // Unplanned bulk: undated (backlog) or createdAt-only
-  const bulk = undatedHaveCreatedAt ? 505 : 504;
+  const bulk = bulkCount ?? (undatedHaveCreatedAt ? 505 : 504);
   for (let i = 0; i < bulk; i++) {
     const t = base(n++, `Someday item ${i + 1}`);
     tasks.push(

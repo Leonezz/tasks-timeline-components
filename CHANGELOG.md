@@ -46,7 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default, 10-61 ms and 4-15 ms). The backlog renders its rows in chunks of
   25 that mount only near the viewport (a row that moves into another chunk,
   because a task above it was added or removed, keeps its state: an inline
-  title edit, an open popover, focus). Rows no longer re-render when a filter
+  title edit, an open popover, focus). Each check of which chunks to mount
+  works from a fresh measurement, so the chunks settle within a render or
+  two on React 18 as on React 19. Rows no longer re-render when a filter
   changes or another task changes, unless their own task changed; year, day
   and backlog sections no longer re-render on every context change either.
   Rows no longer use framer-motion, and titles without Markdown syntax skip

@@ -2,8 +2,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { findScrollRoot, parseVerticalMargins } from "./useLazyRender";
 import {
   EMPTY_CHUNK_STATE,
-  chunkNearness,
-  nextChunkState,
+  checkChunks,
   placeholderHeightFor,
 } from "./lazy-chunks";
 
@@ -25,9 +24,6 @@ interface UseLazyChunksResult {
   /** Height for chunk `index`'s placeholder */
   placeholderHeight: (index: number) => number;
 }
-
-/** How much further out a mounted chunk may go before it unmounts (px). */
-const KEEP_NEAR_SLACK = 100;
 
 const chunkSizesOf = (itemCount: number, chunkSize: number) =>
   Array.from({ length: Math.ceil(itemCount / chunkSize) }, (_, i) =>
@@ -55,6 +51,9 @@ export function useLazyChunks(
   const { enabled = true, rootMargin = "500px 0px" } = options,
     chunkCount = Math.ceil(itemCount / chunkSize),
     [state, setState] = useState(EMPTY_CHUNK_STATE),
+    // The state each check starts from: the committed state, or the one
+    // this hook last asked for (see revalidate)
+    latest = useRef(state),
     markers = useRef<(HTMLDivElement | null)[]>([]),
     // undefined until found; null when the page itself scrolls
     scrollRoot = useRef<Element | null | undefined>(undefined);
@@ -76,22 +75,32 @@ export function useLazyChunks(
         ? root.getBoundingClientRect()
         : { top: 0, bottom: window.innerHeight },
       margins = parseVerticalMargins(rootMargin, bounds.bottom - bounds.top),
-      tops = rects.map((rect) => rect.top),
-      sizes = chunkSizesOf(itemCount, chunkSize);
-    setState((prev) =>
-      nextChunkState(
-        prev,
-        chunkNearness(tops, bounds, margins, prev.near, KEEP_NEAR_SLACK),
+      tops = rects.map((rect) => rect.top);
+    // The next state is computed here, from this measurement, and set as a
+    // value. A state updater would close over this measurement, and React
+    // replays queued updaters when an update of another priority (a check
+    // from the observer callback) is pending: replayed against an older
+    // state, old measurements produced a new state on every commit, which
+    // rendered and checked again until React threw "Maximum update depth
+    // exceeded" (seen with React 18). A value replays as itself.
+    const prev = latest.current,
+      next = checkChunks(prev, {
         tops,
-        sizes,
-      ),
-    );
+        bounds,
+        margins,
+        chunkSizes: chunkSizesOf(itemCount, chunkSize),
+      });
+    if (next !== prev) {
+      latest.current = next;
+      setState(next);
+    }
   }, [enabled, chunkCount, itemCount, chunkSize, rootMargin]);
 
   // Before paint, after every commit: first mount, rows added or removed,
   // and a hidden ancestor shown again (e.g. the timeline leaving focus mode
   // renders every section)
   useLayoutEffect(() => {
+    latest.current = state;
     revalidate();
   });
 
