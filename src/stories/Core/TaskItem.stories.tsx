@@ -384,6 +384,53 @@ export const ItemClickInteraction: Story = {
   },
 };
 
+/** The icon's drawing. Its class names also list Lucide aliases, so compare paths. */
+const iconPaths = (button: HTMLElement) => {
+  const svg = button.querySelector("svg");
+  if (!svg) {
+    throw new Error(`"${button.getAttribute("aria-label")}" renders no icon`);
+  }
+  return svg.innerHTML;
+};
+
+export const DeleteConfirmIcon: Story = {
+  args: {
+    task: defaultTask,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The first click on Delete arms it: the label, tooltip and icon change. Lucide 1 made `Trash2` an alias of `Trash`, so the armed button shows `OctagonX`.",
+      },
+    },
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = withinShadow(canvasElement),
+      { title } = defaultTask;
+    let idlePaths = "";
+
+    await step("The idle delete button shows a trash can", async () => {
+      const button = canvas.getByRole("button", { name: `Delete ${title}` });
+      expect(button).toHaveAttribute("title", "Delete task");
+      expect(button.querySelector("svg")).toHaveClass("lucide-trash");
+      idlePaths = iconPaths(button);
+    });
+
+    await step("The first click arms it with a different icon", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: `Delete ${title}` }),
+      );
+      const armed = await canvas.findByRole("button", {
+        name: `Confirm delete ${title}`,
+      });
+      expect(armed).toHaveAttribute("title", "Click again to confirm delete");
+      expect(armed.querySelector("svg")).toHaveClass("lucide-octagon-x");
+      expect(iconPaths(armed)).not.toBe(idlePaths);
+    });
+  },
+};
+
 // ========================================
 // Date Validation Badge Stories
 // ========================================

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking: `LucideIconName` now lists only the 66 Lucide icon names the
+- **Breaking: `LucideIconName` now lists only the 67 Lucide icon names the
   library itself uses, not every Lucide icon.** `<Icon name>` and `CustomSettingsTab.icon`
   take a `LucideIconName`, so a name outside that list (for example
   `"Rocket"`) is now a type error. For any other icon, import it from
@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Smaller bundle.** `Icon` used to look names up in the whole `lucide-react`
   namespace, which put all 1,892 Lucide icons in the bundle. It now uses an
-  explicit map of the icons the library renders, so the bundle carries 66.
-  Sizes with lucide-react 1.59, before → after:
+  explicit map of the icons the library renders, so the bundle carries only
+  those. Sizes with lucide-react 1.59, before → after:
 
   | File                 | Raw               | Gzip              |
   | -------------------- | ----------------- | ----------------- |
@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **GitHub Repository**.
   - Lucide 1 adds `aria-hidden="true"` to an icon unless it gets an
     `aria-*` prop, `role`, `title` or children.
+  - Lucide 1 made `Trash2` an alias of `Trash`, so a task's delete button
+    looked the same before and after the first click arms it. The armed
+    button now shows `OctagonX` instead of `Trash2`. Its label still
+    changes to "Confirm delete …" and its tooltip to "Click again to confirm
+    delete".
 
 ### Fixed
 
