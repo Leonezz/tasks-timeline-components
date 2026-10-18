@@ -28,24 +28,44 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.umd.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.umd.cjs"
+      }
     },
     "./components": {
-      "types": "./dist/components/index.d.ts",
-      "import": "./dist/components/index.js",
-      "require": "./dist/components/index.umd.cjs"
+      "import": {
+        "types": "./dist/components/index.d.ts",
+        "default": "./dist/components/index.js"
+      },
+      "require": {
+        "types": "./dist/components/index.d.cts",
+        "default": "./dist/components/index.cjs"
+      }
     },
     "./hooks": {
-      "types": "./dist/hooks/index.d.ts",
-      "import": "./dist/hooks/index.js",
-      "require": "./dist/hooks/index.umd.cjs"
+      "import": {
+        "types": "./dist/hooks/index.d.ts",
+        "default": "./dist/hooks/index.js"
+      },
+      "require": {
+        "types": "./dist/hooks/index.d.cts",
+        "default": "./dist/hooks/index.cjs"
+      }
     },
     "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js",
-      "require": "./dist/types/index.umd.cjs"
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/types/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.cts",
+        "default": "./dist/types/index.cjs"
+      }
     },
     "./index.css": "./dist/index.css",
     "./capabilities": {
@@ -62,11 +82,12 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
-    "build": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
-    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/check-declarations.ts",
+    "prepare": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/rewrite-declaration-specifiers.ts && tsx scripts/emit-cjs-declarations.ts && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
+    "build": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/rewrite-declaration-specifiers.ts && tsx scripts/emit-cjs-declarations.ts && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
+    "build:lib": "vite build && vite build --config vite.tasks-format.config.ts && vite build --config vite.capabilities.config.ts && tsc -p tsconfig.build.json && tsx scripts/rewrite-declaration-specifiers.ts && tsx scripts/emit-cjs-declarations.ts && tsx scripts/check-declarations.ts && tsx scripts/emit-subpath-entries.ts && tsx scripts/check-exports.ts",
     "dev:lib": "tsc -p tsconfig.build.json --watch",
     "check:declarations": "tsx scripts/check-declarations.ts",
+    "check:exports": "tsx scripts/check-exports.ts",
     "preview": "vite preview",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
