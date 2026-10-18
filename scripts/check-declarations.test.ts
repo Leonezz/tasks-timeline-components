@@ -16,6 +16,17 @@ const write = (relativePath: string, content: string) => {
 const specifiersOf = (problems: ReturnType<typeof checkDeclarations>) =>
   problems.map(({ file, specifier }) => `${file} -> ${specifier}`);
 
+const writePackage = (name: string, fields: Record<string, unknown>) => {
+  write(
+    `node_modules/${name}/package.json`,
+    JSON.stringify({ name, version: "1.0.0", ...fields }),
+  );
+  write(
+    `node_modules/${name}/index.d.ts`,
+    "export interface Thing { id: string }\n",
+  );
+};
+
 beforeEach(() => {
   root = mkdtempSync(path.join(os.tmpdir(), "check-declarations-"));
   dist = path.join(root, "dist");
@@ -178,6 +189,124 @@ describe("checkDeclarations", () => {
     );
 
     expect(checkDeclarations(dist)).toEqual([]);
+  });
+
+  describe("CommonJS declarations", () => {
+    beforeEach(() => {
+      // As published: "type": "module", so .d.ts files are ES modules and
+      // .d.cts files are CommonJS
+      write(
+        "package.json",
+        JSON.stringify({ name: "pkg", version: "1.0.0", type: "module" }),
+      );
+      writePackage("cjs-package", { types: "index.d.ts" });
+      writePackage("esm-only", { type: "module", types: "index.d.ts" });
+      write("dist/types.d.cts", "export interface Task { id: string }\n");
+      write("dist/components/index.d.cts", 'export * from "./TaskItem.cjs";\n');
+      write(
+        "dist/components/TaskItem.d.cts",
+        'import type { Task } from "../types.cjs";\nexport declare const TaskItem: (task: Task) => null;\n',
+      );
+    });
+
+    it('accepts .d.cts files that import only CommonJS, or ES modules with "resolution-mode": "import"', () => {
+      write(
+        "dist/index.d.cts",
+        [
+          'export * from "./components/index.cjs";',
+          'import type { Thing } from "cjs-package";',
+          'import type { Thing as Esm } from "esm-only" with { "resolution-mode": "import" };',
+          'export type { Thing as Other } from "esm-only" with { "resolution-mode": "import" };',
+          'export type Lazy = import("esm-only", { with: { "resolution-mode": "import" } }).Thing;',
+          "export type Both = Thing | Esm;",
+          "",
+        ].join("\n"),
+      );
+
+      expect(checkDeclarations(dist)).toEqual([]);
+    });
+
+    it("flags .d.cts files that import an ES module declaration, which node16 consumers can't require (TS1479, TS1541)", () => {
+      write(
+        "dist/index.d.cts",
+        [
+          'export * from "./components/index.js";',
+          'import type { Task } from "./types.js";',
+          'export type { Task as Again } from "./types.js";',
+          "export type T = Task;",
+          "",
+        ].join("\n"),
+      );
+
+      const problems = checkDeclarations(dist);
+
+      expect(specifiersOf(problems)).toEqual([
+        "index.d.cts -> ./components/index.js",
+        "index.d.cts -> ./types.js",
+        "index.d.cts -> ./types.js",
+      ]);
+      expect(problems.map(({ reason }) => reason)).toEqual([
+        expect.stringMatching(/TS1479.*use "\.\/components\/index\.cjs"/),
+        expect.stringMatching(/TS1541.*use "\.\/types\.cjs"/),
+        expect.stringMatching(/TS1479.*use "\.\/types\.cjs"/),
+      ]);
+      expect(problems[0].reason).toMatch(/"module": "node16"/);
+    });
+
+    it('flags type-only imports of ES-module-only packages without "resolution-mode" (TS1541, TS1542)', () => {
+      write(
+        "dist/index.d.cts",
+        [
+          'import type { Thing } from "esm-only";',
+          'export type Lazy = import("esm-only").Thing;',
+          "export type T = Thing;",
+          "",
+        ].join("\n"),
+      );
+
+      const problems = checkDeclarations(dist);
+
+      expect(specifiersOf(problems)).toEqual([
+        "index.d.cts -> esm-only",
+        "index.d.cts -> esm-only",
+      ]);
+      expect(problems.map(({ reason }) => reason)).toEqual([
+        expect.stringMatching(/TS1541.*with \{ "resolution-mode": "import" \}/),
+        expect.stringMatching(/TS1542.*"resolution-mode": "import"/),
+      ]);
+    });
+
+    it("flags value imports and import = require() of ES-module-only packages (TS1479, TS1471)", () => {
+      write(
+        "dist/index.d.cts",
+        [
+          'import { type Thing } from "esm-only";',
+          'import Esm = require("esm-only");',
+          "export type T = Thing | Esm.Thing;",
+          "",
+        ].join("\n"),
+      );
+
+      const problems = checkDeclarations(dist);
+
+      expect(specifiersOf(problems)).toEqual([
+        "index.d.cts -> esm-only",
+        "index.d.cts -> esm-only",
+      ]);
+      expect(problems.map(({ reason }) => reason)).toEqual([
+        expect.stringMatching(/TS1479/),
+        expect.stringMatching(/TS1471/),
+      ]);
+    });
+
+    it("leaves ES module declarations free to import CommonJS ones", () => {
+      write(
+        "dist/index.d.ts",
+        'export * from "./components/index.cjs";\nexport type { Thing } from "cjs-package";\n',
+      );
+
+      expect(checkDeclarations(dist)).toEqual([]);
+    });
   });
 
   it("throws when the directory does not exist", () => {

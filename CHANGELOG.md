@@ -44,6 +44,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/check-declarations.ts` fails the build on any relative specifier
   left without an extension. `"moduleResolution": "bundler"` consumers are
   unaffected.
+- **CommonJS consumers on `"module": "node16"` could not `require()` the
+  package's types.** `import x = require("@tasks-timeline/components")` (and
+  `/components`, `/hooks`, `/types`) in a `.cts` file failed with TS1471 ("The
+  specifier only resolves to an ES module"). Every `exports` condition shared
+  one `.d.ts`, which is an ES module because the package is
+  `"type": "module"`, while `require` loads the CommonJS `index.umd.cjs` /
+  `index.cjs` ("Masquerading as ESM" in arethetypeswrong). `"nodenext"` on
+  TypeScript 5.8 and later already accepted it. The build now writes a
+  CommonJS twin of every declaration file (`dist/**/*.d.cts`, whose relative
+  imports name the other twins) with `scripts/emit-cjs-declarations.ts`, and
+  each dual entry point has its own `types` per condition:
+  `"import": { "types": "./dist/index.d.ts", ... }` and
+  `"require": { "types": "./dist/index.d.cts", ... }`. A type-only import of
+  a package that is only an ES module (`react-error-boundary`) gets
+  `with { "resolution-mode": "import" }` in the twin. `./capabilities` and
+  `./tasks-format` stay ESM only. The build now fails if a condition's types
+  have a different module format from the file it loads
+  (`scripts/check-exports.ts`), or if a CommonJS declaration loads an ES
+  module under `"module": "node16"` (`scripts/check-declarations.ts`).
 
 ## [0.9.0] - 2026-10-18
 
