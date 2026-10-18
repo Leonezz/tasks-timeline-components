@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: `<Icon>` throws for an unknown name instead of rendering
+  nothing.** The error names the icon and says how to fix it. This also applies
+  to names a host passes at runtime, which a type check can't catch in
+  plain-JavaScript or untyped code: a `CustomSettingsTab` whose `icon` is a
+  string outside `LucideIconName` (for example `"Plug"`) now makes the whole
+  settings page show its error fallback. Pass a registered name, or import the
+  icon from `lucide-react` and pass the component (see the next entry).
+
 - **Breaking: `LucideIconName` now lists only the 66 Lucide icon names the
   library itself uses, not every Lucide icon.** `<Icon name>` and `CustomSettingsTab.icon`
   take a `LucideIconName`, so a name outside that list (for example
@@ -113,9 +121,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no longer exports, so `tsc` failed inside `lucide-react.d.ts`. npm also
   warned `ERESOLVE overriding peer dependency` because 0.330's peer range
   stopped at React 18. lucide-react 1.x supports React 16.5 through 19.
-- **`<Icon>` throws for an unknown name instead of rendering nothing.** The
-  error names the icon and says how to fix it, for example from a host's
-  plain-JavaScript `CustomSettingsTab` with `icon: "Rocket"`.
+- **`notify_user` refuses a missing or unknown `variant`, or a missing
+  `title`.** Some OpenAI-compatible models don't enforce the schema's enum.
+  A toast with any other variant has no icon, and `<Icon>` now throws, so such
+  a call would have taken down the whole app. The tool now returns
+  `{ success: false, error }` naming the allowed variants, and shows nothing.
 
 ## [0.9.0] - 2026-10-18
 

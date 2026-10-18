@@ -132,6 +132,40 @@ describe("notify_user tool", () => {
     });
   });
 
+  it.each([
+    ["missing", { title: "Heads up" }],
+    ["unknown", { variant: "danger", title: "Heads up" }],
+    ["not a string", { variant: 3, title: "Heads up" }],
+  ])("rejects a %s variant without showing anything", async (_case, args) => {
+    const tool = createNotifyUserTool(ctx);
+    const result = await tool.execute(args);
+
+    expect(result.result).toEqual({
+      success: false,
+      error: expect.stringContaining(
+        'variant must be one of "success", "error", "info", "warning"',
+      ),
+    });
+    expect(mockShowToast).not.toHaveBeenCalled();
+    expect(ctx.notify).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["missing", { variant: "info" }],
+    ["empty", { variant: "info", title: "   " }],
+    ["not a string", { variant: "info", title: 42 }],
+  ])("rejects a %s title without showing anything", async (_case, args) => {
+    const tool = createNotifyUserTool(ctx);
+    const result = await tool.execute(args);
+
+    expect(result.result).toEqual({
+      success: false,
+      error: expect.stringContaining("title must be a non-empty string"),
+    });
+    expect(mockShowToast).not.toHaveBeenCalled();
+    expect(ctx.notify).not.toHaveBeenCalled();
+  });
+
   it("returns an error when the host cannot notify at all", async () => {
     const ctxSilent = makeContext({ notify: undefined });
     const tool = createNotifyUserTool(ctxSilent);
