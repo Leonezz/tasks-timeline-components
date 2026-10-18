@@ -1,4 +1,26 @@
+import type { ToastVariant } from "../../types";
 import type { CapabilityContext, ToolSpec } from "../types";
+
+const VARIANTS: readonly ToastVariant[] = [
+  "success",
+  "error",
+  "info",
+  "warning",
+];
+
+const isVariant = (value: unknown): value is ToastVariant =>
+  typeof value === "string" && (VARIANTS as readonly string[]).includes(value);
+
+/** Arguments a toast can't render, as a message for the model; null when valid. */
+function invalidArguments(args: Record<string, unknown>): string | null {
+  if (!isVariant(args.variant)) {
+    return `variant must be one of ${VARIANTS.map((v) => `"${v}"`).join(", ")}, got ${JSON.stringify(args.variant) ?? "nothing"}. Call notify_user again with a valid variant.`;
+  }
+  if (typeof args.title !== "string" || args.title.trim() === "") {
+    return "title must be a non-empty string. Call notify_user again with a title.";
+  }
+  return null;
+}
 
 export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
   return {
@@ -36,7 +58,17 @@ export function createNotifyUserTool(ctx: CapabilityContext): ToolSpec {
     },
 
     async execute(args: Record<string, unknown>) {
-      const variant = args.variant as "success" | "error" | "info" | "warning";
+      // Models that don't enforce the schema's enum (some OpenAI-compatible
+      // providers) can send any variant; a toast with an unknown variant has
+      // no icon to render, so refuse it here instead of crashing the app.
+      const invalid = invalidArguments(args);
+      if (invalid) {
+        return {
+          name: "notify_user",
+          result: { success: false, error: invalid },
+        };
+      }
+      const variant = args.variant as ToastVariant;
       const title = args.title as string;
       const description = args.description as string | undefined;
       const body = args.body as string | undefined;
