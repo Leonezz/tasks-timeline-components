@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Icon } from "../../components/Icon";
+import { ICONS } from "../../components/icon-registry";
 
 const meta: Meta<typeof Icon> = {
   title: "UI/Icon",
@@ -7,8 +8,9 @@ const meta: Meta<typeof Icon> = {
   tags: ["autodocs"],
   argTypes: {
     name: {
-      control: "text",
-      description: "Lucide icon name",
+      control: "select",
+      options: Object.keys(ICONS),
+      description: "Lucide icon name (one of the icons the library bundles)",
     },
     size: {
       control: { type: "number", min: 12, max: 48, step: 4 },
@@ -64,7 +66,7 @@ export const Trash: Story = {
 
 export const Edit: Story = {
   args: {
-    name: "Edit2",
+    name: "Pencil",
     size: 20,
   },
 };
