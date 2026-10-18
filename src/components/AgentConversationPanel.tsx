@@ -1457,7 +1457,7 @@ export const AgentConversationPanel: React.FC<AgentConversationPanelProps> = ({
                       : "Delete current agent conversation"
                   }
                 >
-                  <Icon name="Trash2" size={15} />
+                  <Icon name="Trash" size={15} />
                 </button>
               )}
               <button

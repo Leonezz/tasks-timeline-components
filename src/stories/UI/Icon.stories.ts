@@ -59,7 +59,7 @@ export const AlertIcon: Story = {
 
 export const Trash: Story = {
   args: {
-    name: "Trash2",
+    name: "Trash",
     size: 20,
   },
 };
