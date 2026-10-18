@@ -7,7 +7,17 @@
  * describes was never built, which is how ./components, ./hooks and ./types
  * shipped in 0.8.0 and 0.9.0. This walks every condition of every subpath,
  * plus the legacy main/module/types fields, and exits non-zero on any target
- * that is missing. Runs at the end of `pnpm build:lib`.
+ * that is missing.
+ *
+ * It also resolves each subpath for import and for require(), with the
+ * conditions Node ("node", "import"/"require", "default") and TypeScript
+ * ("types" first) use, and fails when the declaration TypeScript picks has a
+ * different module format from the file Node loads. The package is
+ * `"type": "module"`, so a .d.ts is an ES module: shared by a CommonJS
+ * "require" target, it makes `import x = require(...)` fail for
+ * `"module": "node16"` consumers with TS1471 (nodenext on TS >= 5.8 allows
+ * it). A mode a subpath doesn't export (require() of ./capabilities) is
+ * skipped. Runs at the end of `pnpm build:lib`.
  *
  * Usage: tsx scripts/check-exports.ts [packageDir]   (default: .)
  */
@@ -29,7 +39,32 @@ interface Target {
   legacy: boolean;
 }
 
+type Mode = "import" | "require";
+type ModuleFormat = "esm" | "cjs";
+
+interface Selected {
+  entry: string;
+  target: string;
+}
+
 const LEGACY_FIELDS = ["main", "module", "types"] as const;
+const MODES: readonly Mode[] = ["import", "require"];
+/** Conditions besides "default", which always matches */
+const RUNTIME_CONDITIONS: Record<Mode, ReadonlySet<string>> = {
+  import: new Set(["node", "import"]),
+  require: new Set(["node", "require"]),
+};
+const TYPES_CONDITIONS: Record<Mode, ReadonlySet<string>> = {
+  import: new Set(["types", "node", "import"]),
+  require: new Set(["types", "node", "require"]),
+};
+/** The declaration file TypeScript looks for next to a JavaScript target */
+const JS_TO_DECLARATION: [RegExp, string][] = [
+  [/\.js$/, ".d.ts"],
+  [/\.mjs$/, ".d.mts"],
+  [/\.cjs$/, ".d.cts"],
+];
+const DECLARATION = /\.d\.[mc]?ts$/;
 
 const isSubpathKey = (key: string) => key.startsWith(".");
 
@@ -110,6 +145,125 @@ const findProblem = (
   return statSync(resolved).isFile() ? null : "is not a file";
 };
 
+/**
+ * The target Node or TypeScript picks for `conditions`: object keys in order,
+ * "default" always matching. undefined when nothing matches, so the caller
+ * moves on to the next key, as Node does; null when the subpath is blocked.
+ * A fallback array resolves to its first entry, as in Node.
+ */
+const selectTarget = (
+  value: unknown,
+  conditions: ReadonlySet<string>,
+  entry: string,
+): Selected | null | undefined => {
+  if (value === null) return null;
+  if (typeof value === "string") return { entry, target: value };
+  if (Array.isArray(value)) {
+    return value.length === 0
+      ? null
+      : selectTarget(value[0], conditions, `${entry}[0]`);
+  }
+  if (typeof value !== "object") return undefined;
+  for (const [condition, nested] of Object.entries(value)) {
+    if (condition.startsWith("types@")) {
+      throw new Error(
+        `${entry}: versioned types condition "${condition}" is not supported by check-exports. Extend the script before adding one.`,
+      );
+    }
+    if (condition !== "default" && !conditions.has(condition)) continue;
+    const selected = selectTarget(nested, conditions, `${entry}.${condition}`);
+    if (selected !== undefined) return selected;
+  }
+  return undefined;
+};
+
+/** A built file inside the package, or null when the target is invalid or missing (reported by findProblem). */
+const existingFile = (packageDir: string, target: string): string | null => {
+  if (!target.startsWith("./")) return null;
+  const resolved = path.resolve(packageDir, target);
+  return isInside(packageDir, resolved) &&
+    existsSync(resolved) &&
+    statSync(resolved).isFile()
+    ? resolved
+    : null;
+};
+
+/** "type" of the package.json nearest to `file`, as Node reads it for .js files. */
+const packageTypeOf = (packageDir: string, file: string): unknown => {
+  for (let dir = path.dirname(file); ; dir = path.dirname(dir)) {
+    const packageJson = path.join(dir, "package.json");
+    if (existsSync(packageJson)) {
+      return (
+        JSON.parse(readFileSync(packageJson, "utf8")) as { type?: unknown }
+      ).type;
+    }
+    if (dir === packageDir || dir === path.dirname(dir)) return undefined;
+  }
+};
+
+const formatOf = (packageDir: string, file: string): ModuleFormat | null => {
+  if (/\.(d\.mts|mjs)$/.test(file)) return "esm";
+  if (/\.(d\.cts|cjs)$/.test(file)) return "cjs";
+  if (!/\.(d\.ts|js)$/.test(file)) return null;
+  return packageTypeOf(packageDir, file) === "module" ? "esm" : "cjs";
+};
+
+const declarationOf = (target: string): string | null => {
+  if (DECLARATION.test(target)) return target;
+  const match = JS_TO_DECLARATION.find(([extension]) => extension.test(target));
+  return match ? target.replace(match[0], match[1]) : null;
+};
+
+const FORMAT_NAMES: Record<ModuleFormat, string> = {
+  esm: "an ES module",
+  cjs: "a CommonJS",
+};
+const DECLARATION_FOR: Record<ModuleFormat, string> = {
+  esm: 'a .d.mts file, or a .d.ts file in a "type": "module" package',
+  cjs: "a .d.cts file",
+};
+
+/** The declaration TypeScript picks for each mode must have the format of the file Node loads. */
+const findFormatProblems = (
+  packageDir: string,
+  subpath: string,
+  value: unknown,
+): ExportsProblem[] => {
+  const label = `exports[${JSON.stringify(subpath)}]`;
+  return MODES.flatMap((mode) => {
+    const runtime = selectTarget(value, RUNTIME_CONDITIONS[mode], label);
+    const types = selectTarget(value, TYPES_CONDITIONS[mode], label);
+    // The subpath doesn't export this mode
+    if (!runtime || !types) return [];
+    const runtimeFile = existingFile(packageDir, runtime.target);
+    const declaration = declarationOf(types.target);
+    const declarationFile =
+      declaration && existingFile(packageDir, declaration);
+    // Missing targets are reported by findProblem; no .d.ts at all is not a format problem
+    if (!runtimeFile || !declarationFile) return [];
+
+    const runtimeFormat = formatOf(packageDir, runtimeFile);
+    const typesFormat = formatOf(packageDir, declarationFile);
+    if (!runtimeFormat || !typesFormat || runtimeFormat === typesFormat) {
+      return [];
+    }
+    const call = mode === "require" ? "require()" : "import";
+    const runtimeKind =
+      runtimeFormat === "esm" ? "ES module" : "CommonJS module";
+    const consequence =
+      mode === "require" && typesFormat === "esm"
+        ? ' ("module": "node16" consumers get TS1471)'
+        : "";
+    return [
+      {
+        entry: types.entry,
+        target: types.target,
+        reason: `is ${FORMAT_NAMES[typesFormat]} declaration, but it types ${call}, which loads the ${runtimeKind} "${runtime.target}"${consequence}. Give "${mode}" its own "types": ${DECLARATION_FOR[runtimeFormat]}`,
+      },
+    ];
+  });
+};
+
 const readPackageJson = (packageDir: string): Record<string, unknown> => {
   const file = path.join(packageDir, "package.json");
   if (!existsSync(file)) {
@@ -127,9 +281,9 @@ export const checkExports = (packageDir: string): ExportsProblem[] => {
     );
   }
 
-  const exportTargets = subpathEntries(pkg.exports).flatMap(
-    ([subpath, value]) =>
-      collectTargets(value, `exports[${JSON.stringify(subpath)}]`, subpath),
+  const subpaths = subpathEntries(pkg.exports);
+  const exportTargets = subpaths.flatMap(([subpath, value]) =>
+    collectTargets(value, `exports[${JSON.stringify(subpath)}]`, subpath),
   );
   const legacyTargets = LEGACY_FIELDS.flatMap((field) => {
     const value = pkg[field];
@@ -140,12 +294,16 @@ export const checkExports = (packageDir: string): ExportsProblem[] => {
     return [{ entry: field, target: value, legacy: true }];
   });
 
-  return [...exportTargets, ...legacyTargets].flatMap((target) => {
+  const missing = [...exportTargets, ...legacyTargets].flatMap((target) => {
     const reason = findProblem(root, target);
     return reason
       ? [{ entry: target.entry, target: target.target, reason }]
       : [];
   });
+  const mismatched = subpaths.flatMap(([subpath, value]) =>
+    findFormatProblems(root, subpath, value),
+  );
+  return [...missing, ...mismatched];
 };
 
 const main = () => {
@@ -157,7 +315,7 @@ const main = () => {
     );
     process.stderr.write(
       [
-        `check-exports: ${problems.length} entry point target(s) in ${path.join(packageDir, "package.json")} would fail to resolve for consumers:`,
+        `check-exports: ${problems.length} entry point target(s) in ${path.join(packageDir, "package.json")} would fail to resolve or type-check for consumers:`,
         ...lines,
         "",
       ].join("\n"),
@@ -165,7 +323,7 @@ const main = () => {
     process.exit(1);
   }
   process.stdout.write(
-    `check-exports: every entry point in ${path.join(packageDir, "package.json")} resolves to a file\n`,
+    `check-exports: every entry point in ${path.join(packageDir, "package.json")} resolves to a file, with types of the same module format\n`,
   );
 };
 

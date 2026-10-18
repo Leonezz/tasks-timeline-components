@@ -652,11 +652,12 @@ pnpm build:lib
 
 This writes `dist/`: the main bundle (`index.js`, `index.umd.cjs`,
 `index.css`), the standalone `capabilities/` and `tasks-format/` modules, the
-`.d.ts` declarations, and the `index.js`/`index.cjs` entries of
-`components/`, `hooks/` and `types/` (see [Entry Points](#entry-points)). The
-build fails if a declaration has a specifier consumers can't resolve
-(`pnpm check:declarations`) or if any `package.json` entry point points at a
-missing file (`pnpm check:exports`).
+`.d.ts` declarations with a CommonJS `.d.cts` twin of each for `require`, and
+the `index.js`/`index.cjs` entries of `components/`, `hooks/` and `types/`
+(see [Entry Points](#entry-points)). The build fails if a declaration has a
+specifier consumers can't resolve or a CommonJS declaration loads an ES module
+(`pnpm check:declarations`), or if any `package.json` entry point points at a
+missing file or at types of the wrong module format (`pnpm check:exports`).
 
 ### Build Demo App
 
