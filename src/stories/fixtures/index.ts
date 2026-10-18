@@ -17,3 +17,4 @@ export { settingsBuilder } from "./settings";
 export { taskBuilder } from "./tasks";
 export { edgeCaseTasks } from "./edge-cases";
 export { buildVaultShapedTasks, type VaultShapedOptions } from "./vault-shaped";
+export { buildMixedVault, type MixedVaultOptions } from "./mixed-vault";

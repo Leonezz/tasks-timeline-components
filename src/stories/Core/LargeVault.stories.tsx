@@ -201,9 +201,15 @@ const isShown = (element: Element) => element.closest("[hidden]") === null;
 const countOf = (element: Element) =>
   Number(element.getAttribute("data-task-count"));
 
+/**
+ * Day sections, and placeholders of day sections far from the view (their
+ * chunk is not mounted; the placeholder carries their task count).
+ */
+const DAY_SECTIONS = "[data-day-section], [data-day-chunk][data-task-count]";
+
 /** Tasks the list shows: every visible day section plus the backlog. */
 const shownTaskCount = (root: HTMLElement) =>
-  [...root.querySelectorAll("[data-day-section], [data-backlog-section]")]
+  [...root.querySelectorAll(`${DAY_SECTIONS}, [data-backlog-section]`)]
     .filter(isShown)
     .reduce((sum, section) => sum + countOf(section), 0);
 
@@ -292,7 +298,7 @@ export const YearTotalsMatchSections: Story = {
     const years = [...canvasElement.querySelectorAll("[data-year-section]")];
     expect(years.length).toBeGreaterThan(0);
     for (const year of years) {
-      const daysTotal = [...year.querySelectorAll("[data-day-section]")].reduce(
+      const daysTotal = [...year.querySelectorAll(DAY_SECTIONS)].reduce(
         (sum, day) => sum + countOf(day),
         0,
       );
@@ -388,6 +394,18 @@ const getDaySection = (pane: HTMLElement, date: string) =>
     `[data-timeline-body] [data-day-section="${date}"]`,
   )!;
 
+/**
+ * A day section near the top of the timeline; scrolls to the top first when
+ * it is far away and so not mounted.
+ */
+const findTopDaySection = async (pane: HTMLElement, date: string) => {
+  if (!getDaySection(pane, date)) {
+    pane.scrollTop = 0;
+    await waitFor(() => expect(getDaySection(pane, date)).not.toBeNull());
+  }
+  return getDaySection(pane, date);
+};
+
 /** Scrolls the pane so the element's top sits `offset` px below the pane's. */
 const scrollPaneTo = (pane: HTMLElement, element: Element, offset: number) => {
   pane.scrollTop +=
@@ -441,8 +459,9 @@ export const FocusToggleHasNoBlankFrames: Story = {
       pane.scrollTop = pane.scrollHeight;
       await waitFor(() => {
         expect(backlogRows(canvasElement)).toBeGreaterThan(0);
+        // Day sections (or their rows) far from the view are placeholders
         expect(
-          pane.querySelectorAll("[data-day-section] [data-lazy-placeholder]")
+          pane.querySelectorAll("[data-timeline-body] [data-lazy-placeholder]")
             .length,
         ).toBeGreaterThan(0);
       });
@@ -450,6 +469,9 @@ export const FocusToggleHasNoBlankFrames: Story = {
 
     const expectCollapsed = () => {
       const section = getDaySection(pane, collapsedDate);
+      if (!section) {
+        return; // far from the view: its chunk is not mounted (round 2)
+      }
       expect(isDayOpen(section)).toBe(false);
       expect(
         section.querySelectorAll('button[aria-label^="Change status for "]')
@@ -466,7 +488,7 @@ export const FocusToggleHasNoBlankFrames: Story = {
         if (round === 1) {
           await expandBacklogAndScrollToEnd();
         } else {
-          scrollPaneTo(pane, getDaySection(pane, collapsedDate), 100);
+          scrollPaneTo(pane, await findTopDaySection(pane, collapsedDate), 100);
         }
         await sleep(100);
         await clickAndSettle(getFocusButton(canvasElement), () =>
@@ -487,7 +509,7 @@ export const FocusToggleHasNoBlankFrames: Story = {
         expect(placeholdersInView(pane)).toEqual([]);
         expectCollapsed();
         // Bring it back into view: still collapsed, and the rest unchanged
-        scrollPaneTo(pane, getDaySection(pane, collapsedDate), 100);
+        scrollPaneTo(pane, await findTopDaySection(pane, collapsedDate), 100);
         await nextFrame();
         await nextFrame();
         expect(placeholdersInView(pane)).toEqual([]);
@@ -622,7 +644,8 @@ export const FocusModeLeavesHiddenTimelineAlone: Story = {
     );
     await sleep(300);
     const tracker = trackRenders(canvasElement);
-    expect(tracker.sectionCount).toBeGreaterThan(10);
+    // Only the sections near the view are mounted
+    expect(tracker.sectionCount).toBeGreaterThan(3);
 
     await step("Stat cards", async () => {
       for (const pressed of ["true", "false"]) {

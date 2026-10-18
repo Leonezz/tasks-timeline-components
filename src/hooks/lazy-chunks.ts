@@ -2,8 +2,19 @@ import { ESTIMATED_ITEM_HEIGHT } from "./useLazyRender";
 
 /** Pure helpers behind useLazyChunks: chunking, geometry and state. */
 
+/** What useLazyChunks needs to know about one chunk. */
+export interface ChunkInfo {
+  /**
+   * What the chunk holds, e.g. its row count: a height measured for one key
+   * is reused only for the same key.
+   */
+  key: string;
+  /** Placeholder height (px) until the chunk has been measured. */
+  estimatedHeight: number;
+}
+
 interface MeasuredHeight {
-  itemCount: number;
+  key: string;
   height: number;
 }
 
@@ -15,6 +26,16 @@ export interface ChunkState {
 }
 
 export const EMPTY_CHUNK_STATE: ChunkState = { near: [], measured: [] };
+
+/**
+ * Chunks of `chunkSize` rows (the last one shorter) estimated at
+ * ESTIMATED_ITEM_HEIGHT per row, keyed by their row count.
+ */
+export const rowChunks = (itemCount: number, chunkSize: number): ChunkInfo[] =>
+  Array.from({ length: Math.ceil(itemCount / chunkSize) }, (_, i) => {
+    const rows = Math.min(chunkSize, itemCount - i * chunkSize);
+    return { key: String(rows), estimatedHeight: rows * ESTIMATED_ITEM_HEIGHT };
+  });
 
 export const splitIntoChunks = <T>(
   items: readonly T[],
@@ -73,7 +94,7 @@ export const nextChunkState = (
   prev: ChunkState,
   near: readonly boolean[],
   tops: readonly number[],
-  chunkSizes: readonly number[],
+  chunkKeys: readonly string[],
 ): ChunkState => {
   const wasNear = (i: number) => prev.near[i] ?? false;
   if (near.every((isNear, i) => isNear === wasNear(i))) {
@@ -84,22 +105,20 @@ export const nextChunkState = (
     measured: near.map((isNear, i) => {
       const height = tops[i + 1] - tops[i];
       return wasNear(i) && !isNear && height > 0
-        ? { itemCount: chunkSizes[i], height }
+        ? { key: chunkKeys[i], height }
         : prev.measured[i];
     }),
   };
 };
 
-/** The measured height for the same row count, else an estimate. */
+/** The height measured for the chunk's key, else its estimate. */
 export const placeholderHeightFor = (
   state: ChunkState,
   index: number,
-  itemCount: number,
+  chunk: ChunkInfo,
 ): number => {
   const measured = state.measured[index];
-  return measured?.itemCount === itemCount
-    ? measured.height
-    : itemCount * ESTIMATED_ITEM_HEIGHT;
+  return measured?.key === chunk.key ? measured.height : chunk.estimatedHeight;
 };
 
 /** How much further out a mounted chunk may go before it unmounts (px). */
@@ -113,8 +132,8 @@ export interface ChunkGeometry {
   bounds: Span;
   /** The margins around it (px). */
   margins: Span;
-  /** Rows per chunk. */
-  chunkSizes: readonly number[];
+  /** Each chunk's key (see ChunkInfo). */
+  chunkKeys: readonly string[];
 }
 
 /**
@@ -126,11 +145,11 @@ export interface ChunkGeometry {
  */
 export const checkChunks = (
   prev: ChunkState,
-  { tops, bounds, margins, chunkSizes }: ChunkGeometry,
+  { tops, bounds, margins, chunkKeys }: ChunkGeometry,
 ): ChunkState =>
   nextChunkState(
     prev,
     chunkNearness(tops, bounds, margins, prev.near, KEEP_NEAR_SLACK),
     tops,
-    chunkSizes,
+    chunkKeys,
   );

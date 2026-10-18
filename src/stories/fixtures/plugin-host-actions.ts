@@ -79,7 +79,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
 
 /** Two frames, so observer callbacks and their renders have run. */
-const settle = async (ms: number) => {
+export const settle = async (ms: number) => {
   await nextFrame();
   await nextFrame();
   await sleep(ms);
@@ -99,7 +99,7 @@ const findCard = (app: MountedPluginApp, label: CardLabel) =>
 const crashed = (app: MountedPluginApp) =>
   app.shadowRoot.textContent?.includes("Something went wrong") ?? false;
 
-const perform = (app: MountedPluginApp, action: Action) => {
+export const perform = (app: MountedPluginApp, action: Action) => {
   const { host } = app;
   switch (action.kind) {
     case "scrollTo":
@@ -150,7 +150,7 @@ export interface ScenarioResult {
   maxFlipsPerFrame: number;
 }
 
-const waitForTasks = async (app: MountedPluginApp) => {
+export const waitForTasks = async (app: MountedPluginApp) => {
   const deadline = performance.now() + 10000;
   while (performance.now() < deadline) {
     const unplanned = findCard(app, "Unplanned");

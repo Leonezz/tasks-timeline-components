@@ -4,6 +4,7 @@ import {
   EMPTY_CHUNK_STATE,
   checkChunks,
   placeholderHeightFor,
+  type ChunkInfo,
 } from "./lazy-chunks";
 
 interface UseLazyChunksOptions {
@@ -25,13 +26,8 @@ interface UseLazyChunksResult {
   placeholderHeight: (index: number) => number;
 }
 
-const chunkSizesOf = (itemCount: number, chunkSize: number) =>
-  Array.from({ length: Math.ceil(itemCount / chunkSize) }, (_, i) =>
-    Math.min(chunkSize, itemCount - i * chunkSize),
-  );
-
 /**
- * Lazily mounts the rows of a long list in chunks, without wrapping them:
+ * Lazily mounts the items of a long list in chunks, without wrapping them:
  * each chunk is marked by one element before its rows, so the rows stay
  * siblings of one parent and keep their state when they move between chunks.
  * Chunk i spans from its marker to the next one; it mounts while that span
@@ -40,20 +36,25 @@ const chunkSizesOf = (itemCount: number, chunkSize: number) =>
  * - Checks run before paint after every commit, so rows already near the
  *   viewport never show a placeholder frame.
  * - An observer on the markers catches scrolling and layout changes; any
- *   marker crossing the margin re-checks every chunk.
+ *   marker crossing the margin re-checks every chunk. It starts over after
+ *   every change of state, so a marker that a check moved across the margin
+ *   is reported again (see the observer effect).
  * - Hidden lists (display: none) keep their state.
+ *
+ * `chunks` describes each chunk (see rowChunks for rows of one height).
  */
 export function useLazyChunks(
-  itemCount: number,
-  chunkSize: number,
+  chunks: readonly ChunkInfo[],
   options: UseLazyChunksOptions = {},
 ): UseLazyChunksResult {
   const { enabled = true, rootMargin = "500px 0px" } = options,
-    chunkCount = Math.ceil(itemCount / chunkSize),
+    chunkCount = chunks.length,
     [state, setState] = useState(EMPTY_CHUNK_STATE),
     // The state each check starts from: the committed state, or the one
     // this hook last asked for (see revalidate)
     latest = useRef(state),
+    // The chunks as of the last commit, for checks from the observer
+    committedChunks = useRef(chunks),
     markers = useRef<(HTMLDivElement | null)[]>([]),
     // undefined until found; null when the page itself scrolls
     scrollRoot = useRef<Element | null | undefined>(undefined);
@@ -88,23 +89,31 @@ export function useLazyChunks(
         tops,
         bounds,
         margins,
-        chunkSizes: chunkSizesOf(itemCount, chunkSize),
+        chunkKeys: committedChunks.current.map((chunk) => chunk.key),
       });
     if (next !== prev) {
       latest.current = next;
       setState(next);
     }
-  }, [enabled, chunkCount, itemCount, chunkSize, rootMargin]);
+  }, [enabled, chunkCount, rootMargin]);
 
   // Before paint, after every commit: first mount, rows added or removed,
   // and a hidden ancestor shown again (e.g. the timeline leaving focus mode
   // renders every section)
   useLayoutEffect(() => {
     latest.current = state;
+    committedChunks.current = chunks;
     revalidate();
   });
 
-  // Scrolling and layout changes move markers across the margin
+  // Scrolling and layout changes move markers across the margin. The
+  // observer reports a marker only when it crosses the margin between two
+  // of its looks, so it starts over (and reports every marker once) after
+  // each change of state: a check after a commit can move a chunk on what
+  // it measured, e.g. unmount one that rows mounting above pushed out of
+  // the margin, and if the scroll brings the marker back before the
+  // observer looks again, it never sees it leave or return, and the chunk
+  // stayed a placeholder in view.
   useLayoutEffect(() => {
     const elements = markers.current.slice(0, chunkCount + 1);
     if (!enabled || chunkCount === 0 || elements.some((el) => !el)) {
@@ -117,7 +126,7 @@ export function useLazyChunks(
     });
     elements.forEach((el) => observer.observe(el!));
     return () => observer.disconnect();
-  }, [enabled, chunkCount, rootMargin, revalidate]);
+  }, [enabled, chunkCount, rootMargin, revalidate, state]);
 
   const markerRefs = useMemo(
     () =>
@@ -134,10 +143,6 @@ export function useLazyChunks(
     isNear: (index) => !enabled || (state.near[index] ?? false),
     markerRef: (index) => markerRefs[index],
     placeholderHeight: (index) =>
-      placeholderHeightFor(
-        state,
-        index,
-        Math.min(chunkSize, itemCount - index * chunkSize),
-      ),
+      placeholderHeightFor(state, index, chunks[index]),
   };
 }

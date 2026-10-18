@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import type { YearGroup } from "../types";
+import type { DayGroup, YearGroup } from "../types";
 import { DaySection } from "./DaySection";
+import { estimateDaySectionHeight } from "./day-section-height";
+import { LazyChunkList } from "./LazyChunkList";
 import { cn } from "../utils";
 import { countActiveDays } from "../utils/timeline";
 import { Icon } from "./Icon";
@@ -11,6 +13,99 @@ import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
 interface YearSectionProps {
   group: YearGroup;
 }
+
+/** Day sections per lazily rendered chunk. */
+export const DAY_CHUNK_SIZE = 8;
+
+const NO_DAYS: ReadonlySet<string> = new Set();
+
+interface TimelineDayProps {
+  group: DayGroup;
+  open: boolean;
+  onDayOpenChange: (date: string, open: boolean) => void;
+}
+
+/**
+ * A day section of the timeline. Memoized: the day list re-renders whenever
+ * one of its chunks mounts or unmounts, and a section that did not change
+ * must not render (and re-check its own lazy rows) again.
+ */
+const TimelineDay = memo<TimelineDayProps>(
+  ({ group, open, onDayOpenChange }) => (
+    <DaySection
+      group={group}
+      open={open}
+      onOpenChange={(next) => onDayOpenChange(group.date, next)}
+    />
+  ),
+);
+TimelineDay.displayName = "TimelineDay";
+
+/** A far chunk of days says how many tasks it holds, as a day section does. */
+const dayPlaceholderData = (chunk: readonly DayGroup[]) => ({
+  "data-task-count": chunk.reduce((sum, day) => sum + day.tasks.length, 0),
+});
+
+/**
+ * A year's day sections, in chunks of DAY_CHUNK_SIZE that each mount only
+ * near the viewport: a year can hold hundreds of day sections, and mounting
+ * them all (about 30 elements each, before any row) made rendering the
+ * timeline take frames of 200 ms and more.
+ *
+ * Which sections the user collapsed is kept here, so a section keeps it
+ * when its chunk unmounts and mounts again.
+ */
+const DayChunkList: React.FC<{ dayGroups: DayGroup[] }> = ({ dayGroups }) => {
+  const [collapsed, setCollapsed] = useState(NO_DAYS);
+  const setDayOpen = useCallback(
+    (date: string, open: boolean) =>
+      setCollapsed((prev) => {
+        if (prev.has(date) === !open) {
+          return prev;
+        }
+        const next = new Set(prev);
+        if (open) {
+          next.delete(date);
+        } else {
+          next.add(date);
+        }
+        return next;
+      }),
+    [],
+  );
+  const describeChunk = (chunk: readonly DayGroup[]) => ({
+      key: chunk
+        .map(
+          (day) =>
+            `${day.date}:${day.tasks.length}:${collapsed.has(day.date) ? "c" : "o"}`,
+        )
+        .join(" "),
+      estimatedHeight: chunk.reduce(
+        (sum, day) =>
+          sum + estimateDaySectionHeight(day, !collapsed.has(day.date)),
+        0,
+      ),
+    }),
+    renderDay = (day: DayGroup) => (
+      <TimelineDay
+        key={day.date}
+        group={day}
+        open={!collapsed.has(day.date)}
+        onDayOpenChange={setDayOpen}
+      />
+    );
+  return (
+    <LazyChunkList
+      items={dayGroups}
+      chunkSize={DAY_CHUNK_SIZE}
+      lazy
+      renderItem={renderDay}
+      describeChunk={describeChunk}
+      kind="day"
+      placeholderData={dayPlaceholderData}
+    />
+  );
+};
 
 export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
   const { settings } = useTimelineSectionContext(),
@@ -105,9 +200,7 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
           transition={{ duration: 0.4, ease: "easeInOut" }}
           className="overflow-hidden"
         >
-          {group.dayGroups.map((dayGroup) => (
-            <DaySection key={dayGroup.date} group={dayGroup} />
-          ))}
+          <DayChunkList dayGroups={group.dayGroups} />
         </motion.div>
       </Collapsible>
     </div>

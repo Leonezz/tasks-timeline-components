@@ -9,7 +9,11 @@ import base from "../.storybook/main";
  */
 const config: StorybookConfig = {
   ...base,
-  stories: ["../src/stories/Core/PluginHostStress.stories.tsx"],
+  stories: [
+    "../src/stories/Core/PluginHostStress.stories.tsx",
+    "../src/stories/Core/LazyChunks.stories.tsx",
+    "../src/stories/Core/TimelineScale.stories.tsx",
+  ],
 };
 
 export default config;

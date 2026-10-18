@@ -14,12 +14,18 @@ interface DaySectionProps {
   /** When false, skip lazy rendering (e.g. for the Today section). Default: true */
   lazy?: boolean;
   addTaskButtonRef?: React.Ref<HTMLButtonElement>;
+  /** Whether the rows show. Omitted: the section keeps it (open at first). */
+  open?: boolean;
+  /** Called when the user opens or collapses the section. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
   group,
   lazy = true,
   addTaskButtonRef,
+  open,
+  onOpenChange,
 }) => {
   const {
       onAddTask,
@@ -30,7 +36,14 @@ export const DaySection: React.FC<DaySectionProps> = ({
       onVoiceError,
       voiceRuntime,
     } = useTimelineSectionContext(),
-    [isOpen, setIsOpen] = useState(true),
+    [ownOpen, setOwnOpen] = useState(true),
+    isOpen = open ?? ownOpen,
+    setIsOpen = (next: boolean) => {
+      if (open === undefined) {
+        setOwnOpen(next);
+      }
+      onOpenChange?.(next);
+    },
     [isAdding, setIsAdding] = useState(false),
     [newTaskTitle, setNewTaskTitle] = useState(""),
     [selectedCategory, setSelectedCategory] = useState(

@@ -46,9 +46,11 @@ const LIMITS: Limits = {
   // more after measuring; the crash committed 50+ times in one frame
   commitsPerFrame: 12,
   // A chunk may mount and unmount again in one frame when its real rows
-  // are taller than estimated (narrow panes); an oscillation flips it
-  // dozens of times
-  flipsPerFrame: 2,
+  // are taller than estimated (narrow panes), and once more when the day
+  // sections above it mount in the same frame: they mount with estimated
+  // rows (shorter, so it moves into range) and then their real rows (so it
+  // moves out again). An oscillation flips it dozens of times
+  flipsPerFrame: 3,
 };
 
 const WIDTHS = [1396, 420];

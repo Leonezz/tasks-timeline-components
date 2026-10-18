@@ -7,8 +7,12 @@ import {
   chunkNearness,
   nextChunkState,
   placeholderHeightFor,
+  rowChunks,
   splitIntoChunks,
 } from "./lazy-chunks";
+
+/** One chunk of `count` rows. */
+const rows = (count: number) => rowChunks(count, count)[0];
 
 describe("splitIntoChunks", () => {
   it("cuts a list into slices of the given size", () => {
@@ -19,6 +23,17 @@ describe("splitIntoChunks", () => {
   it("rejects a size that is not a positive integer", () => {
     expect(() => splitIntoChunks([1], 0)).toThrow(/chunk size/);
     expect(() => splitIntoChunks([1], 2.5)).toThrow(/chunk size/);
+  });
+});
+
+describe("rowChunks", () => {
+  it("keys chunks by row count and estimates 52 px per row", () => {
+    expect(rowChunks(60, 25)).toEqual([
+      { key: "25", estimatedHeight: 1300 },
+      { key: "25", estimatedHeight: 1300 },
+      { key: "10", estimatedHeight: 520 },
+    ]);
+    expect(rowChunks(0, 25)).toEqual([]);
   });
 });
 
@@ -55,10 +70,10 @@ describe("chunkNearness", () => {
 
 describe("nextChunkState", () => {
   it("returns the same state when nothing changes", () => {
-    const state = nextChunkState(EMPTY_CHUNK_STATE, [true], [0, 100], [2]);
-    expect(nextChunkState(state, [true], [0, 100], [2])).toBe(state);
+    const state = nextChunkState(EMPTY_CHUNK_STATE, [true], [0, 100], ["2"]);
+    expect(nextChunkState(state, [true], [0, 100], ["2"])).toBe(state);
     // Chunks without an entry count as far
-    expect(nextChunkState(EMPTY_CHUNK_STATE, [false], [0, 100], [2])).toBe(
+    expect(nextChunkState(EMPTY_CHUNK_STATE, [false], [0, 100], ["2"])).toBe(
       EMPTY_CHUNK_STATE,
     );
   });
@@ -68,25 +83,28 @@ describe("nextChunkState", () => {
         EMPTY_CHUNK_STATE,
         [true, true],
         [0, 1300, 1400],
-        [25, 2],
+        ["25", "2"],
       ),
-      far = nextChunkState(near, [false, true], [0, 1300, 1400], [25, 2]);
+      far = nextChunkState(near, [false, true], [0, 1300, 1400], ["25", "2"]);
     expect(far.near).toEqual([false, true]);
-    expect(placeholderHeightFor(far, 0, 25)).toBe(1300);
+    expect(placeholderHeightFor(far, 0, rows(25))).toBe(1300);
   });
 });
 
 describe("placeholderHeightFor", () => {
-  it("estimates rows that were never measured, or whose count changed", () => {
+  it("estimates chunks that were never measured, or whose key changed", () => {
     const far = nextChunkState(
-      nextChunkState(EMPTY_CHUNK_STATE, [true], [0, 600], [10]),
+      nextChunkState(EMPTY_CHUNK_STATE, [true], [0, 600], ["10"]),
       [false],
       [0, 600],
-      [10],
+      ["10"],
     );
-    expect(placeholderHeightFor(far, 0, 10)).toBe(600);
-    expect(placeholderHeightFor(far, 0, 9)).toBe(9 * 52);
-    expect(placeholderHeightFor(EMPTY_CHUNK_STATE, 3, 4)).toBe(4 * 52);
+    expect(placeholderHeightFor(far, 0, rows(10))).toBe(600);
+    expect(placeholderHeightFor(far, 0, rows(9))).toBe(9 * 52);
+    expect(placeholderHeightFor(EMPTY_CHUNK_STATE, 3, rows(4))).toBe(4 * 52);
+    expect(
+      placeholderHeightFor(far, 0, { key: "other", estimatedHeight: 77 }),
+    ).toBe(77);
   });
 });
 
@@ -118,7 +136,11 @@ describe("checkChunks", () => {
     list.rowHeights.map((rows, i) =>
       state.near[i]
         ? SPACING + rows.reduce((sum, height) => sum + height + SPACING, 0)
-        : placeholderHeightFor(state, i, rows.length) + SPACING,
+        : placeholderHeightFor(
+            state,
+            i,
+            rowChunks(rows.length, rows.length)[0],
+          ) + SPACING,
     );
 
   /** Marker tops in viewport coordinates, and the clamped scroll offset. */
@@ -138,7 +160,7 @@ describe("checkChunks", () => {
     tops,
     bounds: { top: 0, bottom: list.viewport },
     margins: MARGINS,
-    chunkSizes: list.rowHeights.map((rows) => rows.length),
+    chunkKeys: list.rowHeights.map((chunk) => String(chunk.length)),
   });
 
   /**
@@ -202,7 +224,7 @@ describe("checkChunks", () => {
         tops: [-2400, -1100, 200, 1500, 2800],
         bounds: { top: 0, bottom: 800 },
         margins: MARGINS,
-        chunkSizes: [25, 25, 25, 25],
+        chunkKeys: ["25", "25", "25", "25"],
       },
       once = checkChunks(EMPTY_CHUNK_STATE, geometry);
     expect(once.near).toEqual([false, true, true, false]);
@@ -214,7 +236,7 @@ describe("checkChunks", () => {
         tops: [top, top + 1300],
         bounds: { top: 0, bottom: 700 },
         margins: MARGINS,
-        chunkSizes: [25],
+        chunkKeys: ["25"],
       }),
       near = checkChunks(EMPTY_CHUNK_STATE, geometry(1150));
     expect(near.near).toEqual([true]);

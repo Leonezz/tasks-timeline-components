@@ -63,8 +63,9 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
       {/* Timeline and backlog: hidden, not unmounted, in focus mode, so
           leaving it shows them at once with their open/closed state intact.
           Frozen meanwhile, so changes while hidden do not render them;
-          leaving focus mode renders every section once, and each lazy list
-          checks what is in view before that frame paints. */}
+          leaving focus mode renders the timeline once, and each lazy list
+          (day sections, rows) checks what is in view before that frame
+          paints. */}
       <div hidden={isFocusMode} data-timeline-body="">
         <FrozenSubtree frozen={isFocusMode}>
           {otherYearGroups.map((group) => (

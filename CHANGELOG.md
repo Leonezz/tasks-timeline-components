@@ -53,12 +53,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and backlog sections no longer re-render on every context change either.
   Rows no longer use framer-motion, and titles without Markdown syntax skip
   the Markdown parser.
+- **Large timelines render in one short frame.** With 2000 tasks (about 520
+  day sections), loading the tasks, leaving a stat card or leaving focus mode
+  took frames of 205-330 ms, most of it styling 17,000 elements of day
+  sections nobody could see. Day sections now render in chunks of 8 that
+  mount only near the viewport, like the rows inside them, so the timeline
+  holds about 1,200 elements and those frames take 25-60 ms (production React
+  18 build). A day section the user collapsed stays collapsed when its chunk
+  unmounts and mounts again.
+- **No placeholder stuck in view after fast scrolling.** Holding PageDown or
+  wheeling 1000+ px per frame could leave a chunk of rows blank, fully in
+  view, until the list re-rendered: a check right after rows mounted above
+  it unmounted the chunk, and the scroll brought it back into range before
+  the observer looked again, so the observer saw no change and never
+  reported it. The observer now starts over after every change, so it
+  reports such a chunk in the next frame.
 
 ### Changed
 
 - `BacklogSection` starts collapsed. New props: `open` and `onOpenChange`
   (controlled; passing `open` without `onOpenChange` throws) and `defaultOpen`
   (uncontrolled, default `false`).
+- `DaySection` takes optional `open` and `onOpenChange` props; without
+  `open` it keeps its open state itself, as before.
 - `useTaskFiltering(tasks, filters, sort, dashboardCard?)` takes the selected
   stat card as an optional fourth argument and also returns `baseTasks`, the
   tasks with every filter applied except the status dimension.
