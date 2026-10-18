@@ -5,6 +5,10 @@ import ReactMarkdown, {
 } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../utils";
+import {
+  isPlainMarkdownText,
+  plainMarkdownParagraph,
+} from "./markdown-plain-text";
 
 export interface MarkdownTextProps {
   content: string;
@@ -113,7 +117,41 @@ function omitMarkdownNode<TProps extends { node?: unknown }>(
   return rest;
 }
 
-export const MarkdownText: React.FC<MarkdownTextProps> = ({
+/**
+ * Renders Markdown. Text without any Markdown syntax (most task titles) skips
+ * the parser and renders the same elements directly; parsing every row on
+ * every render was a large share of filtering cost on big lists.
+ */
+export const MarkdownText: React.FC<MarkdownTextProps> = (props) => {
+  const { content, className, paragraphClassName, compact = false } = props;
+  if (!isPlainMarkdownText(content)) {
+    return <MarkdownTextMarkdown {...props} />;
+  }
+  const text = plainMarkdownParagraph(content);
+  if (props.inline) {
+    return (
+      <span className={className}>
+        <span className={paragraphClassName}>{text}</span>
+      </span>
+    );
+  }
+  return (
+    <div className={cn(compact ? "space-y-1" : "space-y-2", className)}>
+      <p
+        className={cn(
+          "whitespace-pre-wrap",
+          compact ? "leading-relaxed" : undefined,
+          paragraphClassName,
+        )}
+      >
+        {text}
+      </p>
+    </div>
+  );
+};
+
+/** Always parses `content` as Markdown (exported for tests). */
+export const MarkdownTextMarkdown: React.FC<MarkdownTextProps> = ({
   content,
   className,
   paragraphClassName,

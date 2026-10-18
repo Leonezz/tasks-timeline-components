@@ -1,5 +1,7 @@
-import React, { type ReactNode, createContext, useContext } from "react";
+import React, { type ReactNode, useContext } from "react";
 import type { Task } from "../types";
+import { TasksContext } from "./context-objects";
+import { TaskRowBridge } from "./TaskRowContext";
 
 /* eslint-disable react-refresh/only-export-components */
 export interface TasksContextType {
@@ -14,8 +16,6 @@ export interface TasksContextType {
   onItemClick?: (item: Task) => void;
   renderTitle?: (title: string) => React.ReactNode;
 }
-
-const TasksContext = createContext<TasksContextType | undefined>(undefined);
 
 export function useTasksContext() {
   const context = useContext(TasksContext);
@@ -33,6 +33,9 @@ export function TasksProvider({
   value: TasksContextType;
 }) {
   return (
-    <TasksContext.Provider value={value}>{children}</TasksContext.Provider>
+    <TasksContext.Provider value={value}>
+      {/* Task rows read a narrower, stable context (see TaskRowContext) */}
+      <TaskRowBridge>{children}</TaskRowBridge>
+    </TasksContext.Provider>
   );
 }

@@ -1,30 +1,72 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import type { Task } from "../types";
-import { TaskItem } from "./TaskItem";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
-import { useLazyRender } from "../hooks/useLazyRender";
 import { computeDateValidation } from "../utils";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
+import { TaskChunkList } from "./TaskChunkList";
 
 interface BacklogSectionProps {
   tasks: Task[];
   /** When false, skip lazy rendering (e.g. for standalone stories). Default: true */
   lazy?: boolean;
+  /**
+   * Controlled open state. Pass `onOpenChange` with it; the section never
+   * opens or closes on its own.
+   */
+  open?: boolean;
+  /** Initial open state when uncontrolled. Default: false (collapsed). */
+  defaultOpen?: boolean;
+  /** Called when the user expands or collapses the section. */
+  onOpenChange?: (open: boolean) => void;
 }
+
+const useOpenState = (
+  open: boolean | undefined,
+  defaultOpen: boolean,
+  onOpenChange: ((open: boolean) => void) | undefined,
+): [boolean, (open: boolean) => void] => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isControlled = open !== undefined;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) {
+        setUncontrolledOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
+  if (isControlled && !onOpenChange) {
+    throw new Error(
+      "BacklogSection: `open` was passed without `onOpenChange`, so the user could never expand or collapse it. Pass both, or use `defaultOpen`.",
+    );
+  }
+  return [open ?? uncontrolledOpen, setOpen];
+};
 
 export const BacklogSection: React.FC<BacklogSectionProps> = ({
   tasks,
   lazy = true,
+  open,
+  defaultOpen = false,
+  onOpenChange,
 }) => {
-  const { containerRef, contentRef, isNearViewport, placeholderHeight } =
-      useLazyRender(tasks.length, { enabled: lazy }),
-    { settings } = useSettingsContext(),
-    [isOpen, setIsOpen] = useState(true);
+  const { settings } = useSettingsContext(),
+    [isOpen, setIsOpen] = useOpenState(open, defaultOpen, onOpenChange),
+    { groupingStrategy } = settings,
+    getDateValidation = useCallback(
+      (task: Task) => computeDateValidation(task, groupingStrategy),
+      [groupingStrategy],
+    );
 
   return (
-    <div className="mt-8 pt-4 border-t border-slate-100">
+    <div
+      className="mt-8 pt-4 border-t border-slate-100"
+      data-backlog-section=""
+      data-task-count={tasks.length}
+    >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <button
@@ -38,6 +80,7 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
             } in backlog`}
           >
             <motion.div
+              initial={false}
               animate={{ rotate: isOpen ? 90 : 0 }}
               transition={{ duration: 0.2 }}
               className="mt-1 text-slate-400"
@@ -73,47 +116,22 @@ export const BacklogSection: React.FC<BacklogSectionProps> = ({
           transition={{ duration: 0.3 }}
           className="overflow-hidden"
         >
-          <div
-            ref={containerRef}
-            className="space-y-0.5"
-            style={{
-              contentVisibility: lazy ? "auto" : undefined,
-              containIntrinsicSize: lazy
-                ? `auto ${placeholderHeight}px`
-                : undefined,
-            }}
-          >
-            {isNearViewport ? (
-              <motion.div
-                ref={contentRef}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.25 }}
-              >
-                {tasks.length > 0 ? (
-                  tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      dateValidation={computeDateValidation(
-                        task,
-                        settings.groupingStrategy,
-                      )}
-                    />
-                  ))
-                ) : (
-                  <div className="px-2 py-4 text-sm text-slate-400">
-                    No undated tasks.
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <div
-                style={{ height: placeholderHeight }}
-                className="bg-slate-50/30 rounded"
-              />
-            )}
-          </div>
+          {/* Collapsed: nothing mounted and no placeholder space reserved */}
+          {isOpen && (
+            <div className="space-y-0.5">
+              {tasks.length > 0 ? (
+                <TaskChunkList
+                  tasks={tasks}
+                  lazy={lazy}
+                  getDateValidation={getDateValidation}
+                />
+              ) : (
+                <div className="px-2 py-4 text-sm text-slate-400">
+                  No undated tasks.
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       </Collapsible>
     </div>

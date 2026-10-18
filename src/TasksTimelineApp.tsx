@@ -50,8 +50,9 @@ import {
 } from "./components/ErrorFallback";
 
 // Logic Hooks
-import { useTaskFiltering } from "./hooks/useTaskFiltering";
-import { useTaskStats } from "./hooks/useTaskStats";
+import { hasStatusRule, useTaskFiltering } from "./hooks/useTaskFiltering";
+import { useDashboardCards } from "./hooks/useDashboardCards";
+import type { DashboardCard } from "./utils/dashboard";
 import { useAIAgent } from "./hooks/useAIAgent";
 import { useAgentSessions } from "./hooks/useAgentSessions";
 import { DEFAULT_SETTINGS } from "./defaultSettings";
@@ -257,8 +258,21 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     // Filter & Sort State (synced from settings on load and settings page changes)
     [filters, setFilters] = useState<FilterState>(settings.filters),
     [sort, setSort] = useState<SortState>(settings.sort),
+    // The selected stat card. It is the status dimension of the filters, so
+    // it is only in effect while the status filter is empty (see applyFilters)
+    [selectedCard, setSelectedCard] = useState<DashboardCard | null>(null),
+    activeCard = hasStatusRule(filters) ? null : selectedCard,
     // Defer filter updates to keep UI responsive during rapid filter changes
-    deferredFilters = useDeferredValue(filters);
+    deferredFilters = useDeferredValue(filters),
+    deferredCard = useDeferredValue(activeCard);
+
+  /** Sets filters; a status selection replaces the selected stat card. */
+  const applyFilters = useCallback((next: FilterState) => {
+    setFilters(next);
+    if (hasStatusRule(next)) {
+      setSelectedCard(null);
+    }
+  }, []);
 
   // Guards persistence: no saves after a failed load; failures exposed for toasts
   const { persistence: settingsPersistence, error: settingsPersistenceError } =
@@ -413,7 +427,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         setIsAiMode(
           finalSettings.aiConfig.enabled && finalSettings.aiConfig.defaultMode,
         );
-        setFilters(finalSettings.filters);
+        applyFilters(finalSettings.filters);
         setSort(finalSettings.sort);
       } else {
         // Use defaults
@@ -430,7 +444,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
       settingsPersistence.failLoad(error);
       setIsSettingsLoaded(true);
     });
-  }, [settingsPersistence, apiKey]);
+  }, [settingsPersistence, apiKey, applyFilters]);
 
   // Persist Settings on change
   useEffect(() => {
@@ -549,12 +563,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
     containerElement.setAttribute("data-theme", effectiveTheme);
   }, [effectiveTheme, containerElement, systemInDarkMode]);
 
-  const { processedTasks, uniqueTags, uniqueCategories } = useTaskFiltering(
-      tasks,
-      deferredFilters, // Use deferred filters for better performance
-      sort,
-    ),
-    stats = useTaskStats(tasks),
+  const { processedTasks, baseTasks, uniqueTags, uniqueCategories } =
+      useTaskFiltering(
+        tasks,
+        deferredFilters, // Use deferred filters for better performance
+        sort,
+        deferredCard,
+      ),
+    cardCounts = useDashboardCards(baseTasks, {
+      isFocusMode,
+      groupingStrategy: settings.groupingStrategy,
+    }),
     /** Saves an update through the host; rejects when it can't be saved. */
     /**
      * Saves through the host; rejects when it can't be saved. `opened` is the
@@ -648,11 +667,14 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         addNotification("error", "Add Failed", "Could not create task");
       }
     },
-    applyAgentSettings = useCallback((nextSettings: AppSettings) => {
-      setSettings(nextSettings);
-      setFilters(nextSettings.filters);
-      setSort(nextSettings.sort);
-    }, []),
+    applyAgentSettings = useCallback(
+      (nextSettings: AppSettings) => {
+        setSettings(nextSettings);
+        applyFilters(nextSettings.filters);
+        setSort(nextSettings.sort);
+      },
+      [applyFilters],
+    ),
     { handleAICommand } = useAIAgent(
       tasks,
       onTaskAdded,
@@ -690,21 +712,21 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
         sessionId: agentPanelState.activeSessionId,
       });
     },
-    toggleDashboardFilter = (statuses: TaskStatus[]) => {
-      const isSelected =
-        statuses.every((s) => filters.statuses.include.includes(s)) &&
-        filters.statuses.include.length === statuses.length;
-      setFilters((prev) => ({
-        ...prev,
-        statuses: {
-          ...prev.statuses,
-          include: isSelected ? [] : statuses,
-        },
-      }));
+    /**
+     * Selects a stat card, or clears it when it is already selected. A card
+     * replaces any status filter: the card's number is what the list shows.
+     */
+    toggleDashboardCard = (card: DashboardCard) => {
+      if (activeCard === card) {
+        setSelectedCard(null);
+        return;
+      }
+      setSelectedCard(card);
+      if (hasStatusRule(filters)) {
+        setFilters({ ...filters, statuses: { include: [], exclude: [] } });
+      }
     },
-    isFilterActive = (statuses: TaskStatus[]) =>
-      statuses.every((s) => filters.statuses.include.includes(s)) &&
-      filters.statuses.include.length === statuses.length,
+    isCardActive = (card: DashboardCard) => activeCard === card,
     handleVoiceError = (msg: string) => {
       addNotification("error", "Voice Input Error", msg);
       logger.error("Voice", msg);
@@ -738,7 +760,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               settings,
               updateSettings: (partial) => {
                 setSettings((prev) => ({ ...prev, ...partial }));
-                if (partial.filters) setFilters(partial.filters);
+                if (partial.filters) applyFilters(partial.filters);
                 if (partial.sort) setSort(partial.sort);
               },
               isFocusMode,
@@ -746,7 +768,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
               isAiMode,
               toggleAiMode: () => setIsAiMode(!isAiMode),
               filters,
-              onFilterChange: setFilters,
+              onFilterChange: applyFilters,
               sort,
               onSortChange: setSort,
               onVoiceError: handleVoiceError,
@@ -820,16 +842,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                     <div className="grid grid-cols-4 gap-2 flex-1">
                       {/* 1. To Do */}
                       <button
-                        onClick={() => toggleDashboardFilter(["todo"])}
+                        onClick={() => toggleDashboardCard("todo")}
+                        aria-pressed={isCardActive("todo")}
                         className={cn(
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
-                          isFilterActive(["todo"])
+                          isCardActive("todo")
                             ? "bg-slate-100 border-slate-400"
                             : "bg-slate-50 border-slate-100",
                         )}
                       >
                         <span className="text-lg font-black text-slate-800 leading-none">
-                          {stats.todo}
+                          {cardCounts.todo}
                         </span>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           To Do
@@ -838,16 +861,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
                       {/* 2. Unplanned */}
                       <button
-                        onClick={() => toggleDashboardFilter(["unplanned"])}
+                        onClick={() => toggleDashboardCard("unplanned")}
+                        aria-pressed={isCardActive("unplanned")}
                         className={cn(
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
-                          isFilterActive(["unplanned"])
+                          isCardActive("unplanned")
                             ? "bg-purple-100 border-purple-400"
                             : "bg-purple-50 border-purple-100",
                         )}
                       >
                         <span className="text-lg font-black text-purple-600 leading-none">
-                          {stats.unplanned}
+                          {cardCounts.unplanned}
                         </span>
                         <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           Unplanned
@@ -856,18 +880,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
                       {/* 3. Due & Overdue */}
                       <button
-                        onClick={() =>
-                          toggleDashboardFilter(["due", "overdue"])
-                        }
+                        onClick={() => toggleDashboardCard("urgent")}
+                        aria-pressed={isCardActive("urgent")}
                         className={cn(
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
-                          isFilterActive(["due", "overdue"])
+                          isCardActive("urgent")
                             ? "bg-rose-100 border-rose-400"
                             : "bg-rose-50 border-rose-100",
                         )}
                       >
                         <span className="text-lg font-black text-rose-600 leading-none">
-                          {stats.urgent}
+                          {cardCounts.urgent}
                         </span>
                         <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           Due & OD
@@ -876,18 +899,17 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
 
                       {/* 4. Doing (Scheduled + Doing) */}
                       <button
-                        onClick={() =>
-                          toggleDashboardFilter(["scheduled", "doing"])
-                        }
+                        onClick={() => toggleDashboardCard("doing")}
+                        aria-pressed={isCardActive("doing")}
                         className={cn(
                           "rounded-lg p-2 flex flex-col items-center justify-center border",
-                          isFilterActive(["scheduled", "doing"])
+                          isCardActive("doing")
                             ? "bg-blue-100 border-blue-400"
                             : "bg-blue-50 border-blue-100",
                         )}
                       >
                         <span className="text-lg font-black text-blue-600 leading-none">
-                          {stats.scheduled + stats.doing}
+                          {cardCounts.doing}
                         </span>
                         <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider mt-1 truncate w-full text-center">
                           Doing
@@ -925,6 +947,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                   }}
                   onReset={() => {
                     // Reset filters to safe defaults
+                    setSelectedCard(null);
                     setFilters({
                       tags: { include: [], exclude: [] },
                       categories: { include: [], exclude: [] },
@@ -964,7 +987,7 @@ export const TasksTimelineApp: React.FC<TasksTimelineAppProps> = ({
                 settings={settings}
                 onUpdateSettings={(newSettings) => {
                   setSettings(newSettings);
-                  setFilters(newSettings.filters);
+                  applyFilters(newSettings.filters);
                   setSort(newSettings.sort);
                 }}
                 availableTags={uniqueTags}

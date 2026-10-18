@@ -2,11 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { DateTime } from "luxon";
 import type { DayGroup } from "../types";
-import { TaskItem } from "./TaskItem";
+import { TaskChunkList } from "./TaskChunkList";
 import { Icon } from "./Icon";
 import { cn, deriveTaskRenderState, formatRelativeDate } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
-import { useLazyRender } from "../hooks/useLazyRender";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
@@ -23,9 +22,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   lazy = true,
   addTaskButtonRef,
 }) => {
-  const { containerRef, contentRef, isNearViewport, placeholderHeight } =
-      useLazyRender(group.tasks.length, { enabled: lazy }),
-    { onAddTask, onAICommand, availableCategories } = useTasksContext(),
+  const { onAddTask, onAICommand, availableCategories } = useTasksContext(),
     { settings, isAiMode, onVoiceError, voiceRuntime } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true),
     [isAdding, setIsAdding] = useState(false),
@@ -142,7 +139,11 @@ export const DaySection: React.FC<DaySectionProps> = ({
       }[settings.fontSize] || "mt-0.5";
 
   return (
-    <div className="mb-2 relative">
+    <div
+      className="mb-2 relative"
+      data-day-section={group.date}
+      data-task-count={group.tasks.length}
+    >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* Date Header */}
         <CollapsibleTrigger asChild>
@@ -159,6 +160,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
             <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
               <div className="flex items-center gap-2 shrink-0">
                 <motion.div
+                  initial={false}
                   animate={{ rotate: isOpen ? 90 : 0 }}
                   transition={{ duration: 0.2 }}
                   className="text-slate-400"
@@ -250,33 +252,9 @@ export const DaySection: React.FC<DaySectionProps> = ({
           transition={{ duration: 0.3, ease: "easeInOut" }}
           className="overflow-hidden"
         >
-          <div
-            ref={containerRef}
-            className="space-y-0.5 relative pb-2"
-            style={{
-              contentVisibility: lazy ? "auto" : undefined,
-              containIntrinsicSize: lazy
-                ? `auto ${placeholderHeight}px`
-                : undefined,
-            }}
-          >
-            {isNearViewport ? (
-              <motion.div
-                ref={contentRef}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.25 }}
-              >
-                {group.tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} />
-                ))}
-              </motion.div>
-            ) : (
-              <div
-                style={{ height: placeholderHeight }}
-                className="bg-slate-50/30 rounded"
-              />
-            )}
+          <div className="space-y-0.5 relative pb-2">
+            {/* Collapsed: no rows mounted and no placeholder space reserved */}
+            {isOpen && <TaskChunkList tasks={group.tasks} lazy={lazy} />}
 
             {/* Add Item Row - Aligned with TaskItem grid */}
             <div className="group relative flex items-stretch gap-2 py-1.5 px-1 transition-all rounded-lg">

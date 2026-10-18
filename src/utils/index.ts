@@ -20,6 +20,14 @@ export {
   type DateValidationState,
   type TaskRenderState,
 } from "./task";
+export {
+  DASHBOARD_CARDS,
+  countDashboardCards,
+  deriveDashboardCard,
+  filterByDashboardCard,
+  type DashboardCard,
+  type DashboardCardCounts,
+} from "./dashboard";
 export { parseTaskString } from "./parsing";
 export { getToolDefinitions } from "../providers/tools";
 export {

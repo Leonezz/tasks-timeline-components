@@ -13,6 +13,7 @@ import { delay } from "../test-utils";
 interface BacklogSectionStoryArgs {
   tasks: Task[];
   lazy?: boolean;
+  defaultOpen?: boolean;
   settings?: ReturnType<typeof settingsBuilder.default>;
 }
 
@@ -22,6 +23,8 @@ const meta: Meta<BacklogSectionStoryArgs> = {
   tags: ["autodocs"],
   args: {
     lazy: false,
+    // The section starts collapsed by default; most stories show its rows
+    defaultOpen: true,
   },
   parameters: {
     layout: "fullscreen",
@@ -329,6 +332,7 @@ export const LargeFontSize: Story = {
 export const ExpandCollapse: Story = {
   args: {
     ...Default.args,
+    defaultOpen: false,
   },
   play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
@@ -344,22 +348,93 @@ export const ExpandCollapse: Story = {
       expect(badge).toBeInTheDocument();
     });
 
-    await step("Click to collapse backlog section", async () => {
-      const collapseButton = canvas.getByRole("button", {
-        name: /^Collapse backlog/,
+    await step("Starts collapsed, with no rows mounted", async () => {
+      const expandButton = canvas.getByRole("button", {
+        name: /^Expand backlog/,
       });
-      await userEvent.click(collapseButton);
-      await delay(400); // Wait for collapse animation
-      expect(collapseButton).toHaveAttribute("aria-expanded", "false");
+      expect(expandButton).toHaveAttribute("aria-expanded", "false");
+      expect(canvas.queryByText("Research new framework")).toBeNull();
     });
 
-    await step("Click again to expand", async () => {
+    await step("Click to expand", async () => {
       const expandButton = canvas.getByRole("button", {
         name: /^Expand backlog/,
       });
       await userEvent.click(expandButton);
       await delay(400); // Wait for expand animation
       expect(expandButton).toHaveAttribute("aria-expanded", "true");
+      expect(canvas.getByText("Research new framework")).toBeInTheDocument();
+    });
+
+    await step("Click again to collapse", async () => {
+      const collapseButton = canvas.getByRole("button", {
+        name: /^Collapse backlog/,
+      });
+      await userEvent.click(collapseButton);
+      await delay(400); // Wait for collapse animation
+      expect(collapseButton).toHaveAttribute("aria-expanded", "false");
+      expect(canvas.queryByText("Research new framework")).toBeNull();
+    });
+  },
+};
+
+// The timeline owns the open state (TodoList), so the user's choice survives
+// filter changes that unmount the section and focus mode.
+const ControlledBacklog = ({ tasks }: { tasks: Task[] }) => {
+  const [open, setOpen] = useState(false),
+    [shown, setShown] = useState(true);
+  return (
+    <div>
+      <button type="button" onClick={() => setShown((v) => !v)}>
+        Toggle section
+      </button>
+      {shown && (
+        <BacklogSection
+          tasks={tasks}
+          lazy={false}
+          open={open}
+          onOpenChange={setOpen}
+        />
+      )}
+    </div>
+  );
+};
+
+export const ControlledOpenState: Story = {
+  args: { ...Default.args },
+  render: (args) => <ControlledBacklog tasks={args.tasks} />,
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+
+    await step("Expand, unmount and remount: stays expanded", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /^Expand backlog/ }),
+      );
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle section" }),
+      );
+      expect(canvas.queryByRole("button", { name: /backlog/ })).toBeNull();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle section" }),
+      );
+      expect(
+        canvas.getByRole("button", { name: /^Collapse backlog/ }),
+      ).toHaveAttribute("aria-expanded", "true");
+    });
+
+    await step("Collapse, unmount and remount: stays collapsed", async () => {
+      await userEvent.click(
+        canvas.getByRole("button", { name: /^Collapse backlog/ }),
+      );
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle section" }),
+      );
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Toggle section" }),
+      );
+      expect(
+        canvas.getByRole("button", { name: /^Expand backlog/ }),
+      ).toHaveAttribute("aria-expanded", "false");
     });
   },
 };

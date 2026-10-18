@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { YearGroup } from "../types";
 import { DaySection } from "./DaySection";
 import { cn } from "../utils";
+import { countActiveDays } from "../utils/timeline";
 import { Icon } from "./Icon";
 import { useSettingsContext } from "../contexts/SettingsContext";
 import { Collapsible, CollapsibleTrigger } from "./ui/collapsible";
@@ -15,10 +16,15 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
   const { settings } = useSettingsContext(),
     [isOpen, setIsOpen] = useState(true),
     progressPercent =
-      Math.round((group.completedTasks / group.totalTasks) * 100) || 0;
+      Math.round((group.completedTasks / group.totalTasks) * 100) || 0,
+    activeDays = countActiveDays(group.dayGroups);
 
   return (
-    <div className="mb-4">
+    <div
+      className="mb-4"
+      data-year-section={group.year}
+      data-task-count={group.totalTasks}
+    >
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* Year Header & Progress - Clickable */}
         <CollapsibleTrigger asChild>
@@ -34,6 +40,7 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
               <div className="flex items-baseline gap-4">
                 <div className="flex items-center gap-2">
                   <motion.div
+                    initial={false}
                     animate={{ rotate: isOpen ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                     className="text-slate-400"
@@ -49,10 +56,8 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
                     {group.totalTasks - group.completedTasks}
                   </span>{" "}
                   unfinished tasks in{" "}
-                  <span className="text-rose-500 font-bold">
-                    {group.dayGroups.length}
-                  </span>{" "}
-                  active days.
+                  <span className="text-rose-500 font-bold">{activeDays}</span>{" "}
+                  active day{activeDays === 1 ? "" : "s"}.
                 </div>
               </div>
 
@@ -82,7 +87,7 @@ export const YearSection: React.FC<YearSectionProps> = ({ group }) => {
                     "absolute top-0 left-0 h-full rounded-full",
                     progressPercent === 100 ? "bg-emerald-400" : "bg-slate-800",
                   )}
-                  initial={{ width: 0 }}
+                  initial={false}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
                 />

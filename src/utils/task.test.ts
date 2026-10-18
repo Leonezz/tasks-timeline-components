@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Task } from "../types";
 import {
+  computeDateValidation,
   deriveTaskRenderState,
   deriveWorkflowStatus,
   isTaskRecurring,
@@ -163,5 +164,57 @@ describe("withStatusDates", () => {
     const next = { ...previous, status: "todo" as const };
 
     expect(withStatusDates(previous, next)).toBe(next);
+  });
+});
+
+describe("computeDateValidation", () => {
+  it("returns the same object for the same result, so memoized rows skip renders", () => {
+    const a = computeDateValidation(makeTask({ id: "a" }), ["dueAt"]),
+      b = computeDateValidation(makeTask({ id: "b" }), ["dueAt"]);
+
+    expect(a).toEqual({ hasMissingDates: true, hasInvalidDates: false });
+    expect(a).toBe(b);
+    expect(Object.isFrozen(a)).toBe(true);
+  });
+
+  it("returns undefined when nothing is missing or invalid", () => {
+    expect(
+      computeDateValidation(makeTask({ dueAt: "2026-02-22" }), ["dueAt"]),
+    ).toBeUndefined();
+  });
+});
+
+describe("deriveTaskRenderState across days", () => {
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it("uses the current day after the clock moves past midnight", () => {
+    vi.useFakeTimers();
+    const task = makeTask({ dueAt: "2026-02-24" });
+
+    vi.setSystemTime(new Date(2026, 1, 20, 23, 59));
+    expect(deriveTaskRenderState(task).temporalStatus).toBe("none");
+
+    vi.setSystemTime(new Date(2026, 1, 23, 0, 1));
+    expect(deriveTaskRenderState(task).temporalStatus).toBe("due");
+
+    vi.setSystemTime(new Date(2026, 1, 25, 9));
+    expect(deriveTaskRenderState(task).temporalStatus).toBe("overdue");
+
+    // A clock set back is honoured too
+    vi.setSystemTime(new Date(2026, 1, 20, 9));
+    expect(deriveTaskRenderState(task).temporalStatus).toBe("none");
+  });
+
+  it("compares start dates against the current time, not the cached day", () => {
+    vi.useFakeTimers();
+    const task = makeTask({ startAt: "2026-02-20T15:00:00" });
+
+    vi.setSystemTime(new Date(2026, 1, 20, 14));
+    expect(deriveTaskRenderState(task).planningStatus).toBe("scheduled");
+
+    vi.setSystemTime(new Date(2026, 1, 20, 16));
+    expect(deriveTaskRenderState(task).planningStatus).toBe("planned");
   });
 });

@@ -226,10 +226,12 @@ shared.
 Filter tasks by status, priority, category, tags, and custom scripts.
 
 ```typescript
-const { filteredTasks, filters, setFilters } = useTaskFiltering(
-  tasks,
-  initialFilters
-);
+const { processedTasks, baseTasks, uniqueTags, uniqueCategories } =
+  useTaskFiltering(tasks, filters, sort, dashboardCard);
+// baseTasks: every filter except the status dimension (what the stat cards
+// count). processedTasks: baseTasks narrowed by the selected stat card
+// (`"todo" | "unplanned" | "urgent" | "doing"`, optional) or, when none is
+// selected, by `filters.statuses`; then sorted.
 ```
 
 ### useTaskStats

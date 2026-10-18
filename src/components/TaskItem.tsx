@@ -19,14 +19,13 @@ import {
 } from "../utils";
 import { withStatusDates } from "../utils/task";
 import { Icon } from "./Icon";
-import { MotionButton, MotionDiv } from "./Motion";
+import { MotionDiv } from "./Motion";
 import { DateBadge } from "./DateBadge";
 import { DATE_BADGE_TONES } from "./date-badge-tones";
 import { TagBadge } from "./TagBadge";
 import { PriorityPopover } from "./PriorityPopover";
 import { CategoryPopover } from "./CategoryPopover";
-import { useTasksContext } from "../contexts/TasksContext";
-import { useSettingsContext } from "../contexts/SettingsContext";
+import { useTaskRowContext } from "../contexts/TaskRowContext";
 import {
   Popover,
   PopoverClose,
@@ -57,8 +56,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
         availableCategories,
         onItemClick,
         renderTitle,
-      } = useTasksContext(),
-      { settings } = useSettingsContext(),
+        settings,
+      } = useTaskRowContext(),
       [isEditing, setIsEditing] = useState(false),
       [editTitle, setEditTitle] = useState(task.title),
       [deleteConfirm, setDeleteConfirm] = useState(false),
@@ -251,10 +250,10 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
         "inline-flex h-5 max-w-[13rem] min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap rounded-md border px-1.5 min-[400px]:px-2 font-medium leading-none cursor-pointer transition-all select-none text-[length:inherit] outline-none hover:-translate-y-px hover:shadow-sm hover:shadow-slate-900/5 focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
     return (
-      <MotionDiv
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, height: 0 }}
+      // A plain element: rows mount by the hundred (filters, the backlog), and
+      // a per-row motion component and entrance fade made that slow and
+      // flashed blank rows on every remount.
+      <div
         className={cn(
           "group relative flex items-stretch gap-1 min-[400px]:gap-1.5 sm:gap-2 pb-1.5 pt-0.5 px-0.5 sm:px-1 transition-all rounded-lg",
           (isDone || isCancelled) && "opacity-60",
@@ -407,7 +406,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
               />
             ) : (
               <>
-                <MotionButton
+                <button
                   type="button"
                   onClick={() => setIsEditing(true)}
                   className={cn(
@@ -434,20 +433,19 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
                       codeClassName="rounded bg-slate-100/80 px-1 py-0 font-mono text-[0.9em] text-slate-700"
                     />
                   )}
-                </MotionButton>
+                </button>
               </>
             )}
             {!isEditing && (
-              <MotionButton
+              <button
                 type="button"
-                whileHover={{ scale: 1.1 }}
                 onClick={() => setIsEditing(true)}
-                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-slate-300 hover:text-blue-500 p-1 shrink-0 bg-transparent border-none rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-[opacity,scale] hover:scale-110 text-slate-300 hover:text-blue-500 p-1 shrink-0 bg-transparent border-none rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 aria-label={`Edit ${task.title}`}
                 title="Edit task title"
               >
                 <Icon name="Pencil" size={12} />
-              </MotionButton>
+              </button>
             )}
           </div>
 
@@ -694,17 +692,15 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
         )}
 
         {/* Delete Action */}
-        <MotionButton
+        <button
           type="button"
           onClick={handleDeleteClick}
           className={cn(
-            "absolute top-2 right-1 min-h-8 min-w-8 p-1.5 rounded-md transition-all outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30",
+            "absolute top-2 right-1 min-h-8 min-w-8 p-1.5 rounded-md transition-all outline-none hover:scale-110 active:scale-90 focus-visible:ring-2 focus-visible:ring-rose-500/30",
             deleteConfirm
               ? "bg-rose-100 text-rose-600 opacity-100"
               : "text-slate-300 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-rose-500 hover:bg-slate-100",
           )}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
           title={
             deleteConfirm ? "Click again to confirm delete" : "Delete task"
           }
@@ -715,8 +711,8 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
           }
         >
           <Icon name={deleteConfirm ? "OctagonX" : "Trash"} size={14} />
-        </MotionButton>
-      </MotionDiv>
+        </button>
+      </div>
     );
   },
 );

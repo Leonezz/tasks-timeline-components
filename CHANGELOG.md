@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The stat cards now match the list.** Each card's number is exactly the
+  number of tasks the list shows when that card is selected. Before, the cards
+  counted every task and ignored the tag, category, priority and script
+  filters, and clicking a card filtered with a different rule than the one
+  that produced its number: in a vault with 515 open tasks, TO DO read 1 but
+  listed 515. Now every open task belongs to exactly one card, picked by the
+  status its row shows (Due & OD: due or overdue; Doing: in progress or
+  scheduled; Unplanned: no due or start date; To Do: the rest), the cards count
+  over the current filters except the status filter, and in focus mode they
+  count only Today's tasks, which is all focus mode lists. Selecting a card
+  replaces any Status filter, and choosing a Status filter clears the card.
+- **Year headers count what they show.** Tasks shown under Today are no
+  longer counted in their year's "N unfinished tasks" and "x / y" totals, a
+  task shown on two days (several grouping fields) counts once, and "active
+  days" counts only days with an unfinished task. `groupTasksByYearAndDate`
+  totals count each task once too.
+- **The backlog starts collapsed and stays the way the user left it.** It no
+  longer opens by itself after focus mode, after a filter that hid every
+  undated task (Due & OD, Doing, tags...), or when tasks load. Only the user
+  expands it; the choice lasts until the timeline is closed.
+- **No blank period after turning focus mode off.** Focus mode now hides the
+  timeline instead of unmounting it, so it comes back at once with every
+  section open or closed as before. Sections in view render their rows before
+  the first paint (no placeholder frame, no fade-in, no chevrons swinging back
+  from "collapsed"), collapsed sections reserve no space, and lazy rendering
+  measures against the scroll container the timeline sits in (Obsidian's
+  pane), so sections just below the fold are ready when scrolled to.
+- **Filtering is fast on large lists.** With ~530 tasks, 504 of them undated
+  and the backlog expanded and in view, a filter change went from 0.35-0.77 s
+  to 15-75 ms from click to paint, and React's render work from 190-370 ms to
+  5-18 ms (production React 18 build; with the backlog collapsed, the new
+  default, 10-61 ms and 4-15 ms). The backlog
+  renders its rows in chunks of 25 that mount only near the viewport, rows no
+  longer re-render when a filter changes unless their task changed, rows no
+  longer use framer-motion, and titles without Markdown syntax skip the
+  Markdown parser.
+
+### Changed
+
+- `BacklogSection` starts collapsed. New props: `open` and `onOpenChange`
+  (controlled; passing `open` without `onOpenChange` throws) and `defaultOpen`
+  (uncontrolled, default `false`).
+- `useTaskFiltering(tasks, filters, sort, dashboardCard?)` takes the selected
+  stat card as an optional fourth argument and also returns `baseTasks`, the
+  tasks with every filter applied except the status dimension.
+- Task rows no longer fade in when they mount; their hover and press scaling
+  is CSS.
+- `useLazyRender` observes the nearest scrolling ancestor (across shadow
+  roots) instead of the window, decides its first state before paint, keeps
+  its state while hidden, and reuses a measured height only for the same
+  number of items. `rootMargin` values must use px or %.
+
+### Added
+
+- `DashboardCard`, `DashboardCardCounts`, `DASHBOARD_CARDS`,
+  `deriveDashboardCard`, `countDashboardCards` and `filterByDashboardCard`:
+  the stat card classifier.
+
 ## [0.10.0] - 2026-10-18
 
 ### Changed
