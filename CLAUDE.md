@@ -376,16 +376,26 @@ The library exports multiple entry points (package.json exports):
 - `.` - Main entry (all exports)
 - `./components` - Components only
 - `./hooks` - Hooks only
-- `./types` - Types only
-- `./capabilities` - AI capabilities layer (`createCapabilities`, types, `getSystemPrompt`)
+- `./types` - Types only (empty runtime modules)
+- `./capabilities` - AI capabilities layer (`createCapabilities`, types, `getSystemPrompt`), ESM only, no React
+- `./tasks-format` - Obsidian Tasks parse/serialize, ESM only, no React
 - `./index.css` - Styles
 
-Build generates:
+Build generates (`pnpm build:lib`, in this order):
 
-- `dist/index.js` (ESM)
-- `dist/index.umd.cjs` (UMD)
-- `dist/index.d.ts` (TypeScript declarations)
-- `dist/index.css` (Bundled styles)
+- `vite build` → `dist/index.js` (ESM), `dist/index.umd.cjs` (UMD), `dist/index.css` (bundled styles)
+- `vite.tasks-format.config.ts` / `vite.capabilities.config.ts` → `dist/tasks-format/index.js`, `dist/capabilities/index.js` (standalone, luxon external)
+- `tsc -p tsconfig.build.json` → `dist/**/*.d.ts`, checked by `scripts/check-declarations.ts`
+- `scripts/emit-subpath-entries.ts` → `dist/{components,hooks,types}/index.js` (ESM) and `index.cjs` (CommonJS)
+- `scripts/check-exports.ts` fails the build if any `exports`/`main`/`module`/`types` target is missing
+
+`./components` and `./hooks` are not separate bundles: their entries re-export the
+runtime names of their `.d.ts` from `dist/index.js` / `dist/index.umd.cjs`, so they
+share one module instance (and every React context) with the main entry. A value
+exported from `src/components/index.ts` or `src/hooks/index.ts` must also be
+exported from `src/index.ts`, or `emit-subpath-entries` fails the build. To add a
+subpath served the same way, add it to `FACADE_SUBPATHS` and to package.json
+`exports` (`types`, `import: ./dist/<name>/index.js`, `require: ./dist/<name>/index.cjs`).
 
 ## Testing Strategy
 

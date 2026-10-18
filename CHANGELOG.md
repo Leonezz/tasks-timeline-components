@@ -52,6 +52,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`@tasks-timeline/components/components`, `/hooks` and `/types` failed to
+  import at runtime.** Their `exports` entries pointed at
+  `dist/<subpath>/index.js` and `index.umd.cjs`, which the build never
+  produced (since the package was first set up, including 0.8.0 and 0.9.0).
+  Only the `.d.ts` files shipped, so `import { useTaskStats } from
+  "@tasks-timeline/components/hooks"` type-checked and then failed with
+  `ERR_MODULE_NOT_FOUND` or "Failed to resolve entry". The build now emits
+  `dist/components/index.js` and `dist/components/index.cjs`, and the same for
+  `hooks`. They re-export from the main bundle (`dist/index.js`,
+  `dist/index.umd.cjs`) instead of bundling a second copy, so a component or
+  hook from a subpath is the same object as the one from the main entry and
+  shares its React contexts. `./types` has no runtime exports and gets empty
+  modules, so `import { type Task } from "@tasks-timeline/components/types"`,
+  which `verbatimModuleSyntax` keeps as a runtime import, resolves without
+  loading the UI bundle. The `require` targets are now
+  `dist/<subpath>/index.cjs`.
+- `pnpm build:lib` now fails if any entry point in `package.json` (every
+  `exports` condition, plus `main`, `module` and `types`) points at a file
+  that does not exist (`scripts/check-exports.ts`, also `pnpm check:exports`).
+- The README's stylesheet import used `@tasks-timeline/components/styles`,
+  which is not exported. It is `@tasks-timeline/components/index.css`.
+- **The type declarations failed under `"moduleResolution": "node16"` and
+  `"nodenext"`.** The published `.d.ts` files kept the source's extensionless
+  relative imports (`export * from "./components/index"`). The package is
+  `"type": "module"`, so TypeScript reads them as ES modules and reported
+  TS2834/TS2835 for each one, on every entry point including the main one
+  (0.9.0 and earlier). An `export *` of such a file exported nothing, so the
+  main entry had no components or hooks (`TaskItem`, `useTaskStats`, ...) and
+  `./components` had no `SettingsModal` or other settings components. Named
+  re-exports were typed `any`. After `tsc`, the build now rewrites each of
+  these specifiers to the file it resolves to (`"./components/index.js"`,
+  `"../types.js"`) with `scripts/rewrite-declaration-specifiers.ts`, and
+  `scripts/check-declarations.ts` fails the build on any relative specifier
+  left without an extension. `"moduleResolution": "bundler"` consumers are
+  unaffected.
+- **CommonJS consumers on `"module": "node16"` could not `require()` the
+  package's types.** `import x = require("@tasks-timeline/components")` (and
+  `/components`, `/hooks`, `/types`) in a `.cts` file failed with TS1471 ("The
+  specifier only resolves to an ES module"). Every `exports` condition shared
+  one `.d.ts`, which is an ES module because the package is
+  `"type": "module"`, while `require` loads the CommonJS `index.umd.cjs` /
+  `index.cjs` ("Masquerading as ESM" in arethetypeswrong). `"nodenext"` on
+  TypeScript 5.8 and later already accepted it. The build now writes a
+  CommonJS twin of every declaration file (`dist/**/*.d.cts`, whose relative
+  imports name the other twins) with `scripts/emit-cjs-declarations.ts`, and
+  each dual entry point has its own `types` per condition:
+  `"import": { "types": "./dist/index.d.ts", ... }` and
+  `"require": { "types": "./dist/index.d.cts", ... }`. A type-only import of
+  a package that is only an ES module (`react-error-boundary`) gets
+  `with { "resolution-mode": "import" }` in the twin. `./capabilities` and
+  `./tasks-format` stay ESM only. The build now fails if a condition's types
+  have a different module format from the file it loads
+  (`scripts/check-exports.ts`), or if a CommonJS declaration loads an ES
+  module under `"module": "node16"` (`scripts/check-declarations.ts`).
 - **React 19 consumers can type-check with `skipLibCheck: false`.**
   lucide-react 0.330's declarations import `ReactSVG`, which `@types/react` 19
   no longer exports, so `tsc` failed inside `lucide-react.d.ts`. npm also
