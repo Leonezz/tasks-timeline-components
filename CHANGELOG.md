@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking: `LucideIconName` now lists only the 67 Lucide icon names the
+- **Breaking: `LucideIconName` now lists only the 66 Lucide icon names the
   library itself uses, not every Lucide icon.** `<Icon name>` and `CustomSettingsTab.icon`
   take a `LucideIconName`, so a name outside that list (for example
-  `"Rocket"`) is now a type error. For any other icon, import it from
+  `"Rocket"`) is now a type error. `"Trash2"` isn't in the list either:
+  Lucide 1 made it an alias of `Trash`, so use `"Trash"` for the same glyph.
+  For any other icon, import it from
   `lucide-react` yourself: render it directly, or pass the component as
   `CustomSettingsTab.icon`, which now accepts `LucideIconName | IconComponent`:
 
