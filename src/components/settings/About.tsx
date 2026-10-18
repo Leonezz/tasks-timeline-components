@@ -33,7 +33,7 @@ export const About = () => (
           className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 transition-colors group"
         >
           <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg group-hover:scale-105 transition-transform text-slate-700 dark:text-slate-300">
-            <Icon name="Github" size={20} />
+            <Icon name="FolderGit2" size={20} />
           </div>
           <div className="flex-1">
             <div className="text-sm font-bold text-slate-800 dark:text-slate-200">

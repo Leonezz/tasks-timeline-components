@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`lucide-react` upgraded from 0.330 to 1.x (`^1.59.0`).** `LucideIconName`
+  is `keyof typeof import("lucide-react")`, so it follows the new version:
+  - Lucide 1 removed its brand icons (`Chromium`, `Codepen`, `Codesandbox`,
+    `Dribbble`, `Facebook`, `Figma`, `Framer`, `Github`, `Gitlab`,
+    `Instagram`, `LinkedIn`, `Pocket`, `RailSymbol`, `Slack`). Passing one as
+    an `icon` (for example on an `AgentEntry`) is now a type error. Pick
+    another icon from https://lucide.dev/icons.
+  - Icons added since 0.330 are valid names.
+  - Settings → About shows `FolderGit2` instead of the removed `Github` icon
+    next to **GitHub Repository**.
+  - Lucide 1 adds `aria-hidden="true"` to an icon unless it gets an
+    `aria-*` prop, `role`, `title` or children.
+  - The bundle grows by about 87 kB gzipped (ESM), because `Icon` looks icons
+    up by name and so bundles every Lucide icon.
+
+### Fixed
+
+- **React 19 consumers can type-check with `skipLibCheck: false`.**
+  lucide-react 0.330's declarations import `ReactSVG`, which `@types/react` 19
+  no longer exports, so `tsc` failed inside `lucide-react.d.ts`. npm also
+  warned `ERESOLVE overriding peer dependency` because 0.330's peer range
+  stopped at React 18. lucide-react 1.x supports React 16.5 through 19.
+
 ## [0.9.0] - 2026-10-18
 
 ### Added
