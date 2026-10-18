@@ -182,7 +182,11 @@ export const SettingsPage = ({
                     : "text-slate-500 hover:text-slate-700",
                 )}
               >
-                {tab.icon && <Icon name={tab.icon} size={12} />}
+                {typeof tab.icon === "string" ? (
+                  <Icon name={tab.icon} size={12} />
+                ) : (
+                  tab.icon && <tab.icon size={12} />
+                )}
                 {tab.label}
               </button>
             ))}

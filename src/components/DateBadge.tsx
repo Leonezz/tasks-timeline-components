@@ -1,5 +1,4 @@
-import type { Task } from "../types";
-import * as Lucide from "lucide-react";
+import type { LucideIconName, Task } from "../types";
 import { DateTime } from "luxon";
 import { useId, useState } from "react";
 import { Icon } from "./Icon";
@@ -20,7 +19,7 @@ interface DateBadgeProps {
   type: "dueDate" | "startAt" | "createdAt" | "completedAt";
   date?: string;
   label: string;
-  icon: keyof typeof Lucide;
+  icon: LucideIconName;
   className: string;
   prefix?: string;
 }

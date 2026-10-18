@@ -53,6 +53,11 @@ export default [
           selector: 'CallExpression[callee.object.object.callee.name="Date"][callee.object.property.name="toISOString"][callee.property.name="split"]',
           message: '❌ TIMEZONE BUG: Date().toISOString().split("T")[0] returns UTC date, not local date. Use getTodayISO() from utils/date-helpers instead.',
         },
+        {
+          // Ban: import * as Lucide from "lucide-react"
+          selector: 'ImportDeclaration[source.value="lucide-react"] > ImportNamespaceSpecifier',
+          message: 'Import icons by name. A namespace import of lucide-react keeps every Lucide icon in the bundle. For <Icon name>, add the icon to src/components/icon-registry.ts.',
+        },
       ],
     },
   },

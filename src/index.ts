@@ -49,6 +49,7 @@ export type {
   AgentEvent,
   CustomSettingsTab,
   LucideIconName,
+  IconComponent,
   TaskRepository,
   SettingsRepository,
 } from "./types";

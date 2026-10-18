@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as Lucide from "lucide-react";
 import { DateTime } from "luxon";
 import type {
+  LucideIconName,
   PrimaryVisualStatus,
   Task,
   TaskStatus,
@@ -193,7 +193,7 @@ export const TaskItem: React.FC<TaskItemProps> = React.memo(
             return "bg-slate-200";
         }
       },
-      getStatusIconName = (status: TaskStatus): keyof typeof Lucide => {
+      getStatusIconName = (status: TaskStatus): LucideIconName => {
         switch (status) {
           case "done":
             return "Check";

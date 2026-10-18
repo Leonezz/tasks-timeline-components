@@ -200,7 +200,7 @@ function MyComponent({ tasks }) {
 | `SettingsModal`  | Application settings                        |
 | `HelpModal`      | Help and documentation                      |
 | `Toast`          | Notification system                         |
-| `Icon`           | Icon wrapper for Lucide icons               |
+| `Icon`           | Renders a bundled Lucide icon by name       |
 
 ## Hooks
 

@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Cloud } from "lucide-react";
+import { expect, within } from "storybook/test";
 import { SettingsPage } from "../../components/settings/SettingsPage";
 import type { AppSettings, CustomSettingsTab } from "../../types";
 
@@ -96,12 +98,13 @@ export const Default: Story = {
   },
 };
 
-// Example custom tabs for host applications
+// Example custom tabs for host applications: one icon by name, one passed as
+// a component for an icon the library does not bundle
 const customTabs: CustomSettingsTab[] = [
   {
     id: "host-settings",
     label: "Host app",
-    icon: "Plug",
+    icon: "Wrench",
     content: (
       <div className="p-6">
         <h3 className="text-lg font-semibold mb-4">
@@ -127,7 +130,7 @@ const customTabs: CustomSettingsTab[] = [
   {
     id: "sync-settings",
     label: "Sync",
-    icon: "Cloud",
+    icon: Cloud,
     content: (
       <div className="p-6">
         <h3 className="text-lg font-semibold mb-4">Sync settings</h3>
@@ -147,5 +150,13 @@ export const WithCustomTabs: Story = {
     availableTags: [],
     inSeperatePage: true,
     customTabs,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    for (const name of ["Host app", "Sync"]) {
+      const tab = canvas.getByRole("button", { name });
+      await expect(tab.querySelector("svg")).toBeInTheDocument();
+    }
   },
 };

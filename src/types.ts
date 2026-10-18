@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import type { ICONS } from "./components/icon-registry";
 
 export type Priority = "low" | "medium" | "high";
 export type WorkflowStatus = "todo" | "doing" | "done" | "cancelled";
@@ -175,8 +176,18 @@ export interface SortState {
   script: string;
 }
 
-/** Available icon names from lucide-react */
-export type LucideIconName = keyof typeof import("lucide-react");
+/**
+ * Lucide icon names `<Icon name>` can render: the icons the library bundles.
+ * Other Lucide icons are left out of the bundle; import them from
+ * `lucide-react` yourself.
+ */
+export type LucideIconName = keyof typeof ICONS;
+
+/** An icon component, such as any icon imported from `lucide-react`. */
+export type IconComponent = ComponentType<{
+  size?: number | string;
+  className?: string;
+}>;
 
 /**
  * Custom Settings Tab
@@ -188,10 +199,10 @@ export interface CustomSettingsTab {
   /** Display label shown in the tab bar */
   label: string;
   /**
-   * Optional icon name from lucide-react.
-   * @see https://lucide.dev/icons for available icon names
+   * Optional icon: a {@link LucideIconName}, or an icon component for any
+   * other icon (e.g. `import { Rocket } from "lucide-react"`).
    */
-  icon?: LucideIconName;
+  icon?: LucideIconName | IconComponent;
   /** The content to render when tab is active */
   content: ReactNode;
 }

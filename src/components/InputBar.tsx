@@ -1,7 +1,12 @@
 import React, { useState } from "react";
-import * as Lucide from "lucide-react";
 import { Icon } from "./Icon";
-import type { Priority, SortField, SortState, TaskStatus } from "../types";
+import type {
+  LucideIconName,
+  Priority,
+  SortField,
+  SortState,
+  TaskStatus,
+} from "../types";
 import { cn, parseTaskString } from "../utils";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import { MotionButton, MotionDiv } from "./Motion";
@@ -101,7 +106,7 @@ export const InputBar: React.FC<InputBarProps> = () => {
       const rule = filters[key];
       return rule.include.length > 0 || rule.exclude.length > 0;
     },
-    getStatusIcon = (status: TaskStatus): keyof typeof Lucide => {
+    getStatusIcon = (status: TaskStatus): LucideIconName => {
       switch (status) {
         case "todo":
           return "Circle";
@@ -596,7 +601,7 @@ const SortPopover: React.FC<SortPopoverProps> = ({ sort, onSortChange }) => {
   const fields: {
     label: string;
     value: SortField;
-    icon: keyof typeof Lucide;
+    icon: LucideIconName;
   }[] = [
     { label: "Due Date", value: "dueAt", icon: "Calendar" },
     { label: "Created Date", value: "createdAt", icon: "Clock" },
