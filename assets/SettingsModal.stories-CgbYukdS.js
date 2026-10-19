@@ -1,0 +1,10 @@
+import{S as t}from"./SettingsModal-DT27vNU-.js";import"./jsx-runtime-u17CrQMm.js";import"./iframe-C21N2aj2.js";import"./preload-helper-PPVm8Dsz.js";import"./Motion-C-iNf3Ee.js";import"./proxy-DXqtKrn2.js";import"./SettingsPage-CJM924R6.js";import"./Icon-DNEj_xkd.js";import"./chevron-right-CdDqbhPo.js";import"./circle-BKLBRRnM.js";import"./calendar-BNek3KTD.js";import"./tslib.es6-C44cpxNM.js";import"./recurrence-B2fS74Tu.js";import"./voice-providers-C_Nqj6M0.js";import"./SettingsPageGeneral-B1a1UQUd.js";import"./SettingsPageAI-D3fty8rz.js";import"./index-BWgloZmU.js";import"./index-B7dtx8Vx.js";const h={title:"Settings/SettingsModal",component:t,parameters:{layout:"fullscreen"},tags:["autodocs"]},a={theme:"light",dateFormat:"MM, DD",showCompleted:!0,showProgressBar:!0,soundEnabled:!0,fontSize:"base",useRelativeDates:!0,groupingStrategy:["dueAt"],aiConfig:{enabled:!0,defaultMode:!0,activeProvider:"gemini",providers:{gemini:{apiKey:"",baseUrl:"",model:""},anthropic:{apiKey:"",baseUrl:"",model:""},openai:{apiKey:"",baseUrl:"",model:""},"openai-compatible":{apiKey:"",model:"",baseUrl:""}},systemPrompt:""},voiceConfig:{enabled:!0,activeProvider:"browser",language:"",providers:{browser:{},openai:{apiKey:"",baseUrl:"https://api.openai.com/v1/audio/transcriptions",model:"whisper-1"},gemini:{apiKey:"",model:"gemini-1.5-flash"}}},defaultFocusMode:!0,totalTokenUsage:0,tokenUsageByModel:{},defaultCategory:"",filters:{tags:{include:["#"],exclude:[]},categories:{include:[],exclude:[]},priorities:{include:[],exclude:[]},statuses:{include:[],exclude:[]},enableScript:!1,script:""},sort:{field:"createdAt",direction:"asc",script:""}},e={args:{isOpen:!0,onClose:()=>{},settings:a,onUpdateSettings:()=>{},availableCategories:[],availableTags:[]}};e.parameters={...e.parameters,docs:{...e.parameters?.docs,source:{originalSource:`{
+  args: {
+    isOpen: true,
+    onClose: () => {},
+    settings,
+    onUpdateSettings: () => {},
+    availableCategories: [],
+    availableTags: []
+  }
+}`,...e.parameters?.docs?.source}}};const C=["Default"];export{e as Default,C as __namedExportsOrder,h as default};
