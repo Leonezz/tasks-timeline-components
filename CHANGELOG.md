@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-19
+
+### Added
+
+- `DashboardCard`, `DashboardCardCounts`, `DASHBOARD_CARDS`,
+  `deriveDashboardCard`, `countDashboardCards` and `filterByDashboardCard`:
+  the stat card classifier.
+
+### Changed
+
+- `BacklogSection` starts collapsed. New props: `open` and `onOpenChange`
+  (controlled; passing `open` without `onOpenChange` throws) and `defaultOpen`
+  (uncontrolled, default `false`).
+- `DaySection` takes optional `open` and `onOpenChange` props; without
+  `open` it keeps its open state itself, as before.
+- `useTaskFiltering(tasks, filters, sort, dashboardCard?)` takes the selected
+  stat card as an optional fourth argument and also returns `baseTasks`, the
+  tasks with every filter applied except the status dimension.
+- Task rows no longer fade in when they mount; their hover and press scaling
+  is CSS.
+- `useLazyRender` observes the nearest scrolling ancestor (across shadow
+  roots) instead of the window, decides its first state before paint, keeps
+  its state while hidden, and reuses a measured height only for the same
+  number of items. `rootMargin` values must use px or %.
+
 ### Fixed
 
 - **The stat cards now match the list.** Each card's number is exactly the
@@ -68,29 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the observer looked again, so the observer saw no change and never
   reported it. The observer now starts over after every change, so it
   reports such a chunk in the next frame.
-
-### Changed
-
-- `BacklogSection` starts collapsed. New props: `open` and `onOpenChange`
-  (controlled; passing `open` without `onOpenChange` throws) and `defaultOpen`
-  (uncontrolled, default `false`).
-- `DaySection` takes optional `open` and `onOpenChange` props; without
-  `open` it keeps its open state itself, as before.
-- `useTaskFiltering(tasks, filters, sort, dashboardCard?)` takes the selected
-  stat card as an optional fourth argument and also returns `baseTasks`, the
-  tasks with every filter applied except the status dimension.
-- Task rows no longer fade in when they mount; their hover and press scaling
-  is CSS.
-- `useLazyRender` observes the nearest scrolling ancestor (across shadow
-  roots) instead of the window, decides its first state before paint, keeps
-  its state while hidden, and reuses a measured height only for the same
-  number of items. `rootMargin` values must use px or %.
-
-### Added
-
-- `DashboardCard`, `DashboardCardCounts`, `DASHBOARD_CARDS`,
-  `deriveDashboardCard`, `countDashboardCards` and `filterByDashboardCard`:
-  the stat card classifier.
 
 ## [0.10.0] - 2026-10-18
 
