@@ -1,11 +1,10 @@
-import React, { useMemo, useRef } from "react";
-import { DateTime } from "luxon";
-import type { DateGroupBy, DayGroup, Task } from "../types";
-import { groupTasksByYearAndDate } from "../utils";
-import { deriveWorkflowStatus } from "../utils/task";
+import React, { useMemo, useRef, useState } from "react";
+import { getTodayISO } from "../utils/date-helpers";
+import { partitionTimeline } from "../utils/timeline";
 import { YearSection } from "./YearSection";
 import { DaySection } from "./DaySection";
 import { BacklogSection } from "./BacklogSection";
+import { FrozenSubtree } from "./FrozenSubtree";
 import { Icon } from "./Icon";
 import { useTasksContext } from "../contexts/TasksContext";
 import { useSettingsContext } from "../contexts/SettingsContext";
@@ -18,84 +17,26 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
   const { tasks } = useTasksContext(),
     { settings, isFocusMode, toggleFocusMode } = useSettingsContext(),
     todayAddTaskButtonRef = useRef<HTMLButtonElement>(null),
+    // Collapsed until the user expands it; kept here so the choice survives
+    // filter changes that empty the backlog and focus mode
+    [isBacklogOpen, setIsBacklogOpen] = useState(false),
     handleAddTodayTask = () => {
       todayAddTaskButtonRef.current?.click();
       todayAddTaskButtonRef.current?.focus();
     },
-    { todayGroup, otherYearGroups, backlogTasks } = useMemo(() => {
-      const today = DateTime.now(),
-        todayStr = today.toISODate(),
-        // 1. Filter based on "Show Completed" setting
-        visibleTasks = settings.showCompleted
-          ? tasks
-          : tasks.filter((t) => {
-              const workflowStatus = deriveWorkflowStatus(t);
-              return (
-                workflowStatus !== "done" && workflowStatus !== "cancelled"
-              );
-            }),
-        // 2. Identify "Dated" vs "Truly Undated" tasks
-        datedTasks: Task[] = [],
-        trulyUndatedTasks: Task[] = [],
-        dateFields: DateGroupBy[] = [
-          "dueAt",
-          "startAt",
-          "createdAt",
-          "completedAt",
-        ];
-
-      visibleTasks.forEach((task) => {
-        // A task is only backlog if it has NO valid dates in ANY field
-        const hasAnyValidDate = dateFields.some((field) => {
-          const val = task[field];
-          return val && DateTime.fromISO(val).isValid;
-        });
-
-        if (hasAnyValidDate) {
-          datedTasks.push(task);
-        } else {
-          trulyUndatedTasks.push(task);
-        }
-      });
-
-      // 3. Group the "Dated" tasks.
-      const allGroups = groupTasksByYearAndDate(
-        datedTasks,
-        settings.groupingStrategy,
-      );
-
-      // 4. Extract "Today" group from the hierarchy for featured display
-      let foundTodayGroup: DayGroup | null = null;
-      const finalYearGroups = [];
-
-      for (const yearGrp of allGroups) {
-        // Check if today exists in this year
-        const todayGroupInYear = yearGrp.dayGroups.find(
-          (dg) => dg.date === todayStr,
-        );
-
-        if (todayGroupInYear) {
-          foundTodayGroup = todayGroupInYear;
-          const remainingDays = yearGrp.dayGroups.filter(
-            (dg) => dg.date !== todayStr,
-          );
-          // Only keep year if it has days left
-          if (remainingDays.length > 0) {
-            finalYearGroups.push({ ...yearGrp, dayGroups: remainingDays });
-          }
-        } else {
-          finalYearGroups.push(yearGrp);
-        }
-      }
-
-      const finalToday = foundTodayGroup || { date: todayStr!, tasks: [] };
-
-      return {
-        todayGroup: finalToday,
-        otherYearGroups: finalYearGroups,
-        backlogTasks: trulyUndatedTasks,
-      };
-    }, [tasks, settings.showCompleted, settings.groupingStrategy]);
+    {
+      todayGroup,
+      yearGroups: otherYearGroups,
+      backlogTasks,
+    } = useMemo(
+      () =>
+        partitionTimeline(tasks, {
+          groupingStrategy: settings.groupingStrategy,
+          showCompleted: settings.showCompleted,
+          today: getTodayISO(),
+        }),
+      [tasks, settings.showCompleted, settings.groupingStrategy],
+    );
 
   return (
     <div className={className}>
@@ -119,16 +60,27 @@ export const TodoList: React.FC<TodoListProps> = ({ className }) => {
         />
       </div>
 
-      {/* Timeline - Hidden in Focus Mode */}
-      {!isFocusMode &&
-        otherYearGroups.map((group) => (
-          <YearSection key={group.year} group={group} />
-        ))}
+      {/* Timeline and backlog: hidden, not unmounted, in focus mode, so
+          leaving it shows them at once with their open/closed state intact.
+          Frozen meanwhile, so changes while hidden do not render them;
+          leaving focus mode renders the timeline once, and each lazy list
+          (day sections, rows) checks what is in view before that frame
+          paints. */}
+      <div hidden={isFocusMode} data-timeline-body="">
+        <FrozenSubtree frozen={isFocusMode}>
+          {otherYearGroups.map((group) => (
+            <YearSection key={group.year} group={group} />
+          ))}
 
-      {/* Backlog Section - Hidden in Focus Mode */}
-      {!isFocusMode && backlogTasks.length > 0 && (
-        <BacklogSection tasks={backlogTasks} />
-      )}
+          {backlogTasks.length > 0 && (
+            <BacklogSection
+              tasks={backlogTasks}
+              open={isBacklogOpen}
+              onOpenChange={setIsBacklogOpen}
+            />
+          )}
+        </FrozenSubtree>
+      </div>
 
       {isFocusMode && backlogTasks.length > 0 && (
         <div

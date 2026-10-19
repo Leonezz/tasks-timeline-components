@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime, Settings, type Zone } from "luxon";
 import type {
   DateGroupBy,
   DayGroup,
@@ -15,6 +15,16 @@ export interface DateValidationState {
   hasMissingDates: boolean;
   hasInvalidDates: boolean;
 }
+
+/**
+ * One frozen object per result, so a row that receives it as a prop keeps
+ * equal props across renders and React.memo can skip it.
+ */
+const DATE_VALIDATION_STATES = {
+  missing: Object.freeze({ hasMissingDates: true, hasInvalidDates: false }),
+  invalid: Object.freeze({ hasMissingDates: false, hasInvalidDates: true }),
+  both: Object.freeze({ hasMissingDates: true, hasInvalidDates: true }),
+} as const satisfies Record<string, DateValidationState>;
 
 export const computeDateValidation = (
   task: Task,
@@ -54,11 +64,16 @@ export const computeDateValidation = (
     }
   }
 
-  if (!hasMissingDates && !hasInvalidDates) {
-    return undefined; // No badge needed
+  if (hasMissingDates && hasInvalidDates) {
+    return DATE_VALIDATION_STATES.both;
   }
-
-  return { hasMissingDates, hasInvalidDates };
+  if (hasMissingDates) {
+    return DATE_VALIDATION_STATES.missing;
+  }
+  if (hasInvalidDates) {
+    return DATE_VALIDATION_STATES.invalid;
+  }
+  return undefined; // No badge needed
 };
 
 const safeDate = (dateStr: string): DateTime => {
@@ -112,6 +127,44 @@ export function withStatusDates(previous: Task, next: Task): Task {
   };
 }
 
+interface DayContext {
+  zone: Zone;
+  dayStartMs: number;
+  nextDayStartMs: number;
+  today: string;
+  tomorrow: string;
+}
+
+let cachedDay: DayContext | null = null;
+
+/**
+ * Today's and tomorrow's local dates for `nowMs`. Building them with Luxon
+ * for every task dominated a status pass over a few hundred tasks, so they
+ * are kept until the clock leaves the cached day (either way) or the
+ * default zone changes.
+ */
+const getDayContext = (nowMs: number): DayContext => {
+  const zone = Settings.defaultZone;
+  if (
+    cachedDay &&
+    cachedDay.zone === zone &&
+    nowMs >= cachedDay.dayStartMs &&
+    nowMs < cachedDay.nextDayStartMs
+  ) {
+    return cachedDay;
+  }
+  const dayStart = DateTime.fromMillis(nowMs).startOf("day"),
+    nextDayStart = dayStart.plus({ days: 1 });
+  cachedDay = {
+    zone,
+    dayStartMs: dayStart.toMillis(),
+    nextDayStartMs: nextDayStart.toMillis(),
+    today: dayStart.toISODate() ?? "",
+    tomorrow: nextDayStart.toISODate() ?? "",
+  };
+  return cachedDay;
+};
+
 export const deriveTaskRenderState = (task: Task): TaskRenderState => {
   const workflowStatus = deriveWorkflowStatus(task),
     isActive = workflowStatus !== "done" && workflowStatus !== "cancelled";
@@ -127,9 +180,8 @@ export const deriveTaskRenderState = (task: Task): TaskRenderState => {
     };
   }
 
-  const now = DateTime.now(),
-    today = now.toISODate() || "",
-    tomorrow = now.plus({ days: 1 }).toISODate(),
+  const nowMs = Settings.now(),
+    { today, tomorrow } = getDayContext(nowMs),
     dueDate = task.dueAt ? DateTime.fromISO(task.dueAt).toISODate() : null,
     startDate = task.startAt ? DateTime.fromISO(task.startAt) : null;
 
@@ -141,7 +193,7 @@ export const deriveTaskRenderState = (task: Task): TaskRenderState => {
   }
 
   let planningStatus: PlanningStatus = "planned";
-  if (startDate?.isValid && startDate > now) {
+  if (startDate?.isValid && startDate.toMillis() > nowMs) {
     planningStatus = "scheduled";
   } else if (!task.dueAt && !task.startAt) {
     planningStatus = "unplanned";
@@ -197,6 +249,30 @@ export const isTaskRecurring = (
 /** Removes only the tag at `index`; tags parsed from text can share an id. */
 export const removeTagAt = (tags: Task["tags"], index: number): Task["tags"] =>
   tags.filter((_, i) => i !== index);
+
+/** Done or cancelled. */
+export const isTaskFinished = (task: Task): boolean => {
+  const workflowStatus = deriveWorkflowStatus(task);
+  return workflowStatus === "done" || workflowStatus === "cancelled";
+};
+
+/**
+ * Totals for a set of day groups. A task shown on several days (several
+ * grouping fields) counts once, so the totals match the rows a reader sees
+ * as distinct tasks.
+ */
+export const summarizeDayGroups = (
+  dayGroups: readonly DayGroup[],
+): { totalTasks: number; completedTasks: number } => {
+  const unique = new Set(dayGroups.flatMap((group) => group.tasks));
+  let completedTasks = 0;
+  unique.forEach((task) => {
+    if (isTaskFinished(task)) {
+      completedTasks += 1;
+    }
+  });
+  return { totalTasks: unique.size, completedTasks };
+};
 
 export const groupTasksByYearAndDate = (
   tasks: Task[],
@@ -263,18 +339,8 @@ export const groupTasksByYearAndDate = (
       dayGroups: DayGroup[] = sortedDays.map((date) => ({
         date,
         tasks: yearTasks[date],
-      })),
-      allTasksInYear = Object.values(yearTasks).flat(),
-      completed = allTasksInYear.filter((t) => {
-        const workflowStatus = deriveWorkflowStatus(t);
-        return workflowStatus === "done" || workflowStatus === "cancelled";
-      }).length;
+      }));
 
-    return {
-      year,
-      dayGroups,
-      totalTasks: allTasksInYear.length,
-      completedTasks: completed,
-    };
+    return { year, dayGroups, ...summarizeDayGroups(dayGroups) };
   });
 };

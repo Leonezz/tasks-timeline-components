@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { MarkdownText } from "./MarkdownText";
+import { MarkdownText, MarkdownTextMarkdown } from "./MarkdownText";
+import { isPlainMarkdownText } from "./markdown-plain-text";
 
 describe("MarkdownText", () => {
   it("renders paragraphs, lists, and code blocks", () => {
@@ -91,5 +92,78 @@ describe("MarkdownText", () => {
     expect(html).toContain("text-right");
     expect(html).toContain("<strong");
     expect(html).toContain("<code");
+  });
+
+  describe("plain-text fast path", () => {
+    const PLAIN = [
+      "Buy milk",
+      "Buy milk  ",
+      "Call mom, then (maybe) dad?",
+      "Pay 50% of $20 - today!",
+      "a   b",
+      "Version 2.0/3.1 = done; ok: yes",
+      "Someday item 12",
+      "另一个中文任务，带标点。",
+      "Ünïcödé — dash “quotes”",
+      "\u00a0leading nbsp",
+    ];
+    const NOT_PLAIN = [
+      "- item",
+      "-",
+      "+ item",
+      "1. step",
+      "2026.",
+      "3) step",
+      "---",
+      "    indented code",
+      " leading space",
+      "see www.example.com",
+      "go to https://example.com",
+      "x & y",
+      "**bold**",
+      "snake_case",
+      "`code`",
+      "[link](x)",
+      "# heading",
+      "a\nb",
+      "a ~~b~~",
+      "a | b",
+      "mail me@example.com",
+      "<b>html</b>",
+      "back\\slash",
+    ];
+
+    it.each(PLAIN)("treats %j as plain text", (content) => {
+      expect(isPlainMarkdownText(content)).toBe(true);
+    });
+
+    it.each(NOT_PLAIN)("sends %j through the markdown parser", (content) => {
+      expect(isPlainMarkdownText(content)).toBe(false);
+    });
+
+    const VARIANTS = [
+      {
+        inline: true,
+        compact: true,
+        paragraphClassName: "inline",
+        className: "min-w-0",
+      },
+      { inline: true },
+      { inline: false, compact: true, paragraphClassName: "text-sm" },
+      { inline: false },
+    ];
+
+    it.each(
+      PLAIN.flatMap((content) => VARIANTS.map((v) => [content, v] as const)),
+    )("renders %j exactly like the markdown path (%o)", (content, variant) => {
+      const fast = renderToStaticMarkup(
+          <MarkdownText content={content} {...variant} />,
+        ),
+        markdown = renderToStaticMarkup(
+          <MarkdownTextMarkdown content={content} {...variant} />,
+        );
+
+      expect(fast).toBe(markdown);
+    });
   });
 });

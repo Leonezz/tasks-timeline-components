@@ -103,8 +103,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => (
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Items with no Due Date or Start Date appear in the Backlog
-                    section.
+                    Items without any date (due, start, created or done) appear
+                    in the Backlog section. It starts collapsed; expand it when
+                    you need it.
                   </p>
                 </div>
               </div>
@@ -181,6 +182,16 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => (
                     Focus Mode
                   </code>
                   <span>Hides everything except Today's active tasks.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px]">
+                    Stat Cards
+                  </code>
+                  <span>
+                    Each open task counts in one card (Due &amp; OD, Doing,
+                    Unplanned or To Do), under the other filters. Click a card
+                    to list exactly those tasks.
+                  </span>
                 </li>
               </ul>
             </section>

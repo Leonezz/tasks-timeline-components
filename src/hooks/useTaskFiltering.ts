@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import type { FilterState, Priority, SortState, Task } from "../types";
+import type {
+  FilterRule,
+  FilterState,
+  Priority,
+  SortState,
+  Task,
+  TaskStatus,
+} from "../types";
+import { filterByDashboardCard, type DashboardCard } from "../utils/dashboard";
 import { logger } from "../utils/logger";
 import { compileSafeExpression } from "../utils/safe-expression";
 import { taskMatchesStatus } from "../utils/task";
@@ -20,8 +28,15 @@ export function deriveFilterOptions(tasks: Task[]) {
   };
 }
 
-/** Apply include/exclude filters and optional script filter to a task list. */
-export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
+/**
+ * Applies every filter except the status rule: tags, categories, priorities
+ * and the script filter. The stat cards count over this set, so they follow
+ * the other filters while staying independent of the status selection.
+ */
+export function filterTasksExceptStatus(
+  tasks: Task[],
+  filters: FilterState,
+): Task[] {
   let result = [...tasks];
 
   // Tags: include/exclude
@@ -60,21 +75,6 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
     );
   }
 
-  // Statuses: include/exclude
-  if (filters.statuses.include.length > 0) {
-    result = result.filter((t) =>
-      filters.statuses.include.some((status) => taskMatchesStatus(t, status)),
-    );
-  }
-  if (filters.statuses.exclude.length > 0) {
-    result = result.filter(
-      (t) =>
-        !filters.statuses.exclude.some((status) =>
-          taskMatchesStatus(t, status),
-        ),
-    );
-  }
-
   // Script Filtering
   if (filters.enableScript && filters.script.trim()) {
     try {
@@ -98,6 +98,39 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
 
   return result;
 }
+
+/** Applies only a status include/exclude rule. */
+export function filterByStatusRule(
+  tasks: Task[],
+  rule: FilterRule<TaskStatus>,
+): Task[] {
+  let result = tasks;
+  if (rule.include.length > 0) {
+    result = result.filter((t) =>
+      rule.include.some((status) => taskMatchesStatus(t, status)),
+    );
+  }
+  if (rule.exclude.length > 0) {
+    result = result.filter(
+      (t) => !rule.exclude.some((status) => taskMatchesStatus(t, status)),
+    );
+  }
+  return result;
+}
+
+/** Apply include/exclude filters and optional script filter to a task list. */
+export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
+  return filterByStatusRule(
+    filterTasksExceptStatus(tasks, filters),
+    filters.statuses,
+  );
+}
+
+const NO_STATUS_RULE: FilterRule<TaskStatus> = { include: [], exclude: [] };
+
+/** Whether a filter state narrows by status. */
+export const hasStatusRule = (filters: FilterState): boolean =>
+  filters.statuses.include.length > 0 || filters.statuses.exclude.length > 0;
 
 /** Sort a task list by the given sort state. */
 export function sortTasks(tasks: Task[], sort: SortState): Task[] {
@@ -159,19 +192,42 @@ export function sortTasks(tasks: Task[], sort: SortState): Task[] {
   return result;
 }
 
+/**
+ * Filters and sorts tasks. `baseTasks` has every filter applied except the
+ * status dimension; the visible list then narrows it by the selected stat
+ * card or, when no card is selected, by the status rule.
+ */
 export const useTaskFiltering = (
   tasks: Task[],
   filters: FilterState,
   sort: SortState,
+  dashboardCard: DashboardCard | null = null,
 ) => {
   const { uniqueTags, uniqueCategories } = useMemo(
-      () => deriveFilterOptions(tasks),
-      [tasks],
-    ),
-    processedTasks = useMemo(
-      () => sortTasks(filterTasks(tasks, filters), sort),
-      [tasks, filters, sort],
-    );
+    () => deriveFilterOptions(tasks),
+    [tasks],
+  );
+  // Only the non-status filters: a status or card change reuses this list
+  const { tags, categories, priorities, enableScript, script } = filters;
+  const baseTasks = useMemo(
+    () =>
+      filterTasksExceptStatus(tasks, {
+        tags,
+        categories,
+        priorities,
+        statuses: NO_STATUS_RULE,
+        enableScript,
+        script,
+      }),
+    [tasks, tags, categories, priorities, enableScript, script],
+  );
+  const { statuses } = filters;
+  const processedTasks = useMemo(() => {
+    const narrowed = dashboardCard
+      ? filterByDashboardCard(baseTasks, dashboardCard)
+      : filterByStatusRule(baseTasks, statuses);
+    return sortTasks(narrowed, sort);
+  }, [baseTasks, dashboardCard, statuses, sort]);
 
-  return { processedTasks, uniqueTags, uniqueCategories };
+  return { processedTasks, baseTasks, uniqueTags, uniqueCategories };
 };

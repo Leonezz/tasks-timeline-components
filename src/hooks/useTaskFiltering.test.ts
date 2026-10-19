@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import type { FilterState, SortState, Task } from "../types";
 import {
   deriveFilterOptions,
+  filterByStatusRule,
   filterTasks,
+  filterTasksExceptStatus,
   sortTasks,
 } from "./useTaskFiltering";
 
@@ -498,5 +500,42 @@ describe("sortTasks", () => {
       script: "not valid !!!",
     });
     expect(result).toHaveLength(5);
+  });
+});
+
+describe("filterTasksExceptStatus / filterByStatusRule", () => {
+  const combos: FilterState[] = [
+    EMPTY_FILTER,
+    { ...EMPTY_FILTER, statuses: { include: ["todo"], exclude: [] } },
+    {
+      ...EMPTY_FILTER,
+      priorities: { include: ["high", "medium"], exclude: [] },
+      statuses: { include: ["unplanned", "overdue"], exclude: ["doing"] },
+    },
+    {
+      ...EMPTY_FILTER,
+      tags: { include: [], exclude: ["errands"] },
+      statuses: { include: [], exclude: ["done"] },
+      enableScript: true,
+      script: "task.priority != 'low'",
+    },
+  ];
+
+  it.each(combos)("compose to filterTasks (%#)", (filters) => {
+    expect(
+      filterByStatusRule(
+        filterTasksExceptStatus(TASKS, filters),
+        filters.statuses,
+      ),
+    ).toEqual(filterTasks(TASKS, filters));
+  });
+
+  it("ignores the status rule in filterTasksExceptStatus", () => {
+    const filters: FilterState = {
+      ...EMPTY_FILTER,
+      statuses: { include: ["done"], exclude: [] },
+    };
+
+    expect(filterTasksExceptStatus(TASKS, filters)).toEqual(TASKS);
   });
 });

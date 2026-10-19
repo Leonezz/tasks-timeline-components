@@ -1,6 +1,9 @@
-import { type ReactNode, createContext, useContext } from "react";
+import { type ReactNode, useContext } from "react";
 import type { AppSettings, FilterState, SortState } from "../types";
 import type { VoiceRuntime } from "../utils/voice-providers";
+import { SettingsContext } from "./context-objects";
+import { TaskRowBridge } from "./TaskRowContext";
+import { TimelineSectionBridge } from "./TimelineSectionContext";
 
 /* eslint-disable react-refresh/only-export-components */
 export interface SettingsContextType {
@@ -24,10 +27,6 @@ export interface SettingsContextType {
   onOpenSettings?: () => void;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined,
-);
-
 export function useSettingsContext() {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -45,7 +44,10 @@ export function SettingsProvider({
 }) {
   return (
     <SettingsContext.Provider value={value}>
-      {children}
+      {/* Rows and sections read narrower, stable contexts */}
+      <TaskRowBridge>
+        <TimelineSectionBridge>{children}</TimelineSectionBridge>
+      </TaskRowBridge>
     </SettingsContext.Provider>
   );
 }
